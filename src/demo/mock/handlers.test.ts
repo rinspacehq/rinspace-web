@@ -283,6 +283,7 @@ describe('repository-backed demo handlers', () => {
     await expect(publicProfile.json()).resolves.toMatchObject({
       username: 'demo-orbit-reader',
       display_name: '轨道读者',
+      website: 'https://orbit-reader.example/notes',
       mobile: '',
       is_follower: false,
     });

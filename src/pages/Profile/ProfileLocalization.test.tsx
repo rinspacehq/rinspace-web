@@ -47,9 +47,10 @@ const demoRuntime: BootstrapModeRuntime = {
   },
 };
 const demoPorts = assembleRuntimePorts(demoConfig, demoRuntime);
+let resolvedTheme: 'light' | 'dark' = 'light';
 
 vi.mock('@/app/providers/ThemeProvider', () => ({
-  useTheme: () => ({ resolved: 'light' }),
+  useTheme: () => ({ resolved: resolvedTheme }),
 }));
 vi.mock('@/components/SiteTopbarShell', () => ({ default: () => null }));
 vi.mock('@/components/CodeMirrorEditor', () => ({
@@ -103,9 +104,9 @@ const currentUser: CurrentUserInfo = {
   mobile: '',
   bio: '作者保留简介',
   bio_html: '',
-  website: '',
+  website: 'https://orbit-reader.example/notes',
   location: '',
-  about_html: '',
+  about_html: '<p>把复杂问题拆成可以验证的小步骤</p>',
   language: 'en',
   color_scheme: 'light',
   access_token: '',
@@ -134,6 +135,30 @@ const authoredBlog: FeedItem = {
   favoriteCount: 1,
 };
 
+const publicProfile = {
+  id: 'profile-user-1',
+  created_at: currentUser.created_at,
+  last_login_date: currentUser.last_login_date,
+  username: 'profile-user',
+  follow_count: 8,
+  following_count: 5,
+  answer_count: 0,
+  question_count: 0,
+  rank: 125,
+  display_name: '作者保留姓名',
+  avatar: '',
+  cover_url: '',
+  mobile: '',
+  bio: '作者保留简介',
+  bio_html: '',
+  website: 'https://orbit-reader.example/notes',
+  location: '',
+  about_html: '',
+  status: 'available',
+  suspended_until: 0,
+  is_follower: false,
+};
+
 async function switchLanguage(language: 'en' | 'zh-CN') {
   await act(async () => {
     await i18n.changeLanguage(language);
@@ -141,31 +166,10 @@ async function switchLanguage(language: 'en' | 'zh-CN') {
 }
 
 beforeEach(() => {
+  resolvedTheme = 'dark';
   window.localStorage.setItem(demoPersonaStorageKey, 'member');
   demoPorts.auth.setDemoPersona?.('member');
-  vi.mocked(loadPersonalUserInfo).mockResolvedValue({
-    id: 'profile-user-1',
-    created_at: currentUser.created_at,
-    last_login_date: currentUser.last_login_date,
-    username: 'profile-user',
-    follow_count: 8,
-    following_count: 5,
-    answer_count: 0,
-    question_count: 0,
-    rank: 125,
-    display_name: '作者保留姓名',
-    avatar: '',
-    cover_url: '',
-    mobile: '',
-    bio: '作者保留简介',
-    bio_html: '',
-    website: '',
-    location: '',
-    about_html: '',
-    status: 'available',
-    suspended_until: 0,
-    is_follower: false,
-  });
+  vi.mocked(loadPersonalUserInfo).mockResolvedValue(publicProfile);
   vi.mocked(loadPersonalQATop).mockResolvedValue({ answer: [], question: [] });
   vi.mocked(loadPersonalQuestionPage).mockResolvedValue({ count: 0, items: [] });
   vi.mocked(loadPersonalAnswerPage).mockResolvedValue({ count: 0, items: [] });
@@ -198,6 +202,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   vi.clearAllMocks();
+  resolvedTheme = 'light';
   await switchLanguage('zh-CN');
 });
 
@@ -225,6 +230,11 @@ describe('Profile localization', () => {
 
     expect(await view.findByText('作者保留姓名')).toBeTruthy();
     expect(view.getByText('作者保留简介')).toBeTruthy();
+    const website = view.getByRole('link', { name: 'orbit-reader.example' });
+    expect(website.getAttribute('href')).toBe('https://orbit-reader.example/notes');
+    expect(website.getAttribute('target')).toBe('_blank');
+    expect(website.querySelector('img')).toBeNull();
+    expect(view.container.querySelector<HTMLIFrameElement>('.profile-about-frame')?.srcdoc).toContain('background:#0b1218');
     fireEvent.click(view.getByRole('tab', { name: /Overview/ }));
     expect(await view.findByRole('link', { name: /作者保留博客标题/ })).toBeTruthy();
     expect(view.getByText('1,234 reads · 2 likes · 1 bookmark')).toBeTruthy();
@@ -243,4 +253,5 @@ describe('Profile localization', () => {
     expect(view.getByRole('link', { name: /作者保留博客标题/ })).toBeTruthy();
     expect(view.queryByText('不应显示的服务端中文元数据')).toBeNull();
   });
+
 });

@@ -169,13 +169,16 @@ function profileAboutSrcDoc(source: string, dark: boolean, emptyText: string) {
   const html = source.trim() || defaultAboutHTML(dark, emptyText);
   const csp = `<meta http-equiv="Content-Security-Policy" content="${aboutFrameCSP.replace(/"/g, '&quot;')}">`;
   const base = '<base target="_blank">';
+  const theme = dark
+    ? '<style>html{background:#0b1218;color:#d7e1ea;color-scheme:dark}body{min-height:100vh;margin:0;padding:1rem;background:inherit;color:inherit;font:16px/1.7 system-ui}a{color:#8cc9f0}</style>'
+    : '<style>html{background:#fff;color:#1f2937;color-scheme:light}body{min-height:100vh;margin:0;padding:1rem;background:inherit;color:inherit;font:16px/1.7 system-ui}a{color:#245d82}</style>';
   if (/<head(\s[^>]*)?>/i.test(html)) {
-    return html.replace(/<head(\s[^>]*)?>/i, (match) => `${match}${csp}${base}`);
+    return html.replace(/<head(\s[^>]*)?>/i, (match) => `${match}${csp}${base}${theme}`);
   }
   if (/<html(\s[^>]*)?>/i.test(html)) {
-    return html.replace(/<html(\s[^>]*)?>/i, (match) => `${match}<head>${csp}${base}</head>`);
+    return html.replace(/<html(\s[^>]*)?>/i, (match) => `${match}<head>${csp}${base}${theme}</head>`);
   }
-  return `<!doctype html><html><head>${csp}${base}</head><body>${html}</body></html>`;
+  return `<!doctype html><html><head>${csp}${base}${theme}</head><body>${html}</body></html>`;
 }
 
 function dateTimeLabel(t: IdentityTranslation, locale: LocaleId, timestamp: number) {
@@ -357,6 +360,34 @@ function initialsFor(name: string) {
 
 function defaultCoverUrl() {
   return `${publicEnv.publicBasePath || ''}/profile-cover.svg`;
+}
+
+function websiteDetails(value: string) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return { href: url.href, host: url.host };
+  } catch {
+    return null;
+  }
+}
+
+function ProfileWebsiteLink({ value }: { value: string }) {
+  const website = websiteDetails(value);
+  if (!website) return null;
+
+  return (
+    <a
+      className="profile-website-link"
+      href={website.href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={website.host}
+    >
+      <span>{website.host}</span>
+      <Icon name="box-arrow-up-right" aria-hidden="true" />
+    </a>
+  );
 }
 
 const profileContentPageSize = 50;
@@ -4319,9 +4350,10 @@ function ProfilePage() {
                         <div className="profile-meta-row">
                           {data.user.location ? <span>{data.user.location}</span> : null}
                           {data.user.website ? (
-                            <a href={data.user.website} target="_blank" rel="noreferrer">
-                              {data.user.website.replace(/^https?:\/\//, '')}
-                            </a>
+                            <ProfileWebsiteLink
+                              key={data.user.website}
+                              value={data.user.website}
+                            />
                           ) : null}
                         </div>
                       </>
