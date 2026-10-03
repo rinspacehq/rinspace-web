@@ -24,6 +24,7 @@ import {
 } from './request';
 
 const fallbackClock = '2026-06-01T12:00:00.000Z';
+const demoMemberWebsite = 'https://orbit-reader.example/notes';
 
 type JsonObject = Readonly<Record<string, unknown>>;
 
@@ -161,7 +162,7 @@ function memberProfilePayload(snapshot: IdentitySnapshot) {
     avatarDataUrl: avatar,
     coverUrl: optionalString(stored.coverUrl),
     bio: optionalString(stored.bio, member.data.bio),
-    website: optionalString(stored.website),
+    website: optionalString(stored.website, demoMemberWebsite),
     location: optionalString(stored.location),
     aboutHtml: optionalString(stored.aboutHtml, `<p>${member.data.headline}</p>`),
     updatedAt: optionalString(stored.updatedAt, member.updatedAt),

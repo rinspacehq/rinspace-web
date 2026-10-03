@@ -213,3 +213,69 @@
   inline-size: 100%;
   min-inline-size: 0;
 }
+
+/* Keep profile identity readable without competing with the content below. */
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-cover-card {
+  border-radius: var(--rin-radius-lg);
+  box-shadow: none;
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-cover-art {
+  min-block-size: clamp(9rem, 18vw, 13rem);
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-identity-bar {
+  gap: clamp(1rem, 2vw, 1.5rem);
+  padding-block-end: clamp(1.25rem, 3vw, 2rem);
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-masthead-copy,
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-meta-row {
+  gap: .5rem;
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-website-link {
+  display: inline-flex;
+  max-inline-size: 100%;
+  min-block-size: 2.25rem;
+  align-items: center;
+  gap: .5rem;
+  padding-inline: .625rem;
+  overflow: hidden;
+  border: 1px solid var(--rin-border);
+  border-radius: 999px;
+  background: var(--rin-surface-subtle);
+  color: var(--rin-ink);
+  text-decoration: none;
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-website-link:hover {
+  border-color: color-mix(in srgb, var(--rin-accent) 44%, transparent);
+  color: var(--rin-accent);
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-website-link svg {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  flex: 0 0 auto;
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-website-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (min-width: 48.0625rem) {
+  [data-rin-ui="v2"] [data-page-family="identity"] .profile-identity-bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  [data-rin-ui="v2"] [data-page-family="identity"] .profile-action-stack,
+  [data-rin-ui="v2"] [data-page-family="identity"] .profile-relation-stats {
+    justify-items: end;
+    justify-self: end;
+  }
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-cover-art span {
+  margin-block-end: clamp(2rem, 3vw, 3rem);
+  font-size: clamp(2.25rem, 6vw, 5rem);
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-about-frame-wrap {
+  min-block-size: 0;
+}
+[data-rin-ui="v2"] [data-page-family="identity"] .profile-about-frame {
+  block-size: clamp(16rem, 36vh, 28rem);
+  min-block-size: 0;
+}
