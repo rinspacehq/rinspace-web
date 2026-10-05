@@ -51,7 +51,7 @@ export function releaseContext(value) {
 }
 
 function safePath(name) {
-  if (typeof name !== 'string' || Buffer.byteLength(name) > 255 || !name.split('/').every((part) => /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/.test(part))) throw Error('Package paths must be plain ASCII relative paths');
+  if (typeof name !== 'string' || Buffer.byteLength(name) > 255 || !name.split('/').every((part) => /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(part))) throw Error('Package paths must be plain ASCII relative paths');
   return name;
 }
 
