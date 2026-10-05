@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { identitySessionMock } from './identity-session-mock';
 
 const commit = "a".repeat(40);
 const now = new Date().toISOString();
@@ -37,8 +38,8 @@ const blog = {
   id: "101",
   slug: "blog-width",
   type: "blog",
-  title: "博客正文宽度验收",
-  body: "[[RIN_WRITER]]<p>博客正文宽度参照。</p>[[/RIN_WRITER]]",
+  title: "文章正文宽度验收",
+  body: "[[RIN_WRITER]]<p>文章正文宽度参照。</p>[[/RIN_WRITER]]",
 };
 
 const reader = {
@@ -82,19 +83,7 @@ async function installFixture(
         }
       : reader;
   await page.addInitScript(() => {
-    const payload = btoa(
-      JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }),
-    );
-    localStorage.setItem(
-      "rinspace-auth-session",
-      JSON.stringify({
-        access_token: `e30.${payload}.signature`,
-        refresh_token: "refresh",
-        expires_in: 3600,
-        sub: "reader-7",
-        issued_at: Date.now(),
-      }),
-    );
+    localStorage.setItem("rinspace-auth-hint", JSON.stringify({ sub: "reader-7" }));
   });
   await page.route("**/auth/v1/user/me", (route) =>
     route.fulfill({
@@ -106,6 +95,10 @@ async function installFixture(
       /^\/rinspace(?=\/)/,
       "",
     );
+    if (pathname === "/api/identity/v1/session") {
+      await route.fulfill({ json: identitySessionMock("reader-7", "reader") });
+      return;
+    }
     if (pathname === "/api/books/202/read") {
       await route.fulfill({ json: fixtureReader });
       return;

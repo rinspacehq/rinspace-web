@@ -10,6 +10,8 @@ vi.mock('@/services/tagV2', () => ({
     tag: { id, displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Geometry', parentTagIds: [2], version: 3 },
     parentTagIds: [2],
     childTagIds: [9],
+    parentTags: [{ id: 2, displayName: 'Geometry', normalizedName: 'geometry' }],
+    childTags: [{ id: 9, displayName: 'Algebraic geometry', normalizedName: 'algebraic geometry' }],
     knowledgeUnavailable: false,
     knowledge: {
       view,
@@ -24,7 +26,7 @@ vi.mock('@/services/tagV2', () => ({
   suggestTagParents: async () => ({ id: 'suggestion', tagId: 42, proposedParentTagIds: [2], baseVersion: 3, reason: 'reason', state: 'pending', proposedByUid: 'reader', createdAt: '2026-08-20T10:00:00Z' }),
   renameCanonicalTag: async () => ({ id: 42, displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Geometry', parentTagIds: [2], version: 4 }),
   addCanonicalTagAlias: async () => ({ id: 1, tagId: 42, tagVersion: 4, displayName: 'Faisceau', normalizedName: 'faisceau', reviewState: 'unreviewed' }),
-  loadTagStatements: async (_id: number, direction: string) => direction === 'requires' ? [{ id: 'statement-1', subjectTagId: 42, predicateTagId: 70, objectTagId: 6, evidence: {}, reviewState: 'approved', rank: 0, reason: 'Prerequisite', version: 2, createdAt: '2026-08-20T10:00:00Z' }] : [],
+  loadTagStatements: async (_id: number, direction: string) => direction === 'requires' ? [{ id: 'statement-1', subjectTagId: 42, subjectTagDisplayName: 'Sheaf', predicateTagId: 70, objectTagId: 6, objectTagDisplayName: 'Category', evidence: {}, reviewState: 'approved', rank: 0, reason: 'Prerequisite', version: 2, createdAt: '2026-08-20T10:00:00Z' }] : [],
 }));
 
 test('shows label-first relationships, maintenance links, and indexed connections without replacing article content', async () => {
@@ -38,13 +40,25 @@ test('shows label-first relationships, maintenance links, and indexed connection
   );
   await waitFor(() => expect(view.getByText('Geometry')).toBeTruthy());
   expect(view.getByTestId('valid-article').textContent).toBe('valid publication');
-  expect(view.getByText('标签 #9')).toBeTruthy();
+  expect(view.getByText('ID 2')).toBeTruthy();
+  expect(view.getByText('Algebraic geometry')).toBeTruthy();
+  expect(view.getByText('ID 9')).toBeTruthy();
+  expect(view.getByText('Category')).toBeTruthy();
+  expect(view.getByText('ID 6')).toBeTruthy();
   expect(view.getByText('标签 #7')).toBeTruthy();
   expect(view.getByText('上级标签')).toBeTruthy();
   expect(view.getByText('前置标签')).toBeTruthy();
   expect(view.getByText('后续标签')).toBeTruthy();
   expect(view.queryByText('被需要')).toBeNull();
   expect(view.getByText('main-result')).toBeTruthy();
+  const maintenancePanel = view.getByText('标签维护').closest('.tag-knowledge-maintenance-panel');
+  const relationshipsPanel = view.getByText('标签关系').closest('.tag-knowledge-panel');
+  if (!maintenancePanel || !relationshipsPanel) throw new Error('Expected separate tag maintenance and relationship panels');
+  expect(maintenancePanel.compareDocumentPosition(relationshipsPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(maintenancePanel.querySelector('.tag-knowledge-actions')).toBeTruthy();
+  expect(relationshipsPanel.querySelector('.tag-knowledge-actions')).toBeNull();
+  expect(maintenancePanel.textContent).not.toContain('上级标签');
+  expect(relationshipsPanel.textContent).toContain('上级标签');
   expect(view.getByRole('link', { name: /源码/ }).getAttribute('href')).toContain('/tags/42');
   const reportHref = view.getByRole('link', { name: /报告问题/ }).getAttribute('href');
   expect(reportHref).toBeTruthy();
@@ -66,12 +80,23 @@ test('shows label-first relationships, maintenance links, and indexed connection
   expect(sourceAction.textContent).toBe('');
   [maintenanceAction, reportAction, sourceAction, currentCitationAction, revisionCitationAction].forEach((action) => {
     expect(action.querySelector('svg')).toBeTruthy();
+    expect(action.classList.contains('tag-knowledge-icon-action')).toBe(true);
+  });
+  expect(sourceAction.classList.contains('tex-source-link')).toBe(true);
+  expect(sourceAction.querySelector('.rin-icon--git')).toBeTruthy();
+  expect(maintenanceAction.querySelector('.rin-icon--pencil-square')).toBeTruthy();
+  [reportAction, currentCitationAction, revisionCitationAction].forEach((action) => {
     expect(action.querySelector('.rin-icon')).toBeNull();
   });
+  expect(maintenanceAction.querySelector('[data-tag-knowledge-icon="maintain"]')).toBeTruthy();
+  expect(reportAction.querySelector('[data-tag-knowledge-icon="report"]')).toBeTruthy();
+  expect(sourceAction.querySelector('[data-tag-knowledge-icon="source"]')).toBeTruthy();
+  expect(currentCitationAction.querySelector('[data-tag-knowledge-icon="copy-current"]')).toBeTruthy();
+  expect(revisionCitationAction.querySelector('[data-tag-knowledge-icon="copy-revision"]')).toBeTruthy();
   expect(view.getByText('Pull Request 预览')).toBeTruthy();
   expect(view.getByText('Bounded diagnostic.')).toBeTruthy();
   expect(view.getByText(/不会替换当前公开正文/)).toBeTruthy();
-  expect(view.getByText('标签 #6')).toBeTruthy();
+  expect(view.getByText('Category')).toBeTruthy();
   const anchorIssueHref = view.getByRole('link', { name: '勘误' }).getAttribute('href');
   const anchorIssueURL = new URL(anchorIssueHref || '', 'https://rinspace.com');
   expect(anchorIssueURL.searchParams.get('body')).toContain('Anchor: main-result');

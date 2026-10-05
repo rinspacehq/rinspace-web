@@ -1,4 +1,4 @@
-// Browser preview of the repository-local contracts/tag-normalization-v1.json. The server result is
+// Browser preview of contracts/tag-normalization-v1.json. The server result is
 // authoritative. These replacements cover Unicode folds that lowercasing does
 // not express directly in JavaScript.
 export function normalizeCanonicalTagName(value: string): string {

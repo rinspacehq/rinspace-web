@@ -89,6 +89,7 @@ type DialogFlipDirection = 'top' | 'bottom' | 'left' | 'right';
 
 export function AnimateDialogContent({
   from = 'top',
+  preserveLayoutDuringMotion = false,
   onOpenAutoFocus,
   onCloseAutoFocus,
   onEscapeKeyDown,
@@ -99,6 +100,7 @@ export function AnimateDialogContent({
   ...props
 }: HTMLMotionProps<'div'> & {
   from?: DialogFlipDirection;
+  preserveLayoutDuringMotion?: boolean;
   onOpenAutoFocus?: ComponentProps<typeof DialogPrimitive.Content>['onOpenAutoFocus'];
   onCloseAutoFocus?: ComponentProps<typeof DialogPrimitive.Content>['onCloseAutoFocus'];
   onEscapeKeyDown?: ComponentProps<typeof DialogPrimitive.Content>['onEscapeKeyDown'];
@@ -124,9 +126,16 @@ export function AnimateDialogContent({
     >
       <motion.div
         data-slot="dialog-content"
-        initial={{ opacity: 0, filter: 'blur(4px)', transform: flip(initialRotation, '0.8') }}
-        animate={{ opacity: 1, filter: 'blur(0px)', transform: flip('0deg', '1') }}
-        exit={{ opacity: 0, filter: 'blur(4px)', transform: flip(initialRotation, '0.8') }}
+        data-rin-stable-layout={preserveLayoutDuringMotion ? 'true' : undefined}
+        initial={preserveLayoutDuringMotion
+          ? { opacity: 0, filter: 'blur(4px)' }
+          : { opacity: 0, filter: 'blur(4px)', transform: flip(initialRotation, '0.8') }}
+        animate={preserveLayoutDuringMotion
+          ? { opacity: 1, filter: 'blur(0px)' }
+          : { opacity: 1, filter: 'blur(0px)', transform: flip('0deg', '1') }}
+        exit={preserveLayoutDuringMotion
+          ? { opacity: 0, filter: 'blur(4px)' }
+          : { opacity: 0, filter: 'blur(4px)', transform: flip(initialRotation, '0.8') }}
         transition={transition}
         {...props}
       />

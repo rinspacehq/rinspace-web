@@ -61,6 +61,7 @@ export {
   type TerminalProps,
 } from "./terminal";
 export { User, User as UserIcon, type UserProps } from "./user";
+export { Wallet, Wallet as WalletIcon, type WalletProps } from "./wallet";
 export {
   ThumbsUp,
   ThumbsUp as ThumbsUpIcon,

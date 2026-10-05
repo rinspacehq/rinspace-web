@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { identitySessionMock } from './identity-session-mock';
 
 const currentUser = {
   id: 'identity-browser-1',
@@ -35,6 +36,7 @@ const reportNotification = {
     object_type: 'comment',
   },
   rank: 0,
+  actor_kind: 'system',
   notification_action: 'report_resolved',
   is_read: true,
   update_time: Date.parse('2026-08-28T08:00:00Z') / 1000,
@@ -53,14 +55,7 @@ const reportNotification = {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
-    localStorage.setItem('rinspace-auth-session', JSON.stringify({
-      access_token: `e30.${payload}.signature`,
-      refresh_token: 'identity-browser-refresh',
-      expires_in: 3600,
-      issued_at: Date.now(),
-      sub: 'identity-browser-1',
-    }));
+    localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'identity-browser-1' }));
     if (!localStorage.getItem('rinspace-language-preference-v1')) {
       localStorage.setItem(
         'rinspace-language-preference-v1',
@@ -79,6 +74,10 @@ test.beforeEach(async ({ page }) => {
   }));
   await page.route('**/api/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname.replace(/^\/rinspace(?=\/)/, '');
+    if (pathname === '/api/identity/v1/session') {
+      await route.fulfill({ json: identitySessionMock('identity-browser-1', 'identity-browser') });
+      return;
+    }
     if (pathname === '/api/user/info') {
       const preference = await page.evaluate(() => {
         const raw = localStorage.getItem('rinspace-language-preference-v1');
@@ -98,19 +97,20 @@ test.beforeEach(async ({ page }) => {
       return;
     }
     if (pathname === '/api/notification/page') {
+      const section = new URL(route.request().url()).searchParams.get('type');
       await route.fulfill({
         json: {
-          count: 1,
+          count: section === 'system' ? 1 : 0,
           page: 1,
           page_size: 12,
-          items: [reportNotification],
+          items: section === 'system' ? [reportNotification] : [],
         },
       });
       return;
     }
     if (pathname === '/api/notification/status') {
       await route.fulfill({
-        json: { inbox: 0, achievement: 0, revision: 0, can_revision: false },
+        json: { inbox: 0, system: 1, achievement: 1, revision: 0, can_revision: false },
       });
       return;
     }
@@ -135,6 +135,14 @@ test('production notifications localize structured report outcomes without overf
 
   await page.goto('/notifications', { waitUntil: 'domcontentloaded' });
 
+  await expect(page.getByRole('button', { name: /Inbox/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /System notifications/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Content' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Follows' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Likes' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Saves' })).toBeVisible();
+  await page.getByRole('button', { name: /System notifications/ }).click();
+
   await expect(page.getByText('The content you reported has been handled.')).toBeVisible({
     timeout: 20_000,
   });
@@ -154,6 +162,8 @@ test('production notifications localize structured report outcomes without overf
     );
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
+
+  await page.getByRole('button', { name: /系统通知/ }).click();
 
   await expect(page.getByText('你举报的内容已处理。')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole('link', { name: '作者保留举报对象' })).toBeVisible();

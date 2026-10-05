@@ -2,7 +2,7 @@
   "title": "Discover",
   "empty": "No content yet",
   "contentTypes": {
-    "blog": "Blog",
+    "blog": "Article",
     "question": "Question",
     "discussion": "Discussion",
     "announcement": "Announcement",
@@ -57,15 +57,15 @@
   },
   "pages": {
     "blog": {
-      "documentTitle": "Blogs",
-      "heading": "Blogs",
-      "sort": "Blog sorting",
-      "contextTitle": "Blog directory",
-      "contextExcerpt": "Current blog directory: {{items}} posts by {{authors}} authors.",
-      "current": "Current blogs"
+      "documentTitle": "Articles · Rinspace",
+      "heading": "Articles",
+      "sort": "Article sorting",
+      "contextTitle": "Article directory",
+      "contextExcerpt": "Current article directory: {{items}} posts by {{authors}} authors.",
+      "current": "Current articles"
     },
     "dynamic": {
-      "documentTitle": "Updates",
+      "documentTitle": "Updates · Rinspace",
       "heading": "Updates",
       "sort": "Update sorting",
       "contextTitle": "Update directory",
@@ -73,7 +73,7 @@
       "current": "Current updates"
     },
     "discussion": {
-      "documentTitle": "Discussions",
+      "documentTitle": "Discussions · Rinspace",
       "heading": "Discussions",
       "sort": "Discussion sorting",
       "contextTitle": "Discussion directory",
@@ -81,7 +81,7 @@
       "current": "Current discussions"
     },
     "question": {
-      "documentTitle": "Questions",
+      "documentTitle": "Questions · Rinspace",
       "heading": "Questions",
       "sort": "Question sorting",
       "contextTitle": "Question directory",
@@ -89,7 +89,7 @@
       "current": "Current questions"
     },
     "book": {
-      "documentTitle": "Books",
+      "documentTitle": "Books · Rinspace",
       "heading": "Books",
       "sort": "Book sorting",
       "contextTitle": "Book directory",
@@ -99,6 +99,7 @@
       "view": "View “{{title}}”",
       "external": "External book",
       "original": "Original book",
+      "typst": "Typst book",
       "officialSite": "Official site",
       "pageCount_one": "{{displayCount}} page",
       "pageCount_other": "{{displayCount}} pages",
@@ -113,7 +114,7 @@
       "reviewCount_other": "{{displayCount}} ratings"
     },
     "tag": {
-      "documentTitle": "Tags",
+      "documentTitle": "Tags · Rinspace",
       "governanceTitle": "Knowledge directory",
       "governanceDescription": "Browse by semantic parent and review unclassified tags, pending reviews, and repository issues.",
       "create": "Create tag",
@@ -158,8 +159,8 @@
       }
     },
     "search": {
-      "documentTitle": "Search",
-      "queryDocumentTitle": "{{query}} · Search",
+      "documentTitle": "Search · Rinspace",
+      "queryDocumentTitle": "{{query}} · Search · Rinspace",
       "heading": "Search",
       "resultCount_one": "{{displayCount}} result",
       "resultCount_other": "{{displayCount}} results",
@@ -169,7 +170,7 @@
       "typesLabel": "Search types",
       "types": {
         "all": "All",
-        "blog": "Blogs",
+        "blog": "Articles",
         "book": "Books",
         "question": "Questions",
         "discussion": "Discussions",
@@ -203,7 +204,7 @@
       "next": "Next"
     },
     "announcement": {
-      "documentTitle": "Announcements",
+      "documentTitle": "Announcements · Rinspace",
       "type": "Announcement",
       "contextTitle": "Announcement directory",
       "contextExcerpt": "Current announcements: {{items}}.",
@@ -216,7 +217,7 @@
       "empty": "No announcements yet."
     },
     "users": {
-      "documentTitle": "Members",
+      "documentTitle": "Members · Rinspace",
       "heading": "Members",
       "reputation": "Reputation",
       "upvotes": "Upvotes",
@@ -242,8 +243,7 @@
       "publisher": "Task First (Shanghai) Network Technology LLC"
     },
     "views": {
-      "reading": "Reading",
-      "stream": "Legacy sections",
+      "stream": "Community",
       "tags": "Tags",
       "books": "Books",
       "graph": "Knowledge graph"
@@ -271,7 +271,6 @@
       "title": "Rinspace home",
       "excerpt": "Current home view: {{view}}; feed mode: {{mode}}.",
       "streamTitle": "Community",
-      "readingTitle": "Books and essays",
       "tagActivityTitle": "Tag activity",
       "bookTitle": "Books · {{mode}}",
       "hotDiscussions": "Recent discussions",
@@ -297,7 +296,6 @@
       "liked": "Liked.",
       "unliked": "Like removed."
     },
-    "mediaUnavailable": "Media unavailable",
     "actions": {
       "interactions": "Content actions",
       "like": "Like",
@@ -340,14 +338,13 @@
       "contentCount_other": "{{displayCount}} items"
     },
     "board": {
-      "landmark": "Books, essays, and knowledge tags",
+      "landmark": "Community updates and questions",
       "views": "Home community views",
       "feedFilter": "Feed filter",
       "bookFilter": "Book filter",
       "tagSyncFailed": "Tag activity sync failed: {{error}}",
       "usingLocal": "Using a local summary: {{error}}",
-      "syncingContent": "Syncing the latest community content...",
-      "emptyReading": "No books or essays are available yet."
+      "syncingContent": "Syncing the latest community content..."
     },
     "rail": {
       "graph": "Knowledge graph",
@@ -360,12 +357,8 @@
       "signInFollowed": "Sign in to see followed tags.",
       "sponsor": "Sponsor us",
       "support": "Support",
-      "legacyTitle": "Legacy community sections",
-      "legacyStatus": "Routes retained",
-      "legacyDescription": "Discussions, questions, and updates keep their routes and history without being migrated into inner-world posts.",
-      "discussions": "Discussions",
-      "questions": "Questions",
-      "dynamics": "Updates"
+      "supporters": "Supporters",
+      "openSourceStars": "Rinspace open-source GitHub Stars"
     },
     "time": {
       "unknown": "Unknown time",

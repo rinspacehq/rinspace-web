@@ -1,10 +1,11 @@
 {
   "landmark": "Channels and account",
   "brandName": "Rinspace",
-  "brandHome": "{{brandName}} home",
-  "brandCurrentHome": "Return to the current-world home",
-  "brandFlipToInner": "Flip to the inner world",
-  "brandFlipToOuter": "Flip to the outer world",
+  "brandHome": "Rinspace home",
+  "flipToInner": "Flip to the inner world",
+  "more": {
+    "label": "More"
+  },
   "search": {
     "label": "Search",
     "placeholder": "Search",
@@ -24,6 +25,7 @@
   "account": {
     "signInOrRegister": "Sign in / Register",
     "profile": "Profile",
+    "wallet": "Wallet",
     "settings": "Settings",
     "notifications": "Notifications",
     "creator": "Creator Center",
@@ -36,11 +38,12 @@
   },
   "publish": {
     "label": "Create",
-    "blog": "Blog",
+    "blog": "Article",
     "book": "Book",
     "question": "Question",
     "discussion": "Discussion",
     "dynamic": "Update",
+    "tweet": "Tweet",
     "tag": "Tag",
     "announcement": "Announcement"
   },
@@ -51,7 +54,7 @@
   "contentTypes": {
     "answer": "Answer",
     "announcement": "Announcement",
-    "blog": "Blog",
+    "blog": "Article",
     "book": "Book",
     "discussion": "Discussion",
     "dynamic": "Update",

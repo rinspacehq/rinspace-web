@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "kind": "derived-private-compatibility-inputs",
+  "sourceCommit": "b9323f1e28b3e28bfbd86ce17b770224ab148855",
+  "inputs": [
+    {
+      "source": "specs/rinspace-animate-ui-redesign/evidence/baseline/routes.json",
+      "snapshot": "routes-baseline.json",
+      "sha256": "39a5a28756c371183129ca687b9463616e20dfc319732770d9b920f61f392515"
+    },
+    {
+      "source": "contracts/tag-normalization-v1.json",
+      "snapshot": "tag-normalization-v1.json",
+      "sha256": "e0cd4ebed15001b2a930f5abe86dbe9b4fe38387849c0bc3ca2664c673801bd4"
+    },
+    {
+      "source": "contracts/wallet/admin-refund-vectors.json",
+      "snapshot": "wallet/admin-refund-vectors.json",
+      "sha256": "26031b246c1e812f6a04753effd7630eeae5f1d2022cdfb45005a2be08c8e808"
+    },
+    {
+      "source": "contracts/wallet/admin-risk-vectors.json",
+      "snapshot": "wallet/admin-risk-vectors.json",
+      "sha256": "900f098580f2df08381a6138b71fa1e6c7b5c979439f9aa60a07721a926bb9be"
+    },
+    {
+      "source": "contracts/wallet/amount-vectors.json",
+      "snapshot": "wallet/amount-vectors.json",
+      "sha256": "be33da98d5b9dad0b08edf60fcaf06220643452ae0c0d3d7a684e555f5d4c6f0"
+    },
+    {
+      "source": "contracts/wallet/policy-limit-vectors.json",
+      "snapshot": "wallet/policy-limit-vectors.json",
+      "sha256": "298d92e0852b43bfaf726f29fb638fdb21cb0a6a6ec4905c4d07de0bc105e468"
+    },
+    {
+      "source": "contracts/wallet/policy-request-vectors.json",
+      "snapshot": "wallet/policy-request-vectors.json",
+      "sha256": "6430d392978f4be4223b94d665817ddc7159392871b0be2bccd96aef3cd6e6eb"
+    },
+    {
+      "source": "contracts/wallet/public-policy-vectors.json",
+      "snapshot": "wallet/public-policy-vectors.json",
+      "sha256": "908713db48c10f7bc37fcb2e28982a5df5eefe2f14b167c8414c52b370e2a7ad"
+    },
+    {
+      "source": "contracts/wallet/request-vectors.json",
+      "snapshot": "wallet/request-vectors.json",
+      "sha256": "8648254ee0cd5e11d7a2ec8f20e1b17de1d39b90909a7b33d3af57d62050dba6"
+    },
+    {
+      "source": "contracts/wallet/response-vectors.json",
+      "snapshot": "wallet/response-vectors.json",
+      "sha256": "2229576dab6ad01c8992de18e9d175669d2f8250a50a691188f4d6e26e45090b"
+    },
+    {
+      "source": "contracts/wallet/statement-vectors.json",
+      "snapshot": "wallet/statement-vectors.json",
+      "sha256": "2a4a54e276de6a0ca298461e24d5d17ca7b61e8d32008c7218de2644cc8c3681"
+    },
+    {
+      "source": "templates/latex-article/main.tex",
+      "snapshot": "templates/latex-article.tex",
+      "sha256": "46b3ce25d2d81bda9a77e1f4b098144d225a3c22fa7a9770b0ae3c2740bbf4b7"
+    },
+    {
+      "source": "scripts/code-editor-baseline-contract.cjs",
+      "snapshot": "code-editor-baseline-contract.cjs",
+      "sha256": "c23ee0ca7ae9aeacdf13f15f0a0fa0fbed1c70fccfc32e68434275611dd4c92c"
+    },
+    {
+      "source": "templates/latex-article/refs.bib",
+      "snapshot": "templates/latex-article/refs.bib",
+      "sha256": "b22aa4b80c43d67e5a77bc6c36a636d13bb6545222fcf98dafa811647dfd465b"
+    },
+    {
+      "source": "templates/latex-article/sections/intro.tex",
+      "snapshot": "templates/latex-article/sections/intro.tex",
+      "sha256": "11672acbf198663ad8824787d5da9193cfe0baa7b04017c734f840e444237fa9"
+    },
+    {
+      "source": "templates/latex-article/figures/.gitkeep",
+      "snapshot": "templates/latex-article/figures/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "source": "templates/latex-book/main.tex",
+      "snapshot": "templates/latex-book/main.tex",
+      "sha256": "b25fbefa6543f61d9d31b30528c11586e67b7a6d3feaaa58b41d4d367befc470"
+    },
+    {
+      "source": "templates/latex-book/refs.bib",
+      "snapshot": "templates/latex-book/refs.bib",
+      "sha256": "d1f77c554e48a5b16e16e9c2126c5efa76373a77996a7cca7f27454a6220849b"
+    },
+    {
+      "source": "templates/latex-book/chapters/chapter-01.tex",
+      "snapshot": "templates/latex-book/chapters/chapter-01.tex",
+      "sha256": "e430b2d493daafda7b2691246c6d108e4cdddd73a0a04cc54b29b17b78b4b1f1"
+    },
+    {
+      "source": "templates/latex-book/figures/.gitkeep",
+      "snapshot": "templates/latex-book/figures/.gitkeep",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    }
+  ]
+}

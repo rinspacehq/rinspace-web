@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { identitySessionMock } from './identity-session-mock';
 
 const createdAt = (minute: number) =>
   `2026-08-25T00:${String(minute).padStart(2, '0')}:00Z`;
@@ -67,7 +68,7 @@ const post = {
   author: '作者',
   authorId: 'author',
   authorUid: 'author-uid',
-  meta: '博客 · 作者',
+  meta: '文章 · 作者',
   excerpt: '评论区验收正文',
   tags: [],
   interactions: '0 阅读 · 14 评论',
@@ -105,17 +106,15 @@ const currentUser = {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    window.localStorage.setItem(
-      'rinspace-auth-session',
-      JSON.stringify({
-        access_token: 'browser-test',
-        refresh_token: 'browser-test',
-      }),
-    );
+    window.localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'browser-user' }));
   });
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
     const pathname = url.pathname.replace(/^\/rinspace(?=\/)/, '');
+    if (pathname === '/api/identity/v1/session') {
+      await route.fulfill({ json: identitySessionMock('browser-user', 'browser-user') });
+      return;
+    }
     if (
       route.request().method() === 'POST' &&
       pathname === '/api/file'

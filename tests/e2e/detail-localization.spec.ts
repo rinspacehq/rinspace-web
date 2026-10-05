@@ -93,7 +93,7 @@ test('production reader renders both locales without changing authored content o
   });
   await page.goto('/a/401/reader-localization', { waitUntil: 'domcontentloaded' });
 
-  const toc = page.locator('nav.blog-toc[aria-label="Blog table of contents"]');
+  const toc = page.locator('nav.blog-toc[aria-label="Article table of contents"]');
   if (testInfo.project.name.startsWith('desktop-')) {
     await expect(toc).toBeVisible({ timeout: 20_000 });
     await expect(toc).toContainText('Contents');
@@ -120,7 +120,7 @@ test('production reader renders both locales without changing authored content o
     window.dispatchEvent(new Event('languagechange'));
   });
 
-  const chineseToc = page.locator('nav.blog-toc[aria-label="博客目录"]');
+  const chineseToc = page.locator('nav.blog-toc[aria-label="文章目录"]');
   if (testInfo.project.name.startsWith('desktop-')) {
     await expect(chineseToc).toBeVisible({ timeout: 20_000 });
     await expect(chineseToc).toContainText('目录');

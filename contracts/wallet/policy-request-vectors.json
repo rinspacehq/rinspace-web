@@ -1,0 +1,336 @@
+{
+  "version": 1,
+  "action": "policy.update",
+  "cases": [
+    {
+      "name": "approved_initial_daily_limit",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"100000\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "precision_above_js_safe_integer",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"9007199254741000\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "wire_maximum_whole_coin",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"9223372036854775800\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "wire_minimum_not_a_production_approval",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "explicit_pause",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false,\"tip_enabled\":false,\"convert_enabled\":false},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "enable_syntax_is_not_authorization",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":true},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "all_fields",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"convert_enabled\":true,\"daily_recharge_limit_fen\":\"100000\",\"tip_enabled\":false,\"recharge_enabled\":false},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "empty_patch",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_0",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"0\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_1",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"-10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_2",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"100.0\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_3",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"1e5\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_4",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"010\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_5",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\" 100\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_6",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"100 \"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_7",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"1\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_8",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"101\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_9",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"9223372036854775810\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_10",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"9223372036854775808\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_11",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_12",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":null},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_13",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":100000},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_14",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":true},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_15",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":{}},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "invalid_limit_16",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":[]},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "recharge_enabled_invalid_type_0",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":null},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "recharge_enabled_invalid_type_1",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":0},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "recharge_enabled_invalid_type_2",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":1},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "recharge_enabled_invalid_type_3",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":\"false\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "recharge_enabled_invalid_type_4",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":{}},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "recharge_enabled_invalid_type_5",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":[]},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "tip_enabled_invalid_type_0",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_enabled\":null},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "tip_enabled_invalid_type_1",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_enabled\":0},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "tip_enabled_invalid_type_2",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_enabled\":1},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "tip_enabled_invalid_type_3",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_enabled\":\"false\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "tip_enabled_invalid_type_4",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_enabled\":{}},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "tip_enabled_invalid_type_5",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_enabled\":[]},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "convert_enabled_invalid_type_0",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"convert_enabled\":null},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "convert_enabled_invalid_type_1",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"convert_enabled\":0},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "convert_enabled_invalid_type_2",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"convert_enabled\":1},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "convert_enabled_invalid_type_3",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"convert_enabled\":\"false\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "convert_enabled_invalid_type_4",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"convert_enabled\":{}},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "convert_enabled_invalid_type_5",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"convert_enabled\":[]},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden_withdrawal_enabled",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"withdrawal_enabled\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden_refund_auto_approve",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"refund_auto_approve\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden_recharge_ratio",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_ratio\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden_conversion_ratio",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_ratio\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden_balance",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"balance\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden_uid",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"uid\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden_Daily_Recharge_Limit_Fen",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"Daily_Recharge_Limit_Fen\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "forbidden___proto__",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"__proto__\":\"10\"},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "null_patch",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":null,\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "array_patch",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":[],\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "zero_version",
+      "valid": false,
+      "body": "{\"expected_version\":\"0\",\"patch\":{\"recharge_enabled\":false},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "numeric_version",
+      "valid": false,
+      "body": "{\"expected_version\":1,\"patch\":{\"recharge_enabled\":false},\"reason\":\"调整限额\"}"
+    },
+    {
+      "name": "null_reason",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false},\"reason\":null}"
+    },
+    {
+      "name": "blank_reason",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false},\"reason\":\"　\"}"
+    },
+    {
+      "name": "control_reason",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false},\"reason\":\"a\\nb\"}"
+    },
+    {
+      "name": "surrogate_reason",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false},\"reason\":\"\\ud800\"}"
+    },
+    {
+      "name": "duplicate_outer",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false},\"reason\":\"暂停\"}"
+    },
+    {
+      "name": "duplicate_patch",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false,\"recharge_enabled\":true},\"reason\":\"暂停\"}"
+    },
+    {
+      "name": "escaped_duplicate_patch",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false,\"\\u0072echarge_enabled\":false},\"reason\":\"暂停\"}"
+    },
+    {
+      "name": "escaped_limit_digits",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"daily_recharge_limit_fen\":\"\\u0031\\u0030\"},\"reason\":\"调整\"}"
+    },
+    {
+      "name": "missing_reason",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false}}"
+    },
+    {
+      "name": "trailing_value",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false},\"reason\":\"调整限额\"}{}"
+    },
+    {
+      "name": "unexpected_step_up_body",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_enabled\":false},\"reason\":\"调整限额\",\"action_proof\":\"not-a-body-field\"}"
+    }
+  ]
+}

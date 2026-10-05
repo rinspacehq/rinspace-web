@@ -1,22 +1,24 @@
 import { Icon, AnimateButton, useNoticeToasts } from 'components/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useParams } from 'react-router-dom';
 
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import { MathInline } from '@/components/MathText';
 import LoadingState from '@/components/LoadingState';
 import SiteTopbar from '@/components/SiteTopbarShell';
+import PublicationProgressPanel from '@/components/PublicationProgressPanel';
+import { PublicationProgressPoller, type PublicationProgress } from '@/services/publicationProgress';
+import { openGiteaPath } from '@/utils/giteaPaths';
 import BookProfileDialog from '@/features/publish/BookProfileDialog';
 import { formatNumber } from '@/i18n/format';
 import { resolveLocale } from '@/i18n/resolveLocale';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { loadContentDetail, updateContent } from '@/services/domains/article';
-import { loadBookImportJob, startBookImportJob, openBookCodeWorkspace } from '@/services/domains/book';
+import { loadBookImportJob, startBookImportJob } from '@/services/domains/book';
 import type { BookImportJob, BookMetadata, BookTOCItem, PostDetail } from '@/services/contracts';
 import { messageFromError } from '@/services/errors';
-import { type CloudUser } from '@/services/phoneAuth';
+import { type RinspaceUser } from '@/services/phoneAuth';
 import { getCurrentUser } from '@/services/profile';
 import {
   buildBookProjectIndex,
@@ -46,7 +48,7 @@ type WorkspaceChapter = {
   source: 'reader' | 'toc' | 'source';
   page?: number;
   path?: string;
-  command?: string;
+  command?: 'part' | 'chapter' | 'section' | 'subsection' | 'subsubsection';
   matter?: BookMatter;
   line?: number;
   level?: number;
@@ -54,6 +56,7 @@ type WorkspaceChapter = {
 };
 
 type WorkspaceMatter = 'front' | 'main' | 'back';
+type OriginalBookWorkspaceFormat = 'latex' | 'typst';
 type DropTarget = {
   path: string;
   placement: 'before' | 'after';
@@ -123,11 +126,11 @@ function readerChapters(body: string): WorkspaceChapter[] {
         if (typeof item.id !== 'string' || typeof item.text !== 'string')
           return null;
         const level = typeof item.level === 'number' ? item.level : 2;
-        if (level !== 2) return null;
         return {
           id: item.id,
           title: item.text,
           source: 'reader',
+          level,
         };
       })
       .filter((item): item is WorkspaceChapter => item !== null);
@@ -170,20 +173,31 @@ function tocChapters(toc: BookTOCItem[] | undefined): WorkspaceChapter[] {
     .filter((item): item is WorkspaceChapter => item !== null);
 }
 
-function sourceCommandChapters(source: string, command: 'chapter' | 'section') {
+function latexHeadingLevel(command: NonNullable<WorkspaceChapter['command']>) {
+  return {
+    part: 0,
+    chapter: 1,
+    section: 2,
+    subsection: 3,
+    subsubsection: 4,
+  }[command];
+}
+
+function sourceCommandChapters(source: string) {
   const chapters: WorkspaceChapter[] = [];
   const pattern =
-    command === 'chapter'
-      ? /\\chapter\*?(?:\[[^\]]*\])?\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g
-      : /\\section\*?(?:\[[^\]]*\])?\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
+    /\\(part|chapter|section|subsection|subsubsection)\*?(?:\[[^\]]*\])?\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
+    const command = match[1] as NonNullable<WorkspaceChapter['command']>;
     const title =
-      stripLatexTitle(match[1] || '') || `Chapter ${chapters.length + 1}`;
+      stripLatexTitle(match[2] || '') || `Chapter ${chapters.length + 1}`;
     chapters.push({
       id: `source-${command}-${String(chapters.length + 1).padStart(3, '0')}-${chapterSlug(title, 'chapter')}`,
       title,
       source: 'source',
+      command,
+      level: latexHeadingLevel(command),
     });
   }
   return chapters;
@@ -192,8 +206,7 @@ function sourceCommandChapters(source: string, command: 'chapter' | 'section') {
 function sourceChapters(body: string): WorkspaceChapter[] {
   const source = extractMarkedSection(body, 'RIN_SOURCE');
   if (!source) return [];
-  const chapters = sourceCommandChapters(source, 'chapter');
-  return chapters.length ? chapters : sourceCommandChapters(source, 'section');
+  return sourceCommandChapters(source);
 }
 
 function workspaceChapters(post: PostDetail | null): WorkspaceChapter[] {
@@ -223,7 +236,17 @@ function projectIndexChapters(
 }
 
 function hasReaderPayload(post: PostDetail | null) {
-  return Boolean(post && extractMarkedSection(post.body, 'RIN_READER'));
+  return readerPageCount(post) > 0;
+}
+
+function readerPageCount(post: PostDetail | null) {
+  if (!post) return 0;
+  try {
+    const payload: unknown = JSON.parse(extractMarkedSection(post.body, 'RIN_READER'));
+    return isRecord(payload) && Array.isArray(payload.pages) ? payload.pages.length : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function groupChapters(chapters: WorkspaceChapter[]) {
@@ -248,14 +271,19 @@ function groupChapters(chapters: WorkspaceChapter[]) {
   return groups;
 }
 
+function originalBookWorkspaceFormat(post: PostDetail | null): OriginalBookWorkspaceFormat {
+  const editor = (post?.editor || '').trim().toLowerCase();
+  if (editor === 'typst' || editor === 'typ') return 'typst';
+  return 'latex';
+}
+
 export default function BookWorkspacePage() {
   const { postId = '' } = useParams();
-  const bootstrap = useOptionalBootstrap();
   const { t, i18n } = useFeatureTranslation('creation');
-  const demoMode = bootstrap?.config.mode === 'demo';
   const locale = resolveLocale(i18n.resolvedLanguage || i18n.language, []);
   const [post, setPost] = useState<PostDetail | null>(null);
-  const [currentUser, setCurrentUser] = useState<CloudUser | null>(null);
+  const [publicationProgress, setPublicationProgress] = useState<PublicationProgress | null>(null);
+  const [currentUser, setCurrentUser] = useState<RinspaceUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [projectIndex, setProjectIndex] = useState<BookProjectIndex | null>(
@@ -265,7 +293,6 @@ export default function BookWorkspacePage() {
   const [projectError, setProjectError] = useState('');
   const [projectSaving, setProjectSaving] = useState(false);
   const [projectNotice, setProjectNotice] = useState('');
-  const [codeWorkspaceOpening, setCodeWorkspaceOpening] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [importJob, setImportJob] = useState<BookImportJob | null>(null);
   const [activeImportJobID, setActiveImportJobID] = useState('');
@@ -289,6 +316,7 @@ export default function BookWorkspacePage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setPost(null);
     setError('');
     void Promise.all([
       loadContentDetail(postId),
@@ -311,6 +339,26 @@ export default function BookWorkspacePage() {
       cancelled = true;
     };
   }, [postId]);
+
+  useEffect(() => {
+    if (post?.type !== 'book') return;
+    let cancelled = false;
+    setPublicationProgress(null);
+    const poller = new PublicationProgressPoller(postId, (progress) => {
+      if (cancelled) return;
+      setPublicationProgress(progress);
+      if (post.publicationPending && (!progress || progress.state === 'published')) {
+        void loadContentDetail(postId).then((detail) => {
+          if (!cancelled) setPost(detail);
+        }).catch(() => undefined);
+      }
+    });
+    poller.start();
+    return () => {
+      cancelled = true;
+      poller.stop();
+    };
+  }, [postId, post?.type, post?.publicationPending]);
 
   useEffect(() => {
     let cancelled = false;
@@ -359,22 +407,21 @@ export default function BookWorkspacePage() {
   }, [post]);
 
   useEffect(() => {
-    if (demoMode) {
-      window.localStorage.removeItem(importJobStorageKey);
-      setActiveImportJobID('');
-      setImportJob(null);
-      return;
-    }
     const savedJobID = window.localStorage.getItem(importJobStorageKey) || '';
     setActiveImportJobID(savedJobID);
     setImportJob(null);
-  }, [demoMode, importJobStorageKey]);
+  }, [importJobStorageKey]);
 
   const chapters = useMemo(() => {
     const fromProject = projectIndexChapters(projectIndex);
     return fromProject.length ? fromProject : workspaceChapters(post);
   }, [post, projectIndex]);
   const chapterGroups = useMemo(() => groupChapters(chapters), [chapters]);
+  const visibleChapterGroups = useMemo(
+    () => chapterGroups.filter((group) => group.items.length > 0),
+    [chapterGroups],
+  );
+  const originalFormat = originalBookWorkspaceFormat(post);
   const title = post?.book?.bookTitle || post?.title || t('bookWorkspace.fallbackTitle');
   const overviewPath = post ? contentPath('book', post.id, title) : '/books';
   const readerPath = post ? bookReadingPath(post.id, title) : '/books';
@@ -383,7 +430,9 @@ export default function BookWorkspacePage() {
   const canEdit = Boolean(
     post &&
     post.type === 'book' &&
-    (post.book?.kind === 'original' || post.book?.kind === 'markdown') &&
+    (post.book?.kind === 'original' ||
+      post.book?.kind === 'markdown' ||
+      post.book?.kind === 'typst') &&
     sameUserId(currentUser?.id, post.authorUid || post.authorId),
   );
   const importJobInProgress =
@@ -394,8 +443,10 @@ export default function BookWorkspacePage() {
   const readerReady = hasReaderPayload(post);
   const markdownReaderReady = Boolean(
     post?.book?.kind === 'markdown' &&
-    extractMarkedSection(post.body, 'RIN_MARKDOWN_BOOK'),
+    (readerReady || extractMarkedSection(post.body, 'RIN_MARKDOWN_BOOK')),
   );
+  const repositoryMarkdownBook = Boolean(post?.book?.kind === 'markdown'
+    && !extractMarkedSection(post.body, 'RIN_MARKDOWN_BOOK'));
   const publishStatusKey = post?.publishStatus === 'draft'
     ? 'draft'
     : post?.publishStatus === 'private'
@@ -410,7 +461,7 @@ export default function BookWorkspacePage() {
   });
 
   useEffect(() => {
-    if (demoMode || !activeImportJobID || !post || !canEdit) return undefined;
+    if (!activeImportJobID || !post || !canEdit) return undefined;
     let cancelled = false;
     let timer: number | undefined;
     const slug = post.slug || post.id;
@@ -463,7 +514,7 @@ export default function BookWorkspacePage() {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [activeImportJobID, canEdit, demoMode, importJobStorageKey, post, t]);
+  }, [activeImportJobID, canEdit, importJobStorageKey, post, t]);
   const setActiveDragChapterPath = (path: string) => {
     dragChapterPathRef.current = path;
     setDragChapterPath(path);
@@ -584,11 +635,6 @@ export default function BookWorkspacePage() {
     const file = input.files?.[0];
     input.value = '';
     if (!file || !post || !canEdit) return;
-    if (demoMode) {
-      setProjectError(t('bookWorkspace.capabilities.rendererUnavailable'));
-      setProjectNotice('');
-      return;
-    }
     setProjectSaving(true);
     setError('');
     setProjectError('');
@@ -607,38 +653,22 @@ export default function BookWorkspacePage() {
     }
   };
 
-  const openCodeWorkspace = async () => {
-    if (!post || !canEdit || codeWorkspaceOpening) return;
-    setProjectError('');
-    setProjectNotice('');
-    setCodeWorkspaceOpening(true);
-    try {
-      if (demoMode && bootstrap) {
-        await bootstrap.ports.workspace.open({ projectId: post.slug || post.id || postId });
-        return;
-      }
-      const workspace = await openBookCodeWorkspace(
-        post.slug || post.id || postId,
-      );
-      window.location.assign(workspace.url);
-    } catch (openError) {
-      setProjectError(
-        messageFromError(openError, 'creation.bookWorkspaceOpenFailed'),
-      );
-      setCodeWorkspaceOpening(false);
-    }
-  };
-
   return (
     <>
       <Helmet title={t('bookWorkspace.documentTitle', { title })} />
       <SiteTopbar />
       <main className="book-workspace-page">
         {loading ? <LoadingState variant="strip" /> : null}
-        {demoMode ? (
-          <Alert className="notice warning" data-rin-demo-book-boundary="true">
-            {t('bookWorkspace.capabilities.demoBoundary')}
-          </Alert>
+        {!loading && error ? <Alert className="notice danger">{error}</Alert> : null}
+        {!loading && post?.type === 'book' ? (
+          <>
+            <PublicationProgressPanel progress={publicationProgress} />
+            {post.publicationPending && publicationProgress?.state !== 'failed' ? (
+              <Alert className="notice warning">
+                {t('common:publication.awaitingEvent.waiting')}
+              </Alert>
+            ) : null}
+          </>
         ) : null}
         {!loading && post && post.type !== 'book' ? (
           <Alert className="notice danger">{t('bookWorkspace.notBook')}</Alert>
@@ -646,7 +676,8 @@ export default function BookWorkspacePage() {
         {!loading &&
         post?.type === 'book' &&
         post.book?.kind !== 'original' &&
-        post.book?.kind !== 'markdown' ? (
+        post.book?.kind !== 'markdown' &&
+        post.book?.kind !== 'typst' ? (
           <Alert className="notice warning">
             {t('bookWorkspace.externalBookManagement')}
             <Link to={profileEditPath}>{t('bookWorkspace.editBookProfile')}</Link>
@@ -654,7 +685,7 @@ export default function BookWorkspacePage() {
         ) : null}
         {!loading && post?.type === 'book' && post.book?.kind === 'markdown' ? (
           <>
-            <section className="book-workspace-hero">
+            <section className="book-workspace-hero book-workspace-hero--markdown">
               <div className="book-workspace-cover">
                 {post.coverUrl ? (
                   <img src={post.coverUrl} alt="" />
@@ -675,7 +706,7 @@ export default function BookWorkspacePage() {
                 <div className="book-workspace-meta">
                   <span>{t(`bookWorkspace.publishStatus.${publishStatusKey}`)}</span>
                   <span>{post.author}</span>
-                  <span>{countLabel('page', markdownProject?.files.length || 0)}</span>
+                  <span>{countLabel('page', repositoryMarkdownBook ? readerPageCount(post) : markdownProject?.files.length || 0)}</span>
                   <span>
                     {markdownReaderReady
                       ? t('bookWorkspace.reader.generated')
@@ -703,6 +734,12 @@ export default function BookWorkspacePage() {
                   </span>
                 )}
                 {canEdit ? (
+                  <AnimateButton unstyled type="button" onClick={() => openGiteaPath('b', post.id)}>
+                    <Icon name="git" />
+                    {t('bookWorkspace.actions.openRepository')}
+                  </AnimateButton>
+                ) : null}
+                {canEdit ? (
                   <AnimateButton
                     unstyled
                     className="primary-workspace-action"
@@ -726,12 +763,12 @@ export default function BookWorkspacePage() {
                 <div className="panel-heading">
                   <span>{t('bookWorkspace.markdown.chapters')}</span>
                   <strong>
-                    {countLabel('file', markdownProject?.files.length || 0)}
+                    {countLabel(repositoryMarkdownBook ? 'node' : 'file', repositoryMarkdownBook ? chapters.length : markdownProject?.files.length || 0)}
                   </strong>
                 </div>
                 
                 
-                {canEdit ? (
+                {canEdit && !repositoryMarkdownBook ? (
                   <div className="book-workspace-section-heading">
                     <strong>{t('bookWorkspace.markdown.newChapter')}</strong>
                     <div className="book-workspace-section-tools">
@@ -753,7 +790,17 @@ export default function BookWorkspacePage() {
                     </div>
                   </div>
                 ) : null}
-                {markdownProject?.files.length ? (
+                {repositoryMarkdownBook && chapters.length ? (
+                  <ol className="book-workspace-chapter-list">
+                    {chapters.map((chapter) => (
+                      <li key={chapter.id} className="book-workspace-node">
+                        <Link to={`${readerPath}#${encodeURIComponent(chapter.id)}`}>
+                          <MathInline text={chapter.title} />
+                        </Link>
+                      </li>
+                    ))}
+                  </ol>
+                ) : markdownProject?.files.length ? (
                   <ol className="book-workspace-chapter-list">
                     {markdownProject.files.map((file, index) => {
                       const editPath = `${bookWorkspacePath(post.id)}/markdown/${encodeURIComponent(file.id)}`;
@@ -912,9 +959,119 @@ export default function BookWorkspacePage() {
             </section>
           </>
         ) : null}
+        {!loading && post?.type === 'book' && post.book?.kind === 'typst' ? (
+          <>
+            <section className="book-workspace-hero book-workspace-hero--typst">
+              <div className="book-workspace-cover">
+                {post.coverUrl ? (
+                  <img src={post.coverUrl} alt="" />
+                ) : (
+                  <span className="typst-menu-mark" aria-hidden="true">
+                    T
+                  </span>
+                )}
+              </div>
+              <div className="book-workspace-identity">
+                <span className="eyebrow">{t('bookWorkspace.typstWorkspace')}</span>
+                <h1>
+                  <MathInline text={title} />
+                </h1>
+                <p>
+                  <MathInline
+                    text={post.excerpt || t('bookWorkspace.defaultTypstExcerpt')}
+                  />
+                </p>
+                <div className="book-workspace-meta">
+                  <span>{t(`bookWorkspace.publishStatus.${publishStatusKey}`)}</span>
+                  <span>{post.author}</span>
+                  <span>
+                    {chapters.length
+                      ? countLabel('chapter', chapters.length)
+                      : t('bookWorkspace.typst.noChapters')}
+                  </span>
+                  <span>
+                    {readerReady
+                      ? t('bookWorkspace.reader.generated')
+                      : t('bookWorkspace.reader.notGenerated')}
+                  </span>
+                </div>
+              </div>
+              <div
+                className="book-workspace-actions"
+                aria-label={t('bookWorkspace.actions.label')}
+              >
+                <Link to={overviewPath}>
+                  <Icon name="layout-text-sidebar-reverse" />
+                  {t('bookWorkspace.actions.ratingPage')}
+                </Link>
+                {readerReady ? (
+                  <Link to={readerPath}>
+                    <Icon name="book" />
+                    {t('bookWorkspace.actions.readingPage')}
+                  </Link>
+                ) : (
+                  <span className="disabled-action">
+                    <Icon name="book" />
+                    {t('bookWorkspace.actions.readingPending')}
+                  </span>
+                )}
+                {canEdit ? (
+                  <>
+                    <AnimateButton
+                      unstyled
+                      className="primary-workspace-action"
+                      type="button"
+                      onClick={() => setProfileDialogOpen(true)}
+                    >
+                      <Icon name="card-text" />
+                      {t('bookWorkspace.actions.editProfile')}
+                    </AnimateButton>
+                    <AnimateButton unstyled type="button" onClick={() => openGiteaPath('b', post.id)}>
+                      <Icon name="git" />
+                      {t('bookWorkspace.actions.openRepository')}
+                    </AnimateButton>
+                  </>
+                ) : (
+                  <span className="disabled-action">
+                    <Icon name="lock" />
+                    {t('bookWorkspace.actions.authorOnly')}
+                  </span>
+                )}
+              </div>
+            </section>
+
+            <section className="book-workspace-layout reader-only">
+              <article className="book-workspace-panel book-workspace-chapters">
+                <div className="panel-heading">
+                  <span>{t('bookWorkspace.typst.workspace')}</span>
+                  <strong>
+                    {chapters.length
+                      ? countLabel('chapter', chapters.length)
+                      : t('bookWorkspace.typst.emptyDirectory')}
+                  </strong>
+                </div>
+                {chapters.length ? (
+                  <ol className="book-workspace-chapter-list">
+                    {chapters.map((chapter) => (
+                      <li key={chapter.id} className="book-workspace-node">
+                        <Link to={`${readerPath}#${encodeURIComponent(chapter.id)}`}>
+                          <MathInline text={chapter.title} />
+                        </Link>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <div className="book-workspace-empty">
+                    <strong>{t('bookWorkspace.typst.empty')}</strong>
+                  </div>
+                )}
+              </article>
+            </section>
+          </>
+        ) : null}
         {!loading && post?.type === 'book' && post.book?.kind === 'original' ? (
           <>
-            <section className="book-workspace-hero">
+            <section className={`book-workspace-hero book-workspace-hero--${originalFormat}`}>
               <div className="book-workspace-cover">
                 {post.coverUrl ? (
                   <img src={post.coverUrl} alt="" />
@@ -923,13 +1080,15 @@ export default function BookWorkspacePage() {
                 )}
               </div>
               <div className="book-workspace-identity">
-                <span className="eyebrow">{t('bookWorkspace.latexWorkspace')}</span>
+                <span className="eyebrow">
+                  {t(`bookWorkspace.${originalFormat}Workspace`)}
+                </span>
                 <h1>
                   <MathInline text={title} />
                 </h1>
                 <p>
                   <MathInline
-                    text={post.excerpt || post.body || t('bookWorkspace.defaultBookExcerpt')}
+                    text={post.excerpt || t('bookWorkspace.defaultBookExcerpt')}
                   />
                 </p>
                 <div className="book-workspace-meta">
@@ -977,26 +1136,15 @@ export default function BookWorkspacePage() {
                       <Icon name="card-text" />
                       {t('bookWorkspace.actions.editProfile')}
                     </AnimateButton>
-                    <a
-                      href="#repository"
-                      className={`primary-workspace-action${codeWorkspaceOpening ? ' disabled-action' : ''}`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (!codeWorkspaceOpening) void openCodeWorkspace();
-                      }}
-                    >
+                    <AnimateButton unstyled type="button" onClick={() => openGiteaPath('b', post.id)}>
                       <Icon name="git" />
-                      {codeWorkspaceOpening
-                        ? t('bookWorkspace.actions.openingRepository')
-                        : t('bookWorkspace.actions.openRepository')}
-                    </a>
+                      {t('bookWorkspace.actions.openRepository')}
+                    </AnimateButton>
                     <label
-                      className={`primary-workspace-action book-workspace-import${demoMode || projectSaving || projectLoading || importJobInProgress ? ' disabled-action' : ''}`}
+                      className={`primary-workspace-action book-workspace-import${projectSaving || projectLoading || importJobInProgress ? ' disabled-action' : ''}`}
                     >
                       <Icon name="cloud-arrow-up" />
-                      {demoMode
-                        ? t('bookWorkspace.actions.rendererUnavailable')
-                        : projectSaving
+                      {projectSaving
                         ? t('bookWorkspace.actions.uploading')
                         : importJobInProgress
                           ? t('bookWorkspace.actions.rendering')
@@ -1007,7 +1155,7 @@ export default function BookWorkspacePage() {
                         type="file"
                         accept=".zip,.tar,.gz,.tgz,.tex,.ltx,application/zip,application/x-tar,application/gzip,text/x-tex,text/plain"
                         disabled={
-                          demoMode || projectSaving || projectLoading || importJobInProgress
+                          projectSaving || projectLoading || importJobInProgress
                         }
                         onChange={(event) =>
                           void publishWholeProject(event.currentTarget)
@@ -1052,9 +1200,9 @@ export default function BookWorkspacePage() {
                     ))}
                   </div>
                 ) : null}
-                {chapterGroups.length ? (
+                {visibleChapterGroups.length ? (
                   <div className="book-workspace-section-groups">
-                    {chapterGroups.map((group) => (
+                    {visibleChapterGroups.map((group) => (
                       <section
                         className="book-workspace-section-group"
                         key={group.key}
@@ -1091,7 +1239,7 @@ export default function BookWorkspacePage() {
                                           ? t('bookWorkspace.original.sources.reader')
                                           : chapter.source === 'toc'
                                             ? t('bookWorkspace.original.sources.toc')
-                                            : t('bookWorkspace.original.sources.tex')}
+                                            : t(`bookWorkspace.original.sources.${originalFormat}`)}
                                       {chapter.path ? ` · ${chapter.path}` : ''}
                                       {chapter.page
                                         ? ` · p. ${chapter.page}`

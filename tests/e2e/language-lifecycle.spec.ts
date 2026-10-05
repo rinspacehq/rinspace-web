@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext } from '@playwright/test';
+import { identitySessionMock } from './identity-session-mock';
 
 const startupCases = [
   { name: 'Simplified Chinese system locale', languages: ['zh-SG'], locale: 'zh-CN', title: '用户协议 · 芥子环' },
@@ -34,14 +35,7 @@ for (const startupCase of startupCases) {
 test('a signed-in device restores the account locale over its local system bootstrap', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-light');
   await page.addInitScript(() => {
-    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
-    localStorage.setItem('rinspace-auth-session', JSON.stringify({
-      access_token: `e30.${payload}.signature`,
-      refresh_token: 'locale-restoration-refresh',
-      expires_in: 3600,
-      issued_at: Date.now(),
-      sub: 'locale-restoration-user',
-    }));
+    localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'locale-restoration-user' }));
     localStorage.setItem(
       'rinspace-language-preference-v1',
       JSON.stringify({ preference: 'system' }),
@@ -61,6 +55,10 @@ test('a signed-in device restores the account locale over its local system boots
   }));
   await page.route('**/api/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname.replace(/^\/rinspace(?=\/)/, '');
+    if (pathname === '/api/identity/v1/session') {
+      await route.fulfill({ json: identitySessionMock('locale-restoration-user', 'locale-restoration-user') });
+      return;
+    }
     if (pathname === '/api/user/info') {
       await route.fulfill({
         json: {
@@ -109,10 +107,7 @@ test('a Settings language change follows the account onto a second device', asyn
   test.skip(testInfo.project.name !== 'desktop-light');
   test.setTimeout(60_000);
 
-  const baseURL = process.env.RINSPACE_PREVIEW_URL || new URL(
-    process.env.RINSPACE_PREVIEW_BASE_PATH || '/',
-    'http://127.0.0.1:4173',
-  ).toString();
+  const baseURL = process.env.RINSPACE_PREVIEW_URL || `http://127.0.0.1:${process.env.PORT || '4173'}/rinspace`;
   const siteOrigin = new URL(baseURL).origin;
   let accountLanguage: 'zh-CN' | 'en' = 'zh-CN';
   const notificationConfig = {
@@ -123,14 +118,7 @@ test('a Settings language change follows the account onto a second device', asyn
 
   const installDevice = async (context: BrowserContext, languages: readonly string[]) => {
     await context.addInitScript(({ deviceLanguages }) => {
-      const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
-      localStorage.setItem('rinspace-auth-session', JSON.stringify({
-        access_token: `e30.${payload}.signature`,
-        refresh_token: 'locale-second-device-refresh',
-        expires_in: 3600,
-        issued_at: Date.now(),
-        sub: 'locale-second-device-user',
-      }));
+      localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'locale-second-device-user' }));
       localStorage.setItem(
         'rinspace-language-preference-v1',
         JSON.stringify({ preference: 'system' }),
@@ -148,6 +136,10 @@ test('a Settings language change follows the account onto a second device', asyn
     await context.route('**/*', async (route) => {
       const request = route.request();
       const pathname = new URL(request.url()).pathname.replace(/^\/rinspace(?=\/)/, '');
+      if (pathname === '/api/identity/v1/session') {
+        await route.fulfill({ json: identitySessionMock('locale-second-device-user', 'locale-second-device-user') });
+        return;
+      }
       if (pathname === '/auth/v1/user/me') {
         await route.fulfill({
           json: {

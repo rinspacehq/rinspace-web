@@ -1,7 +1,7 @@
 import { AnimateButton, Icon, useNoticeToasts } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import SiteTopbar from '@/components/SiteTopbarShell';
 

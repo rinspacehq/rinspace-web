@@ -13,6 +13,7 @@ export const translationNamespaces = [
   'identity',
   'admin',
   'settings',
+  'wallet',
   'legal',
   'errors',
 ] as const;

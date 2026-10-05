@@ -1,4 +1,5 @@
 import {
+  blogEditorKind,
   bodyFromMarkdownSource,
   commentMarkdownToHtml,
   excerptFromMarkdown,
@@ -6,12 +7,15 @@ import {
   giteaSourceFolderPageUrl,
   markdownBlogHtml,
   markdownBlogSource,
+  markdownSourceFile,
   markdownStoredArticleRender,
   markdownToHtml,
   normalizeMarkdownWhitespaceEntities,
   rinWriterSourceFile,
   rinWriterSourceFallbackFile,
+  typstSourceFile,
 } from './blogBody';
+import type { PostDetail } from '@/services/feed';
 
 const testHashA = 'a'.repeat(64);
 const testHashB = 'b'.repeat(64);
@@ -655,6 +659,43 @@ test('stores markdown blog body as source-only markers', () => {
   expect(body).not.toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
 });
 
+test('finds a repository-backed Markdown source when legacy file metadata is absent', () => {
+  const post = {
+    body: bodyFromMarkdownSource('# New article', null),
+    repositorySource: {
+      commit: 'a'.repeat(40),
+      entrypoint: 'content.md',
+      url: `/repos/a/581/raw/commit/${'a'.repeat(40)}/content.md`,
+    },
+  } as PostDetail;
+
+  const source = markdownSourceFile(post);
+  expect(source?.filename).toBe('content.md');
+  expect(source?.mime).toBe('text/markdown');
+  expect(source?.url).toBe(post.repositorySource?.url);
+  expect(giteaSourceFilePageUrl(post.repositorySource!.url)).toBe(
+    `/repos/a/581/src/commit/${'a'.repeat(40)}/content.md`,
+  );
+});
+
+test('keeps legacy Markdown source metadata when both source formats exist', () => {
+  const legacy = { filename: 'article.md', url: '/legacy/source.md', bytes: 123 };
+  const post = {
+    body: bodyFromMarkdownSource('# Existing article', null),
+    markdownSource: legacy,
+    repositorySource: {
+      commit: 'b'.repeat(40),
+      entrypoint: 'content.md',
+      url: `/repos/a/422/raw/commit/${'b'.repeat(40)}/content.md`,
+    },
+  } as PostDetail;
+
+  const source = markdownSourceFile(post);
+  expect(source?.filename).toBe(legacy.filename);
+  expect(source?.url).toBe(legacy.url);
+  expect(source?.bytes).toBe(legacy.bytes);
+});
+
 test('converts Gitea raw source urls to file browser urls', () => {
   expect(
     giteaSourceFilePageUrl(
@@ -719,4 +760,36 @@ test('rin writer source fallback file synthesizes metadata from the raw source s
   expect((file?.bytes || 0) > 0).toBe(true);
   // CJK characters expand beyond one byte per code point in UTF-8.
   expect((file?.bytes || 0) > 12).toBe(true);
+});
+
+test('blog editor kind recognizes the Typst editor', () => {
+  expect(blogEditorKind({ editor: 'typst' })).toBe('typst');
+  expect(blogEditorKind({ editor: '  Typst  ' })).toBe('typst');
+  expect(blogEditorKind({ editor: 'rin' })).toBe('rin');
+  expect(blogEditorKind({ editor: 'latex' })).toBe('rin');
+  expect(blogEditorKind({ editor: 'markdown' })).toBe('markdown');
+});
+
+test('typst source file reports the fixed repository entry point', () => {
+  const file = typstSourceFile({ editor: 'typst' });
+  expect(file?.filename).toBe('main.typ');
+  expect(file?.mime).toBe('text/plain');
+  expect(file?.url).toBe('');
+});
+
+test('typst source file stays null for non-Typst editors', () => {
+  expect(typstSourceFile({ editor: 'rin' })).toBe(null);
+  expect(typstSourceFile({ editor: 'markdown' })).toBe(null);
+  expect(typstSourceFile({ editor: '' })).toBe(null);
+});
+
+test('a Typst article body exposes source metadata that the LaTeX markers cannot', () => {
+  const body = [
+    '[[RIN_WRITER]]',
+    '<h2>1. 引言</h2><p>从这里开始撰写文章。</p>',
+    '[[/RIN_WRITER]]',
+  ].join('\n');
+  expect(rinWriterSourceFile(body)).toBe(null);
+  expect(rinWriterSourceFallbackFile(body)).toBe(null);
+  expect(typstSourceFile({ editor: 'typst', body })?.filename).toBe('main.typ');
 });

@@ -2,7 +2,7 @@ import { AnimateButton , useNoticeToasts } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import SiteTopbar from '@/components/SiteTopbarShell';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 
 import LoadingState from '@/components/LoadingState';
 import { MathInline } from '@/components/MathText';

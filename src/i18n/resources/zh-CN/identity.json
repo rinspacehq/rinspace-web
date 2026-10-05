@@ -35,7 +35,7 @@
     "tag": "标签",
     "post": "内容",
     "content": "内容",
-    "blog": "博客",
+    "blog": "文章",
     "book": "书籍",
     "discussion": "讨论",
     "dynamic": "动态",
@@ -101,8 +101,8 @@
     "label": "{{realm}} · {{rank}} 修为"
   },
   "profile": {
-    "documentTitle": "个人主页",
-    "documentTitleNamed": "{{name}}",
+    "documentTitle": "个人主页 · 芥子环",
+    "documentTitleNamed": "{{name}} · 芥子环",
     "memberFallback": "成员",
     "avatarLabel": "{{name}} 的头像",
     "viewCultivation": "查看境界与修为",
@@ -112,23 +112,25 @@
     "tabs": {
       "about": "关于",
       "overview": "综合",
-      "blog": "博客",
+      "blog": "文章",
       "book": "书籍",
       "qa": "问答",
       "discussion": "讨论",
       "dynamic": "动态",
+      "tweet": "推文",
       "collection": "收藏",
       "graph": "图谱"
     },
     "timeline": {
       "types": {
-        "blog": "博客",
+        "blog": "文章",
         "book": "书籍",
         "question": "提问",
         "answer": "回答",
         "comment": "评论",
         "discussion": "讨论",
-        "dynamic": "动态"
+        "dynamic": "动态",
+        "tweet": "推文"
       }
     },
     "counts": {
@@ -158,16 +160,27 @@
       "answers": "还没有公开回答。",
       "comments": "还没有公开评论。",
       "content": "还没有公开内容。",
-      "blogs": "还没有公开博客。",
+      "blogs": "还没有公开文章。",
       "books": "还没有公开原创书籍。",
       "discussions": "还没有公开讨论。",
       "dynamics": "还没有公开动态。",
+      "tweets": "还没有公开推文。",
       "collections": "还没有公开收藏。",
       "graph": "暂无图谱数据。",
       "following": "暂无关注。",
       "followers": "暂无粉丝。"
     },
-    "namedBlogs": "{{name}} 的博客",
+    "tweets": {
+      "unbound": "这个账号尚未完成里世界身份绑定。",
+      "unavailable": "暂时无法读取里世界推文，请稍后重试。",
+      "contentWarning": "内容警告",
+      "replies": "回复",
+      "reposts": "转发",
+      "likes": "喜欢",
+      "loadMore": "加载更多推文",
+      "loading": "加载中"
+    },
+    "namedBlogs": "{{name}} 的文章",
     "namedBooks": "{{name}} 的书籍",
     "aboutFrameTitle": "{{name}} 的关于页面",
     "collectionManage": "收藏管理",
@@ -322,7 +335,7 @@
       "createQuestion": "提问",
       "createDiscussion": "新建讨论",
       "createDynamic": "新建动态",
-      "createBlog": "新建博客",
+      "createBlog": "新建文章",
       "createBook": "新建书籍",
       "rename": "重命名",
       "confirmDelete": "确认删除",
@@ -474,14 +487,15 @@
     "sectionLabel": "通知类型",
     "sections": {
       "inbox": "收件箱",
-      "achievement": "成就"
+      "system": "系统通知"
     },
     "filtersLabel": "收件箱筛选",
     "filters": {
       "all": "全部",
       "posts": "内容",
-      "invites": "关注 / 邀请",
-      "votes": "赞同"
+      "follows": "关注",
+      "likes": "喜欢",
+      "collections": "收藏"
     },
     "markAll": "全部已读",
     "markedAll": "{{section}}已全部标记为已读。",
@@ -492,6 +506,7 @@
     "read": "已读",
     "markRead": "标记已读",
     "fallback": "通知",
+    "walletTitle": "善功钱包",
     "actions": {
       "achievement": "成就",
       "answer": "回答",
@@ -504,6 +519,12 @@
       "question": "新题目",
       "repost": "转发",
       "vote": "赞同",
+      "like": "喜欢",
+      "collection": "收藏",
+      "walletTip": "获赏",
+      "walletRecharge": "充值",
+      "walletConversion": "转换",
+      "publicationFailed": "发布失败",
       "moderation": "审核",
       "reportResolved": "举报结果"
     },
@@ -517,6 +538,8 @@
       "question": "{{actor}} 发布了新题目",
       "repost": "{{actor}} 转发了你的{{target}}",
       "vote": "{{actor}} 赞同了你的{{target}}",
+      "like": "{{actor}} 喜欢了你的{{target}}",
+      "collection": "{{actor}} 收藏了你的{{target}}",
       "badge": "你获得了新的{{action}}",
       "default": "{{actor}} 触发了{{action}}",
       "moderationFirstReview": "你的内容已进入二审。",
@@ -527,7 +550,11 @@
       "reportActionTaken": "你举报的内容已处理。",
       "reportNoViolation": "经核查暂未发现违规。",
       "reportTargetUnavailable": "相关内容已不可用，本次举报已结束。",
-      "reportResolved": "你的举报已处理。"
+      "reportResolved": "你的举报已处理。",
+      "walletTip": "{{actor}} 打赏了你的作品。",
+      "walletRecharge": "充值已到账。",
+      "walletConversion": "善功转换已完成。",
+      "publicationFailed": "内容更新发布失败，当前版本仍然可见。"
     }
   },
   "activity": {

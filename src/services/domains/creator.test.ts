@@ -53,5 +53,9 @@ describe('creator insights response parsing', () => {
     expect(third).toEqual(first);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toContain('/api/v1/users/cache-test-user/heatmap');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      credentials: 'omit',
+      headers: { Accept: 'application/json' },
+    });
   });
 });

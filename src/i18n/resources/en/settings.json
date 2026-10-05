@@ -1,5 +1,5 @@
 {
-  "pageTitle": "Settings",
+  "pageTitle": "Settings - Rinspace",
   "title": "Settings",
   "scope": {
     "signedIn": "Preferences and notifications",
@@ -10,7 +10,6 @@
   "signIn": "Sign in",
   "profile": "Profile",
   "notificationsLink": "Notifications",
-  "demoBoundary": "Demo settings stay in this browser. Real SMS, email delivery, account linking, payments, and external OAuth are disabled.",
   "interface": {
     "heading": "Interface",
     "caption": "Interface preferences",
@@ -46,7 +45,7 @@
     "rows": {
       "inbox": {
         "title": "Inbox",
-        "detail": "Comments, answers, reposts, invitations, and upvotes."
+        "detail": "Comments, replies, follows, likes, and saves."
       },
       "allNewQuestion": {
         "title": "New questions",
@@ -56,6 +55,55 @@
         "title": "Followed tags",
         "detail": "New questions under tags you follow."
       }
+    }
+  },
+  "security": {
+    "heading": "Devices and app credentials",
+    "caption": "Manage browser sessions and personal Git/OAuth access",
+    "refresh": "Refresh",
+    "loading": "Loading security status…",
+    "loadFailed": "Devices or app credentials are temporarily unavailable. Try again.",
+    "verificationStartFailed": "Could not start security verification. Try again.",
+    "operationFailed": "The operation is not confirmed complete. Retry and check the remote status.",
+    "operationAccepted": "The operation is confirmed and the list reflects remote state.",
+    "signedOutComplete": "Revocation is confirmed. Sign in again on this device.",
+    "unknownTime": "Unknown",
+    "createdAt": "Created: {{value}}",
+    "lastActiveAt": "Last active: {{value}}",
+    "lastUsedAt": "Last used: {{value}}",
+    "cleanupComplete": "Linked runtimes cleaned up",
+    "cleanupPending": "Linked runtimes still cleaning up",
+    "revoked": "Revoked",
+    "devices": {
+      "heading": "Browser devices",
+      "detail": "Each device has an independent session. Signing out one device leaves other devices and personal SSH, PAT, and OAuth credentials active.",
+      "listLabel": "Browser device list",
+      "unknown": "Unnamed browser",
+      "current": "Current device",
+      "revokeCurrent": "Sign out this device",
+      "revokeOne": "Sign out device",
+      "revokeAll": "Sign out all browser devices"
+    },
+    "credentials": {
+      "heading": "Personal app credentials",
+      "detail": "Only metadata for personal SSH, PAT, and OAuth access from Gitea and the inner world is shown. Secrets are never displayed.",
+      "listLabel": "Personal app credential list",
+      "empty": "No personal app credentials.",
+      "unknownScope": "Scope unknown",
+      "revokeOne": "Revoke credential",
+      "revokeAll": "Revoke all personal access",
+      "revokeAllImpact": "Revoking all personal access also signs out every browser device. Repository content, workspaces, deploy keys, and service accounts remain intact."
+    },
+    "verification": {
+      "caption": "Recent verification",
+      "detail": "Enter the phone used by this CloudBase account to receive a code and confirm this action.",
+      "phone": "Phone number",
+      "send": "Send code",
+      "sending": "Sending…",
+      "code": "Verification code",
+      "cancel": "Cancel",
+      "confirm": "Confirm action",
+      "working": "Confirming…"
     }
   },
   "recovery": {

@@ -8,6 +8,8 @@ const chromiumPath = process.env.CHROMIUM_BIN;
 const now = new Date().toISOString();
 const mutations = [];
 const requestCounts = { currentUser: 0, giteaSession: 0, heatmap: 0 };
+const stepUpRequests = [];
+let heatmapCookieHeader = '';
 const avatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="32" height="32"%3E%3Crect width="32" height="32" fill="%232b577a"/%3E%3C/svg%3E';
 
 function appPathname(value) {
@@ -50,12 +52,29 @@ async function handle(route) {
   const request = route.request();
   const url = new URL(request.url());
   const pathname = appPathname(url.pathname);
+  if (pathname === '/api/identity/v1/session') {
+    return route.fulfill({ json: {
+      status: 'authenticated',
+      csrfToken: 'creator-browser-csrf',
+      user: { id: 'creator-uid', username: 'creator', role: 'member' },
+      currentSession: { sid: 'creator-browser-session', version: 1 },
+    } });
+  }
+  if (pathname === '/api/identity/v1/step-up' && request.method() === 'POST') {
+    const body = request.postDataJSON();
+    stepUpRequests.push(body);
+    if (body.challengeId) {
+      return route.fulfill({ json: { stepUpProof: 'rin_su_creator_delete_proof' } });
+    }
+    return route.fulfill({ status: 202, json: { challengeId: 'creator-delete-challenge', retryAfter: 60 } });
+  }
   if (pathname === '/api/gitea/sso') {
     requestCounts.giteaSession += 1;
     return route.fulfill({ status: 204, body: '' });
   }
   if (pathname === '/repos/api/v1/users/creator/heatmap') {
     requestCounts.heatmap += 1;
+    heatmapCookieHeader = request.headers().cookie || '';
     return route.fulfill({ json: [
       { timestamp: Math.floor(Date.now() / 1000) - 86_400, contributions: 4 },
       { timestamp: Math.floor(Date.now() / 1000) - (3 * 86_400), contributions: 2 },
@@ -78,7 +97,11 @@ async function handle(route) {
     return route.fulfill({ json: content(body.status, body.repositoryStatus, body.sourceVisibility) });
   }
   if (pathname === '/api/content/42' && request.method() === 'DELETE') {
-    mutations.push({ deletion: request.postDataJSON(), contentType: request.headers()['content-type'] });
+    mutations.push({
+      deletion: request.postDataJSON(),
+      contentType: request.headers()['content-type'],
+      stepUpProof: request.headers()['x-rinspace-step-up'],
+    });
     return route.fulfill({ json: content('draft', 'draft', 'private') });
   }
   return route.fulfill({ json: {} });
@@ -92,13 +115,21 @@ const browser = await chromium.launch({
 
 try {
   const page = await browser.newPage();
+  const browserBaseURL = new URL(baseURL);
+  await page.context().addCookies([{
+    name: 'i_like_gitea',
+    value: 'expired-managed-session',
+    domain: browserBaseURL.hostname,
+    path: '/repos',
+    secure: browserBaseURL.protocol === 'https:',
+    sameSite: 'Lax',
+  }]);
   const consoleErrors = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push({ text: message.text(), url: message.location().url });
   });
   await page.addInitScript(() => {
-    const token = `e30.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }))}.signature`;
-    localStorage.setItem('rinspace-auth-session', JSON.stringify({ access_token: token, refresh_token: 'refresh', expires_in: 3600, sub: 'creator-uid', issued_at: Date.now() }));
+    localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'creator-uid' }));
   });
   await page.route('**/api/**', handle);
   await page.goto(`${baseURL}/creator?view=content`, { waitUntil: 'domcontentloaded' });
@@ -110,7 +141,7 @@ try {
   await avatarImage.waitFor({ state: 'visible' });
   assert.match(await avatarImage.getAttribute('src'), /^data:image\/svg\+xml/);
   assert.equal(await page.locator('.creator-head').count(), 0);
-  assert.equal(await page.getByRole('tab', { name: /博客/ }).getAttribute('aria-selected'), 'true');
+  assert.equal(await page.getByRole('tab', { name: /文章/ }).getAttribute('aria-selected'), 'true');
   if (process.env.RINSPACE_CREATOR_SCREENSHOT) {
     await page.screenshot({ path: process.env.RINSPACE_CREATOR_SCREENSHOT, fullPage: true });
   }
@@ -118,6 +149,15 @@ try {
   await row.waitFor({ state: 'visible' });
   const pageStateSelect = row.getByLabel('页面状态');
   const sourceVisibilitySelect = row.getByLabel('源码可见性');
+  const editButton = row.getByRole('button', { name: '编辑' });
+  assert.equal(await editButton.evaluate((element) => getComputedStyle(element).borderRadius), '2px');
+  assert.equal(await pageStateSelect.evaluate((element) => getComputedStyle(element).borderRadius), '2px');
+  await editButton.click();
+  const quickEditDialog = page.getByRole('dialog', { name: '编辑文章' });
+  await quickEditDialog.waitFor();
+  assert.equal(appPathname(new URL(page.url()).pathname), '/creator');
+  await quickEditDialog.getByRole('button', { name: '关闭' }).click();
+  await quickEditDialog.waitFor({ state: 'hidden' });
   const selectPublishingOption = async (locator, value) => {
     const response = page.waitForResponse((candidate) => (
       appPathname(new URL(candidate.url()).pathname) === '/api/content/42'
@@ -146,6 +186,8 @@ try {
   assert.match(deletion.contentType, /^application\/json/);
   assert.equal(deletion.deletion.confirmation, 'DELETE 42');
   assert.ok(deletion.deletion.idempotencyKey);
+  assert.equal(deletion.stepUpProof, undefined);
+  assert.deepEqual(stepUpRequests, []);
 
   await page.getByRole('link', { name: '数据分析' }).click();
   await page.locator('.creator-analytics').waitFor();
@@ -192,6 +234,7 @@ try {
   assert.equal(requestCounts.currentUser, 1);
   assert.ok(requestCounts.giteaSession <= 1);
   assert.equal(requestCounts.heatmap, 1);
+  assert.equal(heatmapCookieHeader.includes('expired-managed-session'), false);
   assert.equal(await page.locator('.creator-quick-actions, .creator-overview-metrics').count(), 0);
   await page.getByRole('heading', { name: '最近更新' }).waitFor();
   if (process.env.RINSPACE_CREATOR_HOME_SCREENSHOT) {

@@ -8,7 +8,7 @@
   "detail": {
     "pageTitle": "{{type}} details",
     "type": {
-      "blog": "Blog",
+      "blog": "Article",
       "question": "Q&A",
       "discussion": "Discussion",
       "announcement": "Announcement",
@@ -23,7 +23,6 @@
       "reportArticle": "Report article",
       "giteaSource": "Gitea source",
       "openGiteaSource": "Open the source repository for {{filename}} in Gitea",
-      "demoSourceUnavailable": "Gitea source is not connected in the demo",
       "renderUnavailable": "The rendered article is temporarily unavailable.",
       "noBrowserFallback": "This page does not re-render source files in the browser. Try again shortly."
     },
@@ -58,14 +57,20 @@
     },
     "toc": {
       "title": "Contents",
-      "blogLabel": "Blog table of contents",
+      "blogLabel": "Article table of contents",
       "bookLabel": "Book table of contents",
       "expand": "Expand {{title}}",
       "collapse": "Collapse {{title}}",
       "itemCount_one": "{{displayCount}} item",
       "itemCount_other": "{{displayCount}} items",
       "pageCount_one": "{{displayCount}} page",
-      "pageCount_other": "{{displayCount}} pages"
+      "pageCount_other": "{{displayCount}} pages",
+      "webPageCount_one": "{{displayCount}} web page",
+      "webPageCount_other": "{{displayCount}} web pages",
+      "nodeCount_one": "{{displayCount}} TOC item",
+      "nodeCount_other": "{{displayCount}} TOC items",
+      "pdfPageCount_one": "PDF {{displayCount}} page",
+      "pdfPageCount_other": "PDF {{displayCount}} pages"
     },
     "metrics": {
       "readCount_one": "{{displayCount}} read",
@@ -181,6 +186,10 @@
       "actionCount_other": "{{action}}, {{displayCount}} likes",
       "loginActionCount_one": "Sign in to like, {{displayCount}} like",
       "loginActionCount_other": "Sign in to like, {{displayCount}} likes"
+    },
+    "reports": {
+      "actionCount_one": "Report, {{displayCount}} person",
+      "actionCount_other": "Report, {{displayCount}} people"
     },
     "reading": {
       "communityResponse": "Community response",
@@ -312,12 +321,14 @@
       "kind": {
         "markdown": "Markdown book",
         "original": "Original book",
+        "typst": "Typst book",
         "external": "External book"
       },
       "metadata": {
         "title": "Bibliographic information",
         "markdown": "Markdown",
         "original": "Original",
+        "typst": "Typst",
         "reference": "Reference",
         "bookTitle": "Book title",
         "authors": "Authors",
@@ -371,7 +382,7 @@
         "kind": {
           "discussion": "Discussion",
           "question": "Question",
-          "blog": "Blog",
+          "blog": "Article",
           "errata": "Correction"
         },
         "chapterContent": "Chapter content",
@@ -620,8 +631,8 @@
     }
   },
   "tagWikiHistory": {
-    "documentTitle": "Gitea revision history",
-    "tagDocumentTitle": "{{tag}} · Gitea revision history",
+    "documentTitle": "Gitea revision history · Rinspace",
+    "tagDocumentTitle": "{{tag}} · Gitea revision history · Rinspace",
     "kicker": "Wiki revision history",
     "tagFallback": "Tag",
     "redirecting": "Redirecting to the Gitea repository commit history.",
@@ -630,20 +641,16 @@
   },
   "tagWiki": {
     "missing": "The tag does not exist.",
-    "documentTitle": "Tag Wiki",
-    "tagDocumentTitle": "{{tag}} · Wiki",
+    "documentTitle": "Tag Wiki · Rinspace",
+    "tagDocumentTitle": "{{tag}} · Wiki · Rinspace",
     "aliasesContext": "Tag aliases",
     "referencesContext": "Internal references",
     "tocLabel": "Entry contents",
     "toc": "Contents",
     "emptyToc": "No contents",
     "read": "Read",
-    "opening": "Opening",
-    "edit": "Edit",
     "source": "Source",
-    "sourceUnavailable": "Gitea source and issues are unavailable in the demo",
     "history": "History",
-    "sourceUnavailable": "Gitea source is unavailable in the demo",
     "created": "Created {{date}}",
     "updated": "Updated {{date}}",
     "outgoing": "Tags cited by this entry",
@@ -662,9 +669,9 @@
     "emptyAliases": "No aliases"
   },
   "tagWikiEdit": {
-    "createDocumentTitle": "Create tag",
-    "documentTitle": "Maintain tag source",
-    "tagDocumentTitle": "{{tag}} · Maintain source",
+    "createDocumentTitle": "Create tag · Rinspace",
+    "documentTitle": "Maintain tag source · Rinspace",
+    "tagDocumentTitle": "{{tag}} · Maintain source · Rinspace",
     "heading": "Maintain tag source",
     "stableId": "Stable tag ID",
     "repositoryState": "Repository state",
@@ -676,7 +683,7 @@
     "back": "Back to tag"
   },
   "linkedQuestions": {
-    "documentTitle": "Questions citing this one",
+    "documentTitle": "Questions citing this one · Rinspace",
     "kicker": "Question network",
     "referenceCount_one": "{{displayCount}} citation",
     "referenceCount_other": "{{displayCount}} citations",
@@ -711,6 +718,7 @@
     "book": "Book",
     "externalBook": "External book",
     "originalBook": "Original book",
+    "typstBook": "Typst book",
     "score": "{{score}} points",
     "unrated": "Not rated",
     "reviewCount_one": "{{displayCount}} rating",
@@ -720,8 +728,8 @@
     "contextExcerpt_other": "Author #{{id}}, connected to {{displayCount}} books.",
     "heading": "Book author",
     "relatedBooks": "Related books",
-    "authorDocumentTitle": "{{author}}",
-    "documentTitle": "Book author",
+    "authorDocumentTitle": "{{author}} · Rinspace",
+    "documentTitle": "Book author · Rinspace",
     "authorId": "Author #{{id}}",
     "loadingAuthor": "Loading author",
     "backToBooks": "Back to books",
@@ -733,7 +741,7 @@
   "bookActivity": {
     "bookFallback": "Book",
     "titleFallback": "Book activity",
-    "documentTitle": "{{title}} · Related content",
+    "documentTitle": "{{title}} · Related content · Rinspace",
     "kicker": "Book activity",
     "syncing": "Syncing",
     "itemCount_one": "{{displayCount}} item",
@@ -744,13 +752,13 @@
       "all": "All",
       "discussion": "Discussions",
       "question": "Questions",
-      "blog": "Blogs",
+      "blog": "Articles",
       "errata": "Corrections"
     },
     "kind": {
       "discussion": "Discussion",
       "question": "Question",
-      "blog": "Blog",
+      "blog": "Article",
       "errata": "Correction"
     },
     "erratumFallback": "Correction",
@@ -771,6 +779,7 @@
     "copyFailed": "Copy failed. Copy the address manually.",
     "loadMoreFailed": "More connections could not be loaded",
     "reportBody": "Tag: {{tag}} (#{{id}})\nPublic revision: {{revision}}\nPage: {{page}}\n\nDescribe the issue.",
+    "maintenanceTitle": "Tag maintenance",
     "title": "Tag relationships",
     "actions": "Tag actions",
     "reportIssue": "Report an issue",
@@ -805,8 +814,7 @@
     "anchorUnavailable": "The anchor citation is unavailable",
     "cite": "Cite",
     "anchorCorrectionTitle": "Correction: {{tag}} #{{anchor}}",
-    "correction": "Correction",
-    "correctionUnavailable": "The demo does not create Gitea issues"
+    "correction": "Correction"
   },
   "tagGovernance": {
     "maintain": "Maintain tag",
@@ -859,12 +867,14 @@
     }
   },
   "tagDetail": {
-    "documentTitle": "Tag",
-    "tagDocumentTitle": "{{tag}} · Tag",
+    "documentTitle": "Tag · Rinspace",
+    "tagDocumentTitle": "{{tag}} · Tag · Rinspace",
     "tagFallback": "Tag",
+    "searchDescription": "Knowledge entity, lifecycle, related content, and related Tags for {{tag}}.",
+    "lifecycle": "Lifecycle: {{state}}",
     "wikiLabel": "Tag Wiki",
     "opening": "Opening",
-    "edit": "Edit",
+    "source": "Source",
     "details": "Details",
     "outgoing": "Tags cited by this article",
     "uncreated": " (not created)",
@@ -873,20 +883,24 @@
     "emptyIncoming": "No backlinks from tags",
     "previous": "Previous",
     "next": "Next",
+    "interactions": "Tag interactions",
+    "like": "Like",
+    "liked": "Liked",
     "followCount_one": "{{displayCount}} follower",
     "followCount_other": "{{displayCount}} followers",
     "following": "Following",
     "follow": "Follow",
     "followed": "Following {{tag}}.",
     "unfollowed": "Unfollowed {{tag}}.",
-    "repositoryPending": "The tag repository is being created. Wiki editing will open when it is ready.",
+    "repositoryPending": "The tag repository is being created. Source access will open when it is ready.",
     "repositoryFailed": "The tag repository is not ready yet. Recovery will continue on the next save.",
     "contentTypes": "Tag content types",
     "sortLabel": "Sort tag content",
     "tabs": {
       "wiki": "Wiki",
       "all": "All",
-      "blog": "Blogs",
+      "blog": "Articles",
+      "book": "Books",
       "question": "Q&A",
       "discussion": "Discussions",
       "dynamic": "Updates"
@@ -898,7 +912,8 @@
     },
     "type": {
       "announcement": "Announcement",
-      "blog": "Blog",
+      "blog": "Article",
+      "book": "Book",
       "discussion": "Discussion",
       "dynamic": "Update",
       "question": "Q&A",
@@ -952,7 +967,7 @@
       "statistics": "Tag statistics",
       "totalContent": "Total content {{displayCount}}",
       "questions": "Q&A {{displayCount}}",
-      "blogs": "Blogs {{displayCount}}",
+      "blogs": "Articles {{displayCount}}",
       "discussions": "Discussions {{displayCount}}",
       "dynamics": "Updates {{displayCount}}",
       "followers": "Followers {{displayCount}}",

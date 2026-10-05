@@ -1,6 +1,6 @@
 import { Icon , useNoticeToasts } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useParams } from 'react-router-dom';
 
 import AvatarImage from '@/components/AvatarImage';
@@ -80,7 +80,7 @@ export default function ProfileRankPage() {
 
   return (
     <>
-      <Helmet title={t('rank.title', { name: user?.display_name || userId || t('rank.userFallback') })} />
+      <Helmet title={`${t('rank.title', { name: user?.display_name || userId || t('rank.userFallback') })} · ${t('navigation:brandName')}`} />
       <SiteTopbar />
       <main className="profile-rank-shell">
         <section className="profile-rank-hero">

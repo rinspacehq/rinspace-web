@@ -1,11 +1,12 @@
 import type { TFunction } from 'i18next';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
+
+const contactEmail = 'lunifans@outlook.com';
 
 type LegalPageKey = 'about' | 'legal' | 'terms' | 'privacy' | 'copyright' | 'contact';
 
@@ -60,24 +61,15 @@ const navItems: Array<{ key: LegalPageKey; path: string }> = [
   { key: 'contact', path: '/contact' },
 ];
 
-function pageCopy(
-  page: LegalPageKey,
-  t: TFunction<'legal'>,
-  values: Readonly<{
-    siteName: string;
-    company: string;
-    email: string;
-    icp: string;
-    publicSecurity: string;
-  }>,
-) {
+function pageCopy(page: LegalPageKey, t: TFunction<'legal'>) {
   const interpolation = {
-    ...values,
+    company: t('common:footer.company'),
+    email: contactEmail,
   };
   return {
-    title: t(`pages.${page}.title`, interpolation),
-    label: t(`pages.${page}.label`, interpolation),
-    description: t(`pages.${page}.description`, interpolation),
+    title: t(`pages.${page}.title`),
+    label: t(`pages.${page}.label`),
+    description: t(`pages.${page}.description`),
     sections: pageSections[page].map(({ key, lines }) => ({
       key,
       title: t(`pages.${page}.sections.${key}.title`),
@@ -90,21 +82,12 @@ function pageCopy(
 
 function LegalPage({ page }: { page: LegalPageKey }) {
   const { t } = useFeatureTranslation('legal');
-  const site = useOptionalBootstrap()?.config.site;
-  const siteName = site?.name ?? t('navigation:brandName');
-  const notPublished = t('notPublished');
-  const companyName = site?.legalEntity ?? notPublished;
-  const current = pageCopy(page, t, {
-    siteName,
-    company: companyName,
-    email: site?.contactEmail ?? notPublished,
-    icp: site?.filings.icp ?? notPublished,
-    publicSecurity: site?.filings.publicSecurity ?? notPublished,
-  });
+  const current = pageCopy(page, t);
+  const companyName = t('common:footer.company');
 
   return (
     <>
-      <Helmet title={current.title}>
+      <Helmet title={`${current.title} · ${t('navigation:brandName')}`}>
         <meta name="description" content={current.description} />
       </Helmet>
       <SiteTopbar />
@@ -112,7 +95,7 @@ function LegalPage({ page }: { page: LegalPageKey }) {
         <section className="legal-hero">
           <div className="detail-kicker">
             <span>{current.label}</span>
-            <strong>{siteName}</strong>
+            <strong>Rinspace</strong>
           </div>
           <h1>{current.title}</h1>
           <p>{current.description}</p>
@@ -144,8 +127,7 @@ function LegalPage({ page }: { page: LegalPageKey }) {
             <section className="legal-contact-panel">
               <h2>{t('operator')}</h2>
               <p>{companyName}</p>
-              {site?.contactEmail ? <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> : null}
-              {site?.sourceUrl ? <a href={site.sourceUrl} target="_blank" rel="noreferrer">{t('source')}</a> : null}
+              <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
             </section>
             <SiteIcpLink />
           </aside>

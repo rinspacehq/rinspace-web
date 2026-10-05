@@ -1,12 +1,11 @@
 import { Icon, AnimateButton, useNoticeToasts } from 'components/ui';
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Form, Spinner } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
 
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import CodeMirrorEditor from '@/components/CodeMirrorEditor';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import LoadingState from '@/components/LoadingState';
@@ -25,6 +24,7 @@ import { createQuestion, createQuestionByAnswer } from '@/services/domains/quest
 import type { BookAuthor, BookKind, BookMetadata, BookTOCItem, CreateContentInput, PostDetail, QuestionTagInput, SearchResult } from '@/services/contracts';
 import { messageFromError } from '@/services/errors';
 import { getStoredSession } from '@/services/phoneAuth';
+import { typstCreationEnabled } from '@/features/publish/typstFeature';
 import { extractPDFTOC, renderPDFCover } from '@/utils/pdfToc';
 import { answerPath, bookWorkspacePath, contentPath, questionPath, tagReadOrLegacyPath } from '@/utils/routes';
 
@@ -117,14 +117,12 @@ function bookProfileIntro(detail: PostDetail) {
 }
 
 export default function PublishPage({ mode }: PublishPageProps) {
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === 'demo';
   const navigate = useNavigate();
   const { slug: editSlug } = useParams();
   const [searchParams] = useSearchParams();
   const { t, i18n } = useFeatureTranslation('creation');
   const locale = resolveLocale(i18n.resolvedLanguage || i18n.language, []);
-  const signedIn = Boolean(getStoredSession()?.access_token);
+  const signedIn = getStoredSession() !== null;
   const editing = Boolean(editSlug && mode !== 'question');
   const worksFolderId = searchParams.get('worksFolderId')?.trim() || '';
   const worksVisibility = searchParams.get('worksVisibility') === 'private' ? 'private' : 'published';
@@ -212,21 +210,29 @@ export default function PublishPage({ mode }: PublishPageProps) {
     bookKind === 'original' &&
     !isOriginalPdfBook &&
     (explicitBookKind === 'latex' || Boolean(editingPost?.book?.kind === 'original'));
-  const shouldShowBookKindToggle = mode === 'book' && !isLatexBookProfile && !isMarkdownBookProfile;
+  const isTypstBookProfile =
+    mode === 'book' &&
+    bookKind === 'typst' &&
+    (explicitBookKind === 'typst' || editingPost?.book?.kind === 'typst');
+  const shouldShowBookKindToggle = mode === 'book' && !isLatexBookProfile && !isMarkdownBookProfile && !isTypstBookProfile;
   const shouldShowPdfUpload = mode === 'book' && (bookKind === 'copyrighted' || isOriginalPdfBook);
   const bookHeadingVariant = isOriginalPdfBook
     ? 'pdf'
     : isMarkdownBookProfile
       ? 'markdown'
-      : bookKind === 'copyrighted'
-        ? 'copyrighted'
-        : 'latex';
+      : isTypstBookProfile
+        ? 'typst'
+        : bookKind === 'copyrighted'
+          ? 'copyrighted'
+          : 'latex';
   const bookBodyPlaceholder =
     mode === 'book' && isPdfBookCreate
       ? t('publishPage.bookPlaceholders.pdf')
       : mode === 'book' && isMarkdownBookProfile
         ? t('publishPage.bookPlaceholders.markdown')
-        : t(`publishPage.modes.${mode}.bodyPlaceholder`);
+        : mode === 'book' && isTypstBookProfile
+          ? t('publishPage.bookPlaceholders.typst')
+          : t(`publishPage.modes.${mode}.bodyPlaceholder`);
   const pageHeading = mode === 'book'
     ? t(`publishPage.${editing ? 'bookEditHeadings' : 'bookHeadings'}.${bookHeadingVariant}`)
     : t(`publishPage.modes.${mode}.${editing ? 'editHeading' : 'heading'}`);
@@ -270,7 +276,7 @@ export default function PublishPage({ mode }: PublishPageProps) {
     submitting ||
     loadingEdit ||
     (mode !== 'dynamic' && title.trim().length === 0) ||
-    (mode === 'book' && trimmedBody.length === 0) ||
+    (mode === 'book' && !isTypstBookProfile && trimmedBody.length === 0) ||
     (mode === 'question' && tagItems.length === 0) ||
     (mode === 'book' && tagItems.length === 0) ||
     (mode === 'book' && isOriginalPdfBook && !bookPdfUrl.trim()) ||
@@ -402,8 +408,14 @@ export default function PublishPage({ mode }: PublishPageProps) {
       setBookKind('original');
     } else if (kind === 'markdown') {
       setBookKind('markdown');
+    } else if (kind === 'typst') {
+      if (typstCreationEnabled) {
+        setBookKind('typst');
+      } else {
+        navigate('/books/new', { replace: true });
+      }
     }
-  }, [editing, mode, searchParams]);
+  }, [editing, mode, navigate, searchParams]);
 
   useEffect(() => {
     if (!editSlug || mode === 'question') {
@@ -433,7 +445,7 @@ export default function PublishPage({ mode }: PublishPageProps) {
         }
         if (mode === 'book' && detail.book) {
           setBookKind(detail.book.kind);
-          if (detail.book.kind === 'original' || detail.book.kind === 'markdown') {
+          if (detail.book.kind === 'original' || detail.book.kind === 'markdown' || detail.book.kind === 'typst') {
             setBody(bookProfileIntro(detail));
           }
           setBookAuthors(detail.book.authorEntities || []);
@@ -539,8 +551,8 @@ export default function PublishPage({ mode }: PublishPageProps) {
     ].filter((item): item is NonNullable<typeof item> => item !== null);
     const existingOriginalBook =
       mode === 'book' &&
-      (bookKind === 'original' || bookKind === 'markdown') &&
-      (editingPost?.book?.kind === 'original' || editingPost?.book?.kind === 'markdown')
+      (bookKind === 'original' || bookKind === 'markdown' || bookKind === 'typst') &&
+      (editingPost?.book?.kind === 'original' || editingPost?.book?.kind === 'markdown' || editingPost?.book?.kind === 'typst')
         ? editingPost.book
         : undefined;
     const book: BookMetadata | undefined =
@@ -549,8 +561,8 @@ export default function PublishPage({ mode }: PublishPageProps) {
             ...existingOriginalBook,
             kind: bookKind,
             bookTitle: title.trim(),
-            authors: bookKind === 'original' || bookKind === 'markdown' ? [] : bookAuthors.map((author) => author.name),
-            authorIds: bookKind === 'original' || bookKind === 'markdown' ? [] : bookAuthors.map((author) => author.id),
+            authors: bookKind === 'original' || bookKind === 'markdown' || bookKind === 'typst' ? [] : bookAuthors.map((author) => author.name),
+            authorIds: bookKind === 'original' || bookKind === 'markdown' || bookKind === 'typst' ? [] : bookAuthors.map((author) => author.id),
             seriesTitle: bookSeriesTitle.trim(),
             doi: bookDoi.trim(),
             officialUrl: bookOfficialUrl.trim(),
@@ -574,7 +586,7 @@ export default function PublishPage({ mode }: PublishPageProps) {
       title: mode === 'dynamic'
         ? dynamicTitle(title, body, t('publishPage.modes.dynamic.fallbackTitle'))
         : title.trim(),
-      body: existingOriginalBook && isLatexBookProfile ? editingPost?.body || body : body,
+      body: existingOriginalBook && (isLatexBookProfile || isTypstBookProfile) ? editingPost?.body || body : body,
       tags: tagItems,
     };
     if (worksFolderId && worksVisibility === 'private' && !editing) {
@@ -613,7 +625,7 @@ export default function PublishPage({ mode }: PublishPageProps) {
     }
     if (
       mode === 'book' &&
-      ((book?.kind === 'original' && isLatexBookProfile) || book?.kind === 'markdown')
+      ((book?.kind === 'original' && isLatexBookProfile) || book?.kind === 'markdown' || book?.kind === 'typst')
     ) {
       navigate(bookWorkspacePath(saved.id));
       return;
@@ -652,9 +664,7 @@ export default function PublishPage({ mode }: PublishPageProps) {
     try {
       const uploaded: string[] = [];
       for (const file of selected) {
-        uploaded.push(demoMode && bootstrap
-          ? (await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })).url
-          : await uploadAnswerFile('post', file));
+        uploaded.push(await uploadAnswerFile('post', file));
       }
       setDiscussionImages((current) => [...current, ...uploaded].slice(0, 9));
     } catch (uploadError) {
@@ -707,12 +717,6 @@ export default function PublishPage({ mode }: PublishPageProps) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
     if (!file) return;
-    if (demoMode) {
-      setBookUploadError(t('publishDialog.capabilities.pdfUnavailable'));
-      setBookTocStatus(null);
-      setBookCoverStatus(null);
-      return;
-    }
     if (!signedIn) {
       setBookUploadError(t('publishPage.validation.signInToUploadPdf'));
       return;
@@ -802,9 +806,7 @@ export default function PublishPage({ mode }: PublishPageProps) {
     setBookUploadError('');
     setBookCoverStatus('uploading');
     try {
-      const coverUrl = demoMode && bootstrap
-        ? (await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })).url
-        : await uploadAnswerFile('post', file);
+      const coverUrl = await uploadAnswerFile('post', file);
       setBookCoverUrl(coverUrl);
       setBookCoverStatus('uploaded');
       URL.revokeObjectURL(pendingBookCoverCrop.imageUrl);
@@ -1326,10 +1328,10 @@ export default function PublishPage({ mode }: PublishPageProps) {
                     </>
                   ) : (
                     editing
-                      ? mode === 'book' && (bookKind === 'original' || bookKind === 'markdown')
+                      ? mode === 'book' && (bookKind === 'original' || bookKind === 'markdown' || bookKind === 'typst')
                         ? t('publishPage.actions.save')
                         : t('publishPage.actions.saveChanges')
-                      : explicitBookKind === 'latex' || explicitBookKind === 'markdown'
+                      : explicitBookKind === 'latex' || explicitBookKind === 'markdown' || explicitBookKind === 'typst'
                         ? t('publishPage.actions.create')
                         : isPdfBookCreate && bookKind === 'original'
                           ? t('publishPage.actions.uploadOriginalPdf')
@@ -1393,6 +1395,7 @@ export default function PublishPage({ mode }: PublishPageProps) {
             outputHeight={1350}
             outputFileName={pendingBookCoverCrop.fileName}
             busy={bookUploading}
+            error={bookUploadError}
             onCancel={closeBookCoverCrop}
             onConfirm={uploadCroppedBookCover}
           />

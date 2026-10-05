@@ -2,7 +2,7 @@ import axe from 'axe-core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   Button, Command, Dialog, DialogContent, DialogTrigger, Menu, MenuContent, MenuItem, MenuTrigger,
@@ -43,7 +43,21 @@ describe('overlay primitive accessibility', () => {
   });
 
   it('covers command and toast states', async () => {
-    function ToastFixture() { const toast = useToast(); return <Button onClick={() => toast.notify({ title: '保存成功' })}>通知</Button>; }
+    const onToastAction = vi.fn();
+    function ToastFixture() {
+      const toast = useToast();
+      return (
+        <Button
+          onClick={() => toast.notify({
+            title: '保存成功',
+            actionLabel: '查看文章',
+            onAction: onToastAction,
+          })}
+        >
+          通知
+        </Button>
+      );
+    }
     function CommandFixture() { const [open, setOpen] = useState(true); return <Command open={open} onOpenChange={setOpen} label="快速命令"><div role="option">搜索结果</div></Command>; }
     const user = userEvent.setup();
     render(<ToastProvider><ToastFixture /><CommandFixture /></ToastProvider>);
@@ -52,5 +66,9 @@ describe('overlay primitive accessibility', () => {
     await waitFor(() => expect(document.body.getAttribute('data-scroll-locked')).toBeNull());
     await user.click(screen.getByRole('button', { name: '通知' }));
     await expectAccessible();
+    expect(screen.getByRole('button', { name: '查看文章' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '查看文章' }));
+    expect(onToastAction).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button', { name: '查看文章' })).toBeNull();
   });
 });

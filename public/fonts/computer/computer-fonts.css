@@ -1,0 +1,47 @@
+@font-face {
+  font-family: 'Rin Computer Newsreader';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./newsreader-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Rin Computer Code';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./fira-code-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Rin Computer Noto Serif SC';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./noto-serif-sc-400.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Rin Computer Noto Serif SC';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./noto-serif-sc-500.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Rin Computer Noto Serif SC';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./noto-serif-sc-600.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Rin Computer Noto Serif SC';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./noto-serif-sc-700.ttf') format('truetype');
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Modal, Spinner } from '@/components/ui/compat';
 import Cropper, { type Area, type Point } from 'react-easy-crop';
@@ -13,6 +13,9 @@ type ImageCropDialogProps = {
   outputHeight: number;
   outputFileName: string;
   busy?: boolean;
+  // Upload failures are reported by the caller (the modal hides the page-level
+  // message), so they must be rendered inside the dialog to be visible.
+  error?: string;
   onCancel: () => void;
   onConfirm: (file: File) => Promise<void> | void;
 };
@@ -82,6 +85,7 @@ function ImageCropDialog({
   outputHeight,
   outputFileName,
   busy = false,
+  error: externalError = '',
   onCancel,
   onConfirm,
 }: ImageCropDialogProps) {
@@ -89,11 +93,22 @@ function ImageCropDialog({
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [cropAreaPixels, setCropAreaPixels] = useState<Area | null>(null);
-  const [error, setError] = useState('');
+  const [cropError, setCropError] = useState('');
+
+  useEffect(() => {
+    if (!open || !imageUrl) return undefined;
+    let cancelled = false;
+    loadImage(imageUrl).catch(() => {
+      if (!cancelled) setCropError(t('imageCrop.failed'));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [imageUrl, open, t]);
 
   const confirmCrop = async () => {
     if (!cropAreaPixels || busy) return;
-    setError('');
+    setCropError('');
     try {
       const file = await createCroppedImageFile(
         imageUrl,
@@ -103,11 +118,13 @@ function ImageCropDialog({
         outputFileName,
       );
       await onConfirm(file);
-    } catch (cropError) {
-      console.error('Image crop failed', cropError);
-      setError(t('imageCrop.failed'));
+    } catch (confirmError) {
+      console.error('Image crop failed', confirmError);
+      setCropError(t('imageCrop.failed'));
     }
   };
+
+  const displayedError = externalError || cropError;
 
   return (
     <Modal
@@ -118,6 +135,7 @@ function ImageCropDialog({
       className="image-crop-modal"
       backdrop={busy ? 'static' : true}
       keyboard={!busy}
+      preserveLayoutDuringMotion
     >
       <Modal.Header closeButton={!busy}>
         <Modal.Title>{title}</Modal.Title>
@@ -148,7 +166,11 @@ function ImageCropDialog({
             onChange={(event) => setZoom(Number(event.currentTarget.value))}
           />
         </div>
-        {error ? <div className="image-crop-dialog-error">{error}</div> : null}
+        {displayedError ? (
+          <div className="image-crop-dialog-error" role="alert">
+            {displayedError}
+          </div>
+        ) : null}
       </Modal.Body>
       <Modal.Footer>
         <Button className="secondary-link" type="button" disabled={busy} onClick={onCancel}>

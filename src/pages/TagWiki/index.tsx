@@ -1,18 +1,16 @@
-import { AnimateButton } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
 
 import LoadingState from '@/components/LoadingState';
+import DocumentMetadataController, { absolutePublicUrl } from '@/components/DocumentMetadataController';
 import MathText, { MathInline } from '@/components/MathText';
 import { formatDate, formatNumber } from '@/i18n/format';
 import { useResolvedLocale } from '@/i18n/LanguageProvider';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
-import { loadTagDetail, loadTagSynonyms, openTagCodeWorkspace } from '@/services/domains/tag';
+import { loadTagDetail, loadTagSynonyms } from '@/services/domains/tag';
 import type { ObjectReferenceSummary, TagDetail, TagReferenceSummary, TagSynonym } from '@/services/contracts';
 import { messageFromError } from '@/services/errors';
 import { useRinPageContext } from '@/utils/rinPageContext';
@@ -272,8 +270,6 @@ function uniqueReferenceLinks(references: WikiReferenceLink[]) {
 
 function TagWikiPage() {
   const { t } = useFeatureTranslation('reader');
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === 'demo';
   const locale = useResolvedLocale();
   const params = useParams();
   const location = useLocation();
@@ -287,8 +283,6 @@ function TagWikiPage() {
   const [synonyms, setSynonyms] = useState<TagSynonym[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [workspaceOpening, setWorkspaceOpening] = useState(false);
-  const [workspaceError, setWorkspaceError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -359,6 +353,9 @@ function TagWikiPage() {
     if (!tag) return '';
     return wikiPlainTextFromHtml(tag.usageExcerpt) || wikiPlainTextFromHtml(tag.excerpt);
   }, [tag]);
+  const wikiIndexable = Boolean(tag && wikiArticle.text.trim()
+    && wikiArticle.text.replace(/\s+/g, ' ').trim().toLocaleLowerCase()
+      !== `${tagName(tag)} ${leadText}`.replace(/\s+/g, ' ').trim().toLocaleLowerCase());
   const outgoingReferences = useMemo(() => {
     if (!tag) return [] as WikiReferenceLink[];
     return uniqueReferenceLinks([
@@ -408,34 +405,42 @@ function TagWikiPage() {
       : undefined,
   );
 
-  const openWorkspace = async () => {
-    if (!tag || workspaceOpening) return;
-    setWorkspaceOpening(true);
-    setWorkspaceError('');
-    try {
-      if (demoMode && bootstrap) {
-        await bootstrap.ports.workspace.open({ projectId: tag.slugName || tag.tagId });
-        return;
-      }
-      const workspace = await openTagCodeWorkspace({ tagId: tag.tagId, slugName: tag.slugName });
-      window.location.assign(workspace.url);
-    } catch (openError) {
-      setWorkspaceError(messageFromError(openError, 'reader.workspaceOpenFailed'));
-      setWorkspaceOpening(false);
-    }
-  };
-
   return (
     <>
-      <Helmet title={title} />
+      <DocumentMetadataController metadata={{
+        title,
+        description: leadText || wikiArticle.text,
+        canonicalPath: tag ? tagWikiPath(tag.id, tag.slugName || tagName(tag)) : location.pathname,
+        robots: wikiIndexable ? 'index,follow' : 'noindex,follow',
+        openGraphType: 'article',
+        jsonLd: tag && wikiIndexable ? (() => {
+          const canonical = absolutePublicUrl(tagWikiPath(tag.id, tag.slugName || tagName(tag)));
+          const hub = absolutePublicUrl(tagReadPath(tag.id, tag.slugName || tagName(tag)));
+          return {
+            '@context': 'https://schema.org',
+            '@graph': [
+              { '@type': 'WebPage', '@id': `${canonical}#webpage`, name: `${tagName(tag)} Wiki`, url: canonical, mainEntity: { '@id': `${canonical}#entity` } },
+              {
+                '@type': 'TechArticle', '@id': `${canonical}#entity`, headline: `${tagName(tag)} Wiki`,
+                description: leadText || wikiArticle.text, url: canonical, dateModified: tag.updatedAt,
+                about: { '@type': 'DefinedTerm', '@id': `${hub}#entity`, name: tagName(tag), url: hub },
+              },
+            ],
+          };
+        })() : undefined,
+      }} />
       <SiteTopbar />
-      <main className="tag-wiki-shell detail-blog">
+      <main
+        className="tag-wiki-shell detail-blog"
+        data-rin-public-document="tag-wiki"
+        data-rin-object-id={tag?.tagId}
+        data-rin-public-version={tag?.publicVersion}
+        data-rin-content-digest={tag?.contentDigest}
+      >
         {loading ? (
           <LoadingState variant="panel" />
         ) : null}
         {error ? <Alert className="notice error">{error}</Alert> : null}
-        {workspaceError ? <Alert className="notice error">{workspaceError}</Alert> : null}
-
         {tag ? (
           <section className="wiki-entry-layout">
             <aside className="wiki-toc" aria-label={t('tagWiki.tocLabel')}>
@@ -457,17 +462,8 @@ function TagWikiPage() {
               <header className="wiki-entry-header">
                 <div className="wiki-entry-actions">
                   <span>{t('tagWiki.read')}</span>
-                  <AnimateButton unstyled type="button" onClick={() => void openWorkspace()} disabled={workspaceOpening}>
-                    {workspaceOpening ? t('tagWiki.opening') : t('tagWiki.edit')}
-                  </AnimateButton>
-                  {demoMode ? (
-                    <span data-rin-demo-gitea-source="true">{t('tagWiki.sourceUnavailable')}</span>
-                  ) : (
-                    <>
-                      <a href={tagWikiGiteaSourcePath(tag)}>{t('tagWiki.source')}</a>
-                      <a href={tagWikiGiteaHistoryPath(tag)}>{t('tagWiki.history')}</a>
-                    </>
-                  )}
+                  <a href={tagWikiGiteaSourcePath(tag)}>{t('tagWiki.source')}</a>
+                  <a href={tagWikiGiteaHistoryPath(tag)}>{t('tagWiki.history')}</a>
                 </div>
                 <p className="wiki-entry-kicker">Wiki</p>
                 <h1><MathInline text={tagName(tag)} /></h1>
@@ -478,7 +474,7 @@ function TagWikiPage() {
                 </div>
               </header>
 
-              <section className="wiki-entry-body detail-body">
+              <section className="wiki-entry-body detail-body" data-rin-primary-text="tag-wiki">
                 {wikiArticle.html ? (
                   <div
                     className="rin-writer-html wiki-entry-html"
@@ -557,17 +553,8 @@ function TagWikiPage() {
               </dl>
               <div className="wiki-infobox-links">
                 <Link to={tagReadPath(tag.id, tag.slugName || tagName(tag))}>{t('tagWiki.tagHome')}</Link>
-                {demoMode ? (
-                  <span data-rin-demo-gitea-source="true">{t('tagWiki.sourceUnavailable')}</span>
-                ) : (
-                  <>
-                    <a href={tagWikiGiteaSourcePath(tag)}>{t('tagWiki.giteaSource')}</a>
-                    <a href={tagWikiGiteaHistoryPath(tag)}>{t('tagWiki.giteaHistory')}</a>
-                  </>
-                )}
-                <AnimateButton unstyled type="button" onClick={() => void openWorkspace()} disabled={workspaceOpening}>
-                  {workspaceOpening ? t('tagWiki.opening') : t('tagWiki.edit')}
-                </AnimateButton>
+                <a href={tagWikiGiteaSourcePath(tag)}>{t('tagWiki.giteaSource')}</a>
+                <a href={tagWikiGiteaHistoryPath(tag)}>{t('tagWiki.giteaHistory')}</a>
               </div>
               <section>
                 <h2>{t('tagWiki.aliases')}</h2>

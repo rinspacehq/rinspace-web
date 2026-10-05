@@ -3,7 +3,6 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { localizedErrorMessage } from '@/i18n/errors';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
-import { requestJson } from '@/services/httpClient';
 import { rinStickerByToken, rinStickerSrc } from '../utils/rinStickers';
 import { prefixInlineSvgIds } from '../utils/inlineSvgIds';
 
@@ -359,6 +358,12 @@ function extractDiagramSvg(payload: unknown) {
   return typeof svg === 'string' ? svg : '';
 }
 
+function localApiUrl(path: string) {
+  const basePath = `${publicEnv.publicBasePath || ''}${path}`;
+  if (typeof window === 'undefined') return basePath;
+  return new URL(basePath, window.location.origin).toString();
+}
+
 let mathDiagramSvgInstance = 0;
 
 function nextMathDiagramSvgPrefix() {
@@ -381,16 +386,20 @@ function DiagramNode({ token }: { token: MathToken }) {
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: 'loading' });
-    requestJson<unknown>(`diagrams/${encodeURIComponent(token.diagramType || 'tikzcd')}`, {
+    fetch(localApiUrl(`/api/diagrams/${encodeURIComponent(token.diagramType || 'tikzcd')}`), {
       method: 'POST',
-      auth: 'none',
-      body: {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         body: token.value,
         options: token.options || '',
-      },
+      }),
       signal: controller.signal,
     })
-      .then((payload) => {
+      .then(async (response) => {
+        const payload: unknown = await response.json();
+        if (!response.ok) {
+          throw new Error('diagram render failed');
+        }
         const svg = extractDiagramSvg(payload);
         if (!svg) {
           throw new Error('empty diagram svg');

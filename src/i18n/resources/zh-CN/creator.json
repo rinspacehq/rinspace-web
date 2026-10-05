@@ -8,7 +8,7 @@
     "homeAria": "进入创作中心主页"
   },
   "tabs": {
-    "blog": "博客",
+    "blog": "文章",
     "book": "书籍",
     "question": "问答",
     "discussion": "讨论",
@@ -96,7 +96,7 @@
       "newFollowers": "新增粉丝"
     },
     "chart": {
-      "title": "博客与书籍数据趋势",
+      "title": "文章与书籍数据趋势",
       "description": "阅读量、点赞数、收藏数和新增粉丝折线图"
     },
     "sources": {
@@ -104,12 +104,9 @@
       "untitled": "未命名作品"
     },
     "table": {
-      "caption": "{{period}}博客与书籍数据",
+      "caption": "{{period}}文章与书籍数据",
       "date": "日期"
     }
-  },
-  "demoCapabilities": {
-    "notice": "浏览器演示：创作数据与本地发布仅保存在本设备。代码工作区、协作、审核、Gitea 活跃度和真实发布不可用。"
   },
   "heatmap": {
     "label": "创作热力图",

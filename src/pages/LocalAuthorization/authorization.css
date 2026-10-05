@@ -1,0 +1,13 @@
+.rin-local-authorization {
+  max-width: var(--rin-reading-max);
+  margin: var(--rin-space-6) auto;
+  padding: var(--rin-space-5);
+  color: var(--rin-ink);
+  font-family: var(--rin-font-interface);
+}
+.rin-local-authorization h1 { font-family: var(--rin-font-editorial); }
+.rin-local-authorization dl { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 4fr); gap: var(--rin-space-3); }
+.rin-local-authorization dt { color: var(--rin-ink-muted); }
+.rin-local-authorization dd { margin: 0; overflow-wrap: anywhere; }
+.rin-local-authorization-actions { display: flex; flex-wrap: wrap; gap: var(--rin-space-3); }
+@media (max-width: 40rem) { .rin-local-authorization dl { grid-template-columns: 1fr; } }

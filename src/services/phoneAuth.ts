@@ -1,175 +1,156 @@
-import { publicEnv } from '@/app/config/env';
+import { publicEnv } from "@/app/config/env";
 
-function cloudbaseAuthEndpoint() {
-  const env = publicEnv.cloudbaseEnvId || '';
-  return {
-    env,
-    gateway: `https://${env}.api.tcloudbasegateway.com/auth/v1`,
-  };
-}
-const sessionKey = 'rinspace-auth-session';
-const sessionFallbackKey = 'rinspace-auth-session-fallback';
-const deviceKey = 'rinspace-device-id';
-const deviceFallbackKey = 'rinspace-device-id-fallback';
-const accessTokenRefreshWindowMs = 60_000;
+const identityBase = `${publicEnv.publicBasePath || ""}/api/identity/v1`;
+const cloudBaseAuthGateway = `https://${publicEnv.cloudbaseEnvId || ""}.api.tcloudbasegateway.com/auth/v1`;
+const legacySessionKey = "rinspace-auth-session";
+const legacyFallbackKey = "rinspace-auth-session-fallback";
+const sessionHintKey = "rinspace-auth-hint";
+const pendingRefreshKey = "rinspace-refresh-request-id";
+const pendingLogoutKey = "rinspace-logout-pending";
+const pendingAdmissionKey = "rinspace-admission-request-id";
+const pendingLegacyExchangeKey = "rinspace-legacy-exchange-request-id";
+const deviceKey = "rinspace-device-id";
+const deviceFallbackKey = "rinspace-device-id-fallback";
+const refreshLeaseKey = "rinspace-refresh-lease";
 const authRequestTimeoutMs = 8_000;
-const evictableStorageKeys = ['rinspace-topbar-session-cache'];
-const evictableStoragePrefixes = [
-  'rinspace-response-cache:',
-  'rinspace-rin-chat-local-messages',
-];
+const refreshLeaseMs = 12_000;
+const sessionUnauthorizedConfirmationDelayMs = 250;
+const channelName = "rinspace-identity-session-v1";
 
-let currentUserRequest: Promise<CloudUser | null> | null = null;
-let refreshSessionRequest: {
-  refreshToken: string;
-  request: Promise<StoredSession | null>;
-} | null = null;
-let inMemoryDeviceId = '';
+export type SessionPresentation =
+  | "anonymous"
+  | "restoring"
+  | "authenticated"
+  | "temporarily_unavailable"
+  | "revoked";
 
+// Compatibility shape for callers that only need a synchronous signed-in hint.
+// Credential fields remain empty: browser credentials live only in HttpOnly cookies.
 export type StoredSession = {
-  access_token: string;
-  refresh_token: string;
-  expires_in?: number;
+  access_token: "";
+  refresh_token: "";
   sub?: string;
-  issued_at?: number;
+  session_epoch?: number;
+  identity_version?: number;
+  managed: true;
 };
 
 export type OtpChallenge = {
   verificationId: string;
   phoneNumber: string;
   isUser: boolean;
+  retryAfter?: number;
 };
 
-type AuthApiResponse = {
-  verification_id?: string;
-  verification_token?: string;
-  is_user?: boolean;
-  token_type?: string;
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  sub?: string;
-  code?: string;
-  error?: string;
-  error_description?: string;
-  message?: string;
-};
-
-type AuthUserResponse = {
-  sub?: string;
-  user_id?: string;
-  username?: string;
-  preferred_username?: string;
-  name?: string;
-  nickname?: string;
-  picture?: string;
-  avatar_url?: string;
-  phone_number?: string;
-  user_metadata?: Record<string, unknown>;
-  is_anonymous?: boolean;
-};
-
-export type CloudUser = {
+export type RinspaceUser = {
   id?: string;
   username?: string;
   phone?: string;
+  role?: string;
+  sessionEpoch?: number;
+  identityVersion?: number;
   user_metadata?: Record<string, unknown>;
   is_anonymous?: boolean;
 };
 
-type ParsedPayload = Record<string, unknown> | string | null;
+type SessionEnvelope = {
+  status?: SessionPresentation;
+  canRefresh?: boolean;
+  csrfToken?: string;
+  expiresAt?: string;
+  user?: {
+    id?: string;
+    username?: string;
+    phone?: string;
+    role?: string;
+    sessionEpoch?: number;
+    identityVersion?: number;
+  };
+  currentSession?: {
+    sid?: string;
+    authTime?: string;
+    authMethod?: string;
+    version?: number;
+  };
+  code?: string;
+  message?: string;
+  challengeId?: string;
+  retryAfter?: number;
+  admissionProof?: string;
+};
 
-class AuthHttpError extends Error {
-  status: number;
-  payload: ParsedPayload;
+export type IdentityDeviceSession = {
+  sid: string;
+  clientLabel: string;
+  authMethod: string;
+  createdAt: string;
+  lastActiveAt: string;
+  idleExpiresAt: string;
+  absoluteExpires: string;
+  current: boolean;
+  revoked: boolean;
+  cleanupComplete: boolean;
+  runtimes: Record<string, string>;
+};
 
-  constructor(message: string, status: number, payload: ParsedPayload) {
+export type IdentityPersonalCredential = {
+  ref: string;
+  provider: string;
+  kind: string;
+  label: string;
+  scopes: string[];
+  createdAt: string;
+  lastUsedAt?: string;
+  state: string;
+};
+
+export type StepUpChallenge = {
+  challengeId: string;
+  retryAfter?: number;
+};
+
+type SessionHint = {
+  sub: string;
+  sessionEpoch?: number;
+  identityVersion?: number;
+};
+
+class IdentityHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+    readonly payload: SessionEnvelope | null,
+  ) {
     super(message);
-    this.name = 'AuthHttpError';
-    this.status = status;
-    this.payload = payload;
+    this.name = "IdentityHttpError";
   }
 }
 
-class AuthRequestTimeoutError extends Error {
-  constructor() {
-    super('CloudBase Auth 请求超时。');
-    this.name = 'AuthRequestTimeoutError';
+export class AdmissionRequiredError extends Error {
+  constructor(readonly proof: string) {
+    super("登录设备已达上限，请先移除一个旧设备。");
+    this.name = "AdmissionRequiredError";
   }
 }
+
+export type AdmissionSession = {
+  sid: string;
+  clientLabel: string;
+  createdAt: string;
+  lastActiveAt: string;
+};
+
+let inMemoryDeviceId = "";
+let currentState: SessionPresentation = "anonymous";
+let currentEnvelope: SessionEnvelope | null = null;
+let currentUserRequest: Promise<RinspaceUser | null> | null = null;
+let refreshRequest: Promise<StoredSession | null> | null = null;
+let channel: BroadcastChannel | null = null;
+let lifecycleInstalled = false;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function createDeviceId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `device-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-}
-
-function getDeviceId() {
-  const existing =
-    readStoredValue(window.localStorage, deviceKey) ||
-    readStoredValue(window.sessionStorage, deviceFallbackKey);
-  if (existing) return existing;
-  if (inMemoryDeviceId) return inMemoryDeviceId;
-  const next = createDeviceId();
-  if (!writeStoredValue(window.localStorage, deviceKey, next)) {
-    if (!writeStoredValue(window.sessionStorage, deviceFallbackKey, next)) {
-      inMemoryDeviceId = next;
-    }
-  }
-  return next;
-}
-
-export function getAuthDeviceId() {
-  return getDeviceId();
-}
-
-function parseJson(text: string): ParsedPayload {
-  if (!text) return null;
-  try {
-    return JSON.parse(text) as Record<string, unknown>;
-  } catch {
-    return text;
-  }
-}
-
-function getMessage(payload: unknown, fallback: string) {
-  if (typeof payload === 'string' && payload.trim()) return payload;
-  if (isRecord(payload) && typeof payload.error_description === 'string') return payload.error_description;
-  if (isRecord(payload) && typeof payload.message === 'string') return payload.message;
-  if (isRecord(payload) && typeof payload.error === 'string') return payload.error;
-  if (isRecord(payload) && typeof payload.code === 'string') return payload.code;
-  return fallback;
-}
-
-async function fetchAuth(input: string, init: RequestInit) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), authRequestTimeoutMs);
-  try {
-    return await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (controller.signal.aborted) {
-      throw new AuthRequestTimeoutError();
-    }
-    throw error;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
-function removeStoredValue(storage: Storage, key: string) {
-  try {
-    storage.removeItem(key);
-  } catch {
-    // Ignore unavailable browser storage.
-  }
+  return typeof value === "object" && value !== null;
 }
 
 function readStoredValue(storage: Storage, key: string) {
@@ -189,369 +170,880 @@ function writeStoredValue(storage: Storage, key: string, value: string) {
   }
 }
 
-function clearEvictableLocalStorage() {
+function removeStoredValue(storage: Storage, key: string) {
   try {
-    for (const key of evictableStorageKeys) {
-      window.localStorage.removeItem(key);
-    }
-    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
-      const key = window.localStorage.key(index);
-      if (!key) continue;
-      if (evictableStoragePrefixes.some((prefix) => key.startsWith(prefix))) {
-        window.localStorage.removeItem(key);
-      }
-    }
+    storage.removeItem(key);
   } catch {
-    // If localStorage is unavailable, the sessionStorage fallback below still applies.
+    // Browser storage is an optional display hint, never the authority.
   }
 }
 
-function serializedStoredSession(session: StoredSession) {
-  return JSON.stringify({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-    expires_in: session.expires_in,
-    sub: session.sub,
-    issued_at: session.issued_at || Date.now(),
-  });
-}
-
-function saveStoredSession(session: StoredSession) {
-  const value = serializedStoredSession(session);
-  removeStoredValue(window.sessionStorage, sessionFallbackKey);
-  if (writeStoredValue(window.localStorage, sessionKey, value)) return;
-  removeStoredValue(window.localStorage, sessionKey);
-  clearEvictableLocalStorage();
-  if (writeStoredValue(window.localStorage, sessionKey, value)) return;
-  if (writeStoredValue(window.sessionStorage, sessionFallbackKey, value)) return;
-  throw new Error('浏览器本地存储空间不足，无法保存登录会话。请清理本站缓存后重试。');
-}
-
-export function replaceStoredSession(session: StoredSession) {
-  saveStoredSession(session);
-}
-
-export function clearStoredSession() {
-  removeStoredValue(window.localStorage, sessionKey);
-  removeStoredValue(window.sessionStorage, sessionFallbackKey);
-}
-
-export function getStoredSession(): StoredSession | null {
-  const raw =
-    readStoredValue(window.localStorage, sessionKey) ||
-    readStoredValue(window.sessionStorage, sessionFallbackKey);
+function parseHint(): SessionHint | null {
+  const raw = readStoredValue(window.localStorage, sessionHintKey);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<StoredSession>;
-    if (
-      parsed &&
-      typeof parsed.access_token === 'string' &&
-      typeof parsed.refresh_token === 'string'
-    ) {
-      return parsed as StoredSession;
-    }
-  } catch {
-    clearStoredSession();
-  }
-  return null;
-}
-
-async function postAuth(path: string, body: Record<string, unknown>) {
-  const endpoint = cloudbaseAuthEndpoint();
-  const response = await fetchAuth(`${endpoint.gateway}${path}?client_id=${encodeURIComponent(endpoint.env)}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-device-id': getDeviceId(),
-    },
-    body: JSON.stringify(body),
-  });
-
-  const payload = parseJson(await response.text());
-  if (!isRecord(payload)) {
-    throw new Error('CloudBase Auth 返回格式异常。');
-  }
-  if (!response.ok || payload.error || payload.code) {
-    throw new AuthHttpError(
-      getMessage(payload, 'CloudBase Auth 请求失败。'),
-      response.status,
-      payload,
-    );
-  }
-  return payload as AuthApiResponse;
-}
-
-function isDefinitiveAuthFailure(error: unknown) {
-  if (!(error instanceof AuthHttpError)) return false;
-  if (error.status === 401 || error.status === 403) return true;
-  if (!isRecord(error.payload)) return false;
-  return (
-    error.payload.error === 'unauthorized' ||
-    error.payload.code === 'UNAUTHENTICATED' ||
-    error.payload.code === 'INVALID_REFRESH_TOKEN' ||
-    error.payload.error === 'invalid_grant'
-  );
-}
-
-async function refreshStoredSessionOnce(session: StoredSession) {
-  const refreshToken = session.refresh_token;
-  try {
-    const payload = await postAuth('/token', {
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-    });
-
-    if (typeof payload.access_token !== 'string' || typeof payload.refresh_token !== 'string') {
-      throw new Error('CloudBase Auth 刷新会话失败。');
-    }
-
-    const nextSession: StoredSession = {
-      access_token: payload.access_token,
-      refresh_token: payload.refresh_token,
-      expires_in: payload.expires_in,
-      sub: payload.sub || session.sub,
+    const value: unknown = JSON.parse(raw);
+    if (!isRecord(value) || typeof value.sub !== "string" || !value.sub)
+      return null;
+    return {
+      sub: value.sub,
+      sessionEpoch:
+        typeof value.sessionEpoch === "number" ? value.sessionEpoch : undefined,
+      identityVersion:
+        typeof value.identityVersion === "number"
+          ? value.identityVersion
+          : undefined,
     };
-    saveStoredSession(nextSession);
-    return nextSession;
-  } catch (error) {
-    if (isDefinitiveAuthFailure(error)) {
-      const latestSession = getStoredSession();
-      if (latestSession && latestSession.refresh_token !== refreshToken) {
-        return latestSession;
-      }
-      clearStoredSession();
-    }
-    throw error;
+  } catch {
+    removeStoredValue(window.localStorage, sessionHintKey);
+    return null;
   }
 }
 
-async function refreshStoredSession() {
-  const session = getStoredSession();
-  if (!session) return null;
-
-  if (refreshSessionRequest?.refreshToken === session.refresh_token) {
-    return refreshSessionRequest.request;
-  }
-
-  const request = refreshStoredSessionOnce(session).finally(() => {
-    if (refreshSessionRequest?.request === request) {
-      refreshSessionRequest = null;
-    }
-  });
-  refreshSessionRequest = {
-    refreshToken: session.refresh_token,
-    request,
-  };
-  return request;
-}
-
-function decodeBase64Url(value: string) {
-  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized.padEnd(
-    normalized.length + ((4 - (normalized.length % 4)) % 4),
-    '=',
+function saveHint(user: RinspaceUser) {
+  if (!user.id) return;
+  writeStoredValue(
+    window.localStorage,
+    sessionHintKey,
+    JSON.stringify({
+      sub: user.id,
+      sessionEpoch: user.sessionEpoch,
+      identityVersion: user.identityVersion,
+    }),
   );
-  return window.atob(padded);
 }
 
-function accessTokenExpiryMs(accessToken: string) {
-  const [, payload] = accessToken.split('.');
-  if (!payload) return null;
-  try {
-    const decoded: unknown = JSON.parse(decodeBase64Url(payload));
-    if (isRecord(decoded) && typeof decoded.exp === 'number') {
-      return decoded.exp * 1000;
+function purgeLegacyBrowserCredentials() {
+  removeStoredValue(window.localStorage, legacySessionKey);
+  removeStoredValue(window.sessionStorage, legacyFallbackKey);
+}
+
+function legacyAccessToken() {
+  for (const [storage, key] of [[window.localStorage, legacySessionKey], [window.sessionStorage, legacyFallbackKey]] as const) {
+    const raw = readStoredValue(storage, key);
+    if (!raw) continue;
+    try {
+      const value: unknown = JSON.parse(raw);
+      if (isRecord(value) && typeof value.access_token === "string" && value.access_token)
+        return value.access_token;
+    } catch {
+      // Preserve malformed legacy state for support; it is never sent.
     }
-  } catch {
-    return null;
   }
-  return null;
+  return "";
 }
 
-function storedSessionExpiryMs(session: StoredSession) {
-  const tokenExpiryMs = accessTokenExpiryMs(session.access_token);
-  if (tokenExpiryMs) return tokenExpiryMs;
+function createOpaqueID(prefix: string) {
   if (
-    typeof session.expires_in === 'number' &&
-    session.expires_in > 0 &&
-    typeof session.issued_at === 'number'
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
   ) {
-    return session.issued_at + session.expires_in * 1000;
+    return `${prefix}-${crypto.randomUUID()}`;
   }
-  return null;
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return `${prefix}-${Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("")}`;
 }
 
-async function getFreshStoredSession() {
-  const session = getStoredSession();
-  if (!session) return null;
-
-  const expiryMs = storedSessionExpiryMs(session);
-  if (!expiryMs || expiryMs - Date.now() > accessTokenRefreshWindowMs) {
-    return session;
+function getDeviceId() {
+  const existing =
+    readStoredValue(window.localStorage, deviceKey) ||
+    readStoredValue(window.sessionStorage, deviceFallbackKey);
+  if (existing) return existing;
+  if (inMemoryDeviceId) return inMemoryDeviceId;
+  const next = createOpaqueID("browser");
+  if (!writeStoredValue(window.localStorage, deviceKey, next)) {
+    if (!writeStoredValue(window.sessionStorage, deviceFallbackKey, next))
+      inMemoryDeviceId = next;
   }
-
-  return refreshStoredSession();
+  return next;
 }
 
-export async function getFreshAuthSession() {
-  return getFreshStoredSession();
+export function getAuthDeviceId() {
+  return getDeviceId();
 }
 
-// Force-refreshes the CloudBase session regardless of token age. Destructive
-// operations on the server require a freshly issued token; callers retry with
-// the refreshed token after a 401 "sign in again" response.
-export async function forceRefreshAuthSession(): Promise<StoredSession | null> {
-  const session = getStoredSession();
-  if (!session) return null;
-  try {
-    return await refreshStoredSession();
-  } catch {
-    return null;
-  }
-}
-
-async function requestWithSession(
-  path: string,
-  method: 'GET' | 'POST',
-  body: Record<string, unknown> | null,
-  session: StoredSession,
-) {
-  const endpoint = cloudbaseAuthEndpoint();
-  const response = await fetchAuth(`${endpoint.gateway}${path}?client_id=${encodeURIComponent(endpoint.env)}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-      'x-device-id': getDeviceId(),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const payload = parseJson(await response.text());
-  return { response, payload };
-}
-
-async function authedRequest(path: string, method: 'GET' | 'POST', body: Record<string, unknown> | null = null) {
-  const session = getStoredSession();
-  if (!session) return null;
-
-  let { response, payload } = await requestWithSession(path, method, body, session);
-  if (
-    response.status === 401 ||
-    (isRecord(payload) && (payload.error === 'unauthorized' || payload.code === 'UNAUTHENTICATED'))
-  ) {
-    const refreshedSession = await refreshStoredSession();
-    if (!refreshedSession) return null;
-    ({ response, payload } = await requestWithSession(path, method, body, refreshedSession));
-  }
-
-  if (
-    !response.ok ||
-    (isRecord(payload) && (payload.error || payload.code))
-  ) {
-    throw new Error(
-      getMessage(payload, 'CloudBase Auth 请求失败。'),
+function ensureChannel() {
+  if (channel || typeof BroadcastChannel === "undefined") return channel;
+  channel = new BroadcastChannel(channelName);
+  channel.addEventListener("message", (event: MessageEvent<unknown>) => {
+    if (!isRecord(event.data) || event.data.type !== "session-changed") return;
+    currentUserRequest = null;
+    currentEnvelope = null;
+    const status = event.data.status;
+    if (status === "anonymous" || status === "revoked") {
+      currentState = status;
+      removeStoredValue(window.localStorage, sessionHintKey);
+    } else if (status === "authenticated" || status === "restoring") {
+      currentState = "restoring";
+      void getCurrentAuthUser().catch(() => {});
+    }
+    window.dispatchEvent(
+      new CustomEvent("rinspace-session-changed", {
+        detail: { status: currentState },
+      }),
     );
-  }
-  return payload;
+  });
+  return channel;
 }
 
-function stripChinaPrefix(phone: string) {
-  return phone.replace(/^\+86\s*/, '').replace(/\s+/g, '');
+function publishState(status: SessionPresentation) {
+  ensureChannel()?.postMessage({ type: "session-changed", status });
+  window.dispatchEvent(
+    new CustomEvent("rinspace-session-changed", { detail: { status } }),
+  );
 }
 
-async function loadCurrentAuthUser(): Promise<CloudUser | null> {
-  const payload = await authedRequest('/user/me', 'GET');
-  if (!payload || !isRecord(payload)) return null;
-
-  const authPayload = payload as AuthUserResponse;
-  const id = authPayload.sub || authPayload.user_id;
-  if (!id) return null;
-
-  const nickname = authPayload.nickname || authPayload.name || '';
-  const avatarUrl = authPayload.avatar_url || authPayload.picture || '';
-  const username =
-    (typeof authPayload.user_metadata?.username === 'string' && authPayload.user_metadata.username.trim()) ||
-    (typeof authPayload.user_metadata?.preferred_username === 'string' && authPayload.user_metadata.preferred_username.trim()) ||
-    authPayload.preferred_username ||
-    authPayload.username ||
-    '';
+function userFromEnvelope(envelope: SessionEnvelope): RinspaceUser | null {
+  const user = envelope.user;
+  if (!user?.id) return null;
   return {
-    id,
-    username,
-    phone: typeof authPayload.phone_number === 'string' ? stripChinaPrefix(authPayload.phone_number) : '',
-    user_metadata: {
-      ...(authPayload.user_metadata || {}),
-      nickName: nickname,
-      nickname,
-      avatarUrl,
-      avatar_url: avatarUrl,
-      picture: avatarUrl,
-      ...(username ? { username, preferred_username: username } : {}),
-    },
+    id: user.id,
+    username: user.username || "",
+    phone: user.phone || "",
+    role: user.role || "",
+    sessionEpoch: user.sessionEpoch,
+    identityVersion: user.identityVersion,
+    user_metadata: user.username
+      ? { username: user.username, preferred_username: user.username }
+      : {},
     is_anonymous: false,
   };
 }
 
-export async function getCurrentAuthUser(): Promise<CloudUser | null> {
-  if (!getStoredSession()) return null;
+function applyEnvelope(envelope: SessionEnvelope) {
+  // The CSRF token proves the session version, so it is scoped to the session
+  // rather than to one response. A GET that omits it (no refresh cookie was
+  // sent, for instance) must never erase the token we are already signing with.
+  const carriesToken = typeof envelope.csrfToken === "string" && envelope.csrfToken;
+  const keepsToken =
+    !carriesToken &&
+    (envelope.status === "authenticated" || envelope.status === "restoring") &&
+    typeof currentEnvelope?.csrfToken === "string" &&
+    currentEnvelope.csrfToken;
+  currentEnvelope = keepsToken
+    ? { ...envelope, csrfToken: currentEnvelope?.csrfToken }
+    : envelope;
+  currentState = currentEnvelope.status || "temporarily_unavailable";
+  const user = userFromEnvelope(currentEnvelope);
+  if (currentState === "authenticated" && user) {
+    saveHint(user);
+    purgeLegacyBrowserCredentials();
+  } else if (currentState === "anonymous" || currentState === "revoked") {
+    removeStoredValue(window.localStorage, sessionHintKey);
+  }
+  return user;
+}
+
+async function identityFetch(path: string, init: RequestInit = {}) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    authRequestTimeoutMs,
+  );
+  try {
+    return await fetch(`${identityBase}${path}`, {
+      ...init,
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted)
+      throw new Error("Rinspace Identity 请求超时。");
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function decodeEnvelope(response: Response) {
+  const text = await response.text();
+  let payload: SessionEnvelope | null = null;
+  try {
+    payload = text ? (JSON.parse(text) as SessionEnvelope) : null;
+  } catch {
+    payload = null;
+  }
+  if (!response.ok) {
+    const code = payload?.code || `http.${response.status}`;
+    throw new IdentityHttpError(
+      response.status,
+      code,
+      payload?.message || "Rinspace Identity 请求失败。",
+      payload,
+    );
+  }
+  // Every credential-issuing response now carries the CSRF token minted for the
+  // session version it just created. Adopt it immediately: keeping the previous
+  // token until the next GET /session is what turned a routine refresh into a
+  // "csrf.invalid" 403 for whatever request happened to be in flight.
+  if (payload && typeof payload.csrfToken === "string" && payload.csrfToken)
+    currentEnvelope = { ...(currentEnvelope || {}), csrfToken: payload.csrfToken };
+  return payload || {};
+}
+
+async function requestSessionEnvelope() {
+  const read = async () => decodeEnvelope(await identityFetch("/session"));
+  let envelope = await read();
+  if (envelope.status === "anonymous" && parseHint()) {
+    // A stale GET may arrive after another tab rotated the cookie. Confirm
+    // before discarding the local presentation hint.
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, sessionUnauthorizedConfirmationDelayMs);
+    });
+    envelope = await read();
+  }
+  applyEnvelope(envelope);
+  return envelope;
+}
+
+function shouldConfirmSessionUnauthorized(error: IdentityHttpError) {
+  // HttpOnly cookies are authoritative and cannot be inspected from the app.
+  // Confirm every ambiguous 401 even when the non-secret local hint is absent.
+  return error.code !== "session.revoked";
+}
+
+async function getSessionEnvelope() {
+  let failure: unknown;
+  try {
+    return await requestSessionEnvelope();
+  } catch (error) {
+    failure = error;
+  }
+
+  if (
+    failure instanceof IdentityHttpError &&
+    failure.status === 401 &&
+    shouldConfirmSessionUnauthorized(failure)
+  ) {
+    // A refresh in this tab or another tab may have rotated the HttpOnly
+    // cookies after this request was sent. Give the browser cookie jar a
+    // bounded chance to settle, then ask the authoritative service again.
+    // No business request is released while the session remains unconfirmed.
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, sessionUnauthorizedConfirmationDelayMs);
+    });
+    try {
+      return await requestSessionEnvelope();
+    } catch (error) {
+      failure = error;
+    }
+  }
+
+  if (failure instanceof IdentityHttpError && failure.status === 401) {
+    // An expired access cookie, a refresh-cookie race, or a deployment cutover
+    // is not proof that the account was revoked. Keep the non-secret hint and
+    // let the next bootstrap retry the browser's HttpOnly cookies. Only the
+    // identity service's explicit revoked code is allowed to clear the hint.
+    if (failure.code !== "session.revoked") {
+      currentState = "temporarily_unavailable";
+      currentEnvelope = {
+        status: "temporarily_unavailable",
+        code: failure.code,
+        message: failure.message,
+      };
+      publishState("temporarily_unavailable");
+      return currentEnvelope;
+    }
+    currentState = "revoked";
+    currentEnvelope = { status: "revoked" };
+    removeStoredValue(window.localStorage, sessionHintKey);
+    publishState("revoked");
+    return currentEnvelope;
+  }
+  currentState = "temporarily_unavailable";
+  throw failure;
+}
+
+function storedRequestID(key: string, prefix: string) {
+  const existing =
+    readStoredValue(window.sessionStorage, key) ||
+    readStoredValue(window.localStorage, key);
+  if (existing) return existing;
+  const next = createOpaqueID(prefix);
+  writeStoredValue(
+    key === pendingLogoutKey ? window.localStorage : window.sessionStorage,
+    key,
+    next,
+  );
+  return next;
+}
+
+function refreshRequestID() {
+  const existing =
+    readStoredValue(window.localStorage, pendingRefreshKey) ||
+    readStoredValue(window.sessionStorage, pendingRefreshKey);
+  const requestId = existing || createOpaqueID("refresh");
+  writeStoredValue(window.localStorage, pendingRefreshKey, requestId);
+  removeStoredValue(window.sessionStorage, pendingRefreshKey);
+  return requestId;
+}
+
+function clearRefreshRequestID() {
+  removeStoredValue(window.localStorage, pendingRefreshKey);
+  removeStoredValue(window.sessionStorage, pendingRefreshKey);
+}
+
+async function postIdentity(
+  path: string,
+  body: Record<string, unknown>,
+  csrfToken: string,
+  additionalHeaders: Record<string, string> = {},
+) {
+  const response = await identityFetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Rinspace-CSRF": csrfToken,
+      "x-device-id": getDeviceId(),
+      ...additionalHeaders,
+    },
+    body: JSON.stringify(body),
+  });
+  return decodeEnvelope(response);
+}
+
+async function refreshInsideLock() {
+  const before = await getSessionEnvelope();
+  if (before.status === "authenticated") {
+    clearRefreshRequestID();
+    return getStoredSession();
+  }
+  if (before.status !== "restoring" || !before.csrfToken) {
+    if (before.status === "anonymous" || before.status === "revoked")
+      return null;
+    throw new Error("当前会话无法续期。");
+  }
+  const requestId = refreshRequestID();
+  try {
+    await postIdentity("/session/refresh", { requestId }, before.csrfToken);
+  } catch (error) {
+    if (!(error instanceof IdentityHttpError) || error.status !== 409)
+      throw error;
+  }
+  const after = await getSessionEnvelope();
+  if (after.status !== "authenticated") return null;
+  clearRefreshRequestID();
+  publishState("authenticated");
+  return getStoredSession();
+}
+
+async function withFallbackRefreshLease<T>(run: () => Promise<T>): Promise<T> {
+  const owner = createOpaqueID("tab");
+  const now = Date.now();
+  let lease: { owner?: string; expiresAt?: number } = {};
+  try {
+    lease = JSON.parse(
+      readStoredValue(window.localStorage, refreshLeaseKey) || "{}",
+    ) as typeof lease;
+  } catch {
+    lease = {};
+  }
+  if (
+    typeof lease.expiresAt === "number" &&
+    lease.expiresAt > now &&
+    lease.owner !== owner
+  ) {
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    const envelope = await getSessionEnvelope();
+    if (envelope.status === "authenticated") return getStoredSession() as T;
+  }
+  writeStoredValue(
+    window.localStorage,
+    refreshLeaseKey,
+    JSON.stringify({ owner, expiresAt: now + refreshLeaseMs }),
+  );
+  try {
+    return await run();
+  } finally {
+    const active = readStoredValue(window.localStorage, refreshLeaseKey);
+    if (active?.includes(owner))
+      removeStoredValue(window.localStorage, refreshLeaseKey);
+  }
+}
+
+async function coordinatedRefresh() {
+  if (refreshRequest) return refreshRequest;
+  const run = () => refreshInsideLock();
+  const coordinated = navigator.locks
+    ? (navigator.locks.request(
+        "rinspace-identity-refresh",
+        { mode: "exclusive" },
+        run,
+      ) as unknown as Promise<StoredSession | null>)
+    : withFallbackRefreshLease(run);
+  refreshRequest = coordinated.finally(() => {
+    refreshRequest = null;
+  });
+  return refreshRequest;
+}
+
+async function recoverPendingLogout() {
+  const requestId = readStoredValue(window.localStorage, pendingLogoutKey);
+  if (!requestId) return false;
+  const envelope = await getSessionEnvelope();
+  if (envelope.status === "anonymous" || envelope.status === "revoked") {
+    removeStoredValue(window.localStorage, pendingLogoutKey);
+    return true;
+  }
+  if (!envelope.csrfToken) return true;
+  await postIdentity("/session/logout", { requestId }, envelope.csrfToken);
+  removeStoredValue(window.localStorage, pendingLogoutKey);
+  currentState = "anonymous";
+  currentEnvelope = { status: "anonymous" };
+  publishState("anonymous");
+  return true;
+}
+
+function installLifecycleSync() {
+  if (lifecycleInstalled) return;
+  lifecycleInstalled = true;
+  ensureChannel();
+  const synchronize = () => {
+    currentUserRequest = null;
+    void getCurrentAuthUser().catch(() => {});
+  };
+  window.addEventListener("focus", synchronize);
+  window.addEventListener("pageshow", synchronize);
+}
+
+export function replaceStoredSession(session: StoredSession) {
+  if (session.sub)
+    saveHint({
+      id: session.sub,
+      sessionEpoch: session.session_epoch,
+      identityVersion: session.identity_version,
+    });
+  purgeLegacyBrowserCredentials();
+}
+
+export function clearStoredSession() {
+  currentState = "anonymous";
+  currentEnvelope = { status: "anonymous" };
+  currentUserRequest = null;
+  removeStoredValue(window.localStorage, sessionHintKey);
+  purgeLegacyBrowserCredentials();
+  publishState("anonymous");
+}
+
+export function getStoredSession(): StoredSession | null {
+  const hint = parseHint();
+  if (!hint) return null;
+  return {
+    access_token: "",
+    refresh_token: "",
+    sub: hint.sub,
+    session_epoch: hint.sessionEpoch,
+    identity_version: hint.identityVersion,
+    managed: true,
+  };
+}
+
+export function hasAuthSession() {
+  return (
+    currentState === "authenticated" ||
+    currentState === "restoring" ||
+    getStoredSession() !== null
+  );
+}
+
+export function authHeaders(accessToken = ""): Record<string, string> {
+  if (accessToken)
+    return {
+      Authorization: `Bearer ${accessToken}`,
+      "x-device-id": getDeviceId(),
+    };
+  if (currentState !== "authenticated" || !currentEnvelope?.csrfToken)
+    return {};
+  return {
+    "X-Rinspace-CSRF": currentEnvelope.csrfToken,
+    "x-device-id": getDeviceId(),
+  };
+}
+
+export function getSessionPresentation() {
+  return currentState;
+}
+
+export async function getFreshAuthSession() {
+  const user = await getCurrentAuthUser();
+  return user ? getStoredSession() : null;
+}
+
+export async function forceRefreshAuthSession(): Promise<StoredSession | null> {
+  try {
+    return await coordinatedRefresh();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refreshes the managed browser session when the access credential has expired
+ * but the refresh credential is still valid. Returns true when a usable managed
+ * session exists afterwards.
+ */
+export async function refreshManagedSession(): Promise<boolean> {
+  if (!hasAuthSession()) return false;
+  return (await forceRefreshAuthSession()) !== null;
+}
+
+export async function getCurrentAuthUser(): Promise<RinspaceUser | null> {
+  installLifecycleSync();
+  if (!readStoredValue(window.localStorage, pendingLogoutKey)) {
+    if (currentState === "authenticated" && currentEnvelope) {
+      const user = userFromEnvelope(currentEnvelope);
+      const hint = getStoredSession();
+      if (user && hint?.sub === user.id) return user;
+    }
+    if (
+      (currentState === "anonymous" || currentState === "revoked") &&
+      currentEnvelope &&
+      !getStoredSession()
+    )
+      return null;
+  }
   if (!currentUserRequest) {
-    currentUserRequest = loadCurrentAuthUser().finally(() => {
+    currentUserRequest = (async () => {
+      if (await recoverPendingLogout()) return null;
+      const envelope = await getSessionEnvelope();
+      if (envelope.status === "restoring") {
+        await coordinatedRefresh();
+        return userFromEnvelope(currentEnvelope || {});
+      }
+      if ((envelope.status === "anonymous" || envelope.status === "revoked") && envelope.csrfToken) {
+        const legacyToken = legacyAccessToken();
+        if (legacyToken) {
+          const requestId = storedRequestID(pendingLegacyExchangeKey, "legacy");
+          try {
+            await postIdentity("/legacy/exchange", {
+              legacyToken, requestId, clientLabel: browserClientLabel(),
+            }, envelope.csrfToken);
+          } catch (error) {
+            if (error instanceof IdentityHttpError && error.code === "session.reauthentication_required")
+              return null;
+            throw error;
+          }
+          removeStoredValue(window.sessionStorage, pendingLegacyExchangeKey);
+          const migrated = await getSessionEnvelope();
+          const migratedUser = migrated.status === "authenticated" ? userFromEnvelope(migrated) : null;
+          if (migratedUser) {
+            purgeLegacyBrowserCredentials();
+            publishState("authenticated");
+          }
+          return migratedUser;
+        }
+      }
+      return envelope.status === "authenticated"
+        ? userFromEnvelope(envelope)
+        : null;
+    })().finally(() => {
       currentUserRequest = null;
     });
   }
   return currentUserRequest;
 }
 
+// Managed browser requests authenticate with HttpOnly cookies. An empty value
+// tells compatibility callers to rely on same-origin cookies.
 export async function getAuthAccessToken() {
-  const session = await getFreshStoredSession();
-  return session?.access_token || '';
+  await getCurrentAuthUser();
+  return "";
+}
+
+async function cloudBaseAuthMutation(path: string, body: Record<string, unknown>) {
+  const envId = publicEnv.cloudbaseEnvId;
+  if (!envId) throw new Error("CloudBase 环境未配置。");
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), authRequestTimeoutMs);
+  try {
+    const response = await fetch(`${cloudBaseAuthGateway}${path}?client_id=${encodeURIComponent(envId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-device-id": getDeviceId() },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    const payload = await response.json() as Record<string, unknown>;
+    if (!response.ok || typeof payload.error === "string") {
+      throw new Error(typeof payload.error_description === "string" ? payload.error_description : "CloudBase 验证失败。");
+    }
+    return payload;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 export async function sendPhoneOtp(phone: string): Promise<OtpChallenge> {
-  const phoneNumber = `+86 ${phone}`;
-  const payload = await postAuth('/verification', {
-    phone_number: phoneNumber,
-  });
-
-  const verificationId = typeof payload.verification_id === 'string' ? payload.verification_id : '';
-  if (!verificationId) {
-    throw new Error('验证码发送成功但缺少 verification_id。');
+  const envelope = await getSessionEnvelope();
+  if (
+    !envelope.csrfToken ||
+    (envelope.status !== "anonymous" && envelope.status !== "revoked")
+  ) {
+    throw new Error("当前状态不能开始手机号核验。");
   }
+  return sendCloudBasePhoneOtp(phone);
+}
 
+export async function sendCloudBasePhoneOtp(phone: string): Promise<OtpChallenge> {
+  const digits = phone.replace(/\s+/g, "");
+  if (!/^1[0-9]{10}$/.test(digits)) throw new Error("请输入有效的中国大陆手机号。");
+  const phoneNumber = `+86${digits}`;
+  const result = await cloudBaseAuthMutation("/verification", { phone_number: `+86 ${digits}`, target: "ANY" });
+  if (typeof result.verification_id !== "string" || !result.verification_id) throw new Error("验证码请求缺少 verification_id。");
   return {
-    verificationId,
+    verificationId: result.verification_id,
     phoneNumber,
-    isUser: payload.is_user === true,
+    isUser: result.is_user === true,
+    retryAfter: 60,
   };
 }
 
 export async function completePhoneOtp(challenge: OtpChallenge, token: string) {
-  const verified = await postAuth('/verification/verify', {
-    verification_id: challenge.verificationId,
-    verification_code: token,
+  const envelope = currentEnvelope || (await getSessionEnvelope());
+  if (!envelope.csrfToken)
+    throw new Error("登录核验状态已过期，请重新发送验证码。");
+  const requestId = createOpaqueID("verify");
+  const verified = await cloudBaseAuthMutation("/verification/verify", {
+    verification_id: challenge.verificationId, verification_code: token,
   });
-  const verificationToken = typeof verified.verification_token === 'string' ? verified.verification_token : '';
-  if (!verificationToken) {
-    throw new Error('验证码校验成功但缺少登录凭证。');
+  if (typeof verified.verification_token !== "string" || !verified.verification_token) {
+    throw new Error("CloudBase 验证成功但缺少凭据。");
   }
-
-  const tokenPayload = challenge.isUser
-    ? await postAuth('/signin', { verification_token: verificationToken })
-    : await postAuth('/signup', {
-        phone_number: challenge.phoneNumber,
-        verification_token: verificationToken,
-      });
-
-  if (typeof tokenPayload.access_token !== 'string' || typeof tokenPayload.refresh_token !== 'string') {
-    throw new Error('CloudBase Auth 登录成功但缺少会话令牌。');
+  try {
+    await postIdentity(
+      "/cloudbase/exchange",
+      { verificationToken: verified.verification_token, phone: challenge.phoneNumber, isUser: challenge.isUser, requestId, clientLabel: browserClientLabel() },
+      envelope.csrfToken,
+    );
+  } catch (error) {
+    if (
+      error instanceof IdentityHttpError &&
+      error.status === 409 &&
+      error.payload?.admissionProof
+    ) {
+      throw new AdmissionRequiredError(error.payload.admissionProof);
+    }
+    throw error;
   }
+  currentUserRequest = null;
+  currentEnvelope = null;
+  currentState = "restoring";
+  const user = await getCurrentAuthUser();
+  publishState(user ? "authenticated" : "anonymous");
+  return user;
+}
 
-  saveStoredSession({
-    access_token: tokenPayload.access_token,
-    refresh_token: tokenPayload.refresh_token,
-    expires_in: tokenPayload.expires_in,
-    sub: tokenPayload.sub,
+function admissionHeader(proof: string) {
+  if (!proof.startsWith("rin_ad_") || proof.length < "rin_ad_".length + 32)
+    throw new Error("登录准入证明无效，请重新核验手机号。");
+  return { "X-Rinspace-Admission": proof };
+}
+
+export async function listAdmissionSessions(
+  proof: string,
+): Promise<AdmissionSession[]> {
+  const response = await identityFetch("/login-admission/sessions", {
+    headers: admissionHeader(proof),
   });
+  const envelope = await decodeEnvelope(response);
+  const items = (envelope as SessionEnvelope & { items?: unknown }).items;
+  if (!Array.isArray(items)) throw new Error("登录设备列表返回格式异常。");
+  const parsed = items.filter(
+    (item): item is AdmissionSession =>
+      isRecord(item) &&
+      typeof item.sid === "string" &&
+      typeof item.clientLabel === "string" &&
+      typeof item.createdAt === "string" &&
+      typeof item.lastActiveAt === "string",
+  );
+  if (parsed.length !== items.length)
+    throw new Error("登录设备列表返回格式异常。");
+  return parsed;
+}
 
-  return getCurrentAuthUser();
+export async function revokeAdmissionSession(proof: string, sid: string) {
+  const envelope = currentEnvelope || (await getSessionEnvelope());
+  if (!envelope.csrfToken)
+    throw new Error("登录准入状态已过期，请重新核验手机号。");
+  const response = await identityFetch(
+    `/login-admission/sessions/${encodeURIComponent(sid)}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Rinspace-CSRF": envelope.csrfToken,
+        "x-device-id": getDeviceId(),
+        ...admissionHeader(proof),
+      },
+    },
+  );
+  await decodeEnvelope(response);
+}
+
+export async function completeAdmission(proof: string) {
+  const envelope = currentEnvelope || (await getSessionEnvelope());
+  if (!envelope.csrfToken)
+    throw new Error("登录准入状态已过期，请重新核验手机号。");
+  const requestId = storedRequestID(pendingAdmissionKey, "admit");
+  await postIdentity(
+    "/login-admission/complete",
+    { requestId, clientLabel: browserClientLabel() },
+    envelope.csrfToken,
+    admissionHeader(proof),
+  );
+  removeStoredValue(window.sessionStorage, pendingAdmissionKey);
+  currentUserRequest = null;
+  currentEnvelope = null;
+  currentState = "restoring";
+  const user = await getCurrentAuthUser();
+  publishState(user ? "authenticated" : "anonymous");
+  return user;
+}
+
+export async function logoutCurrentSession() {
+  const requestId = storedRequestID(pendingLogoutKey, "logout");
+  removeStoredValue(window.localStorage, sessionHintKey);
+  currentState = "revoked";
+  publishState("revoked");
+  try {
+    const envelope = await getSessionEnvelope();
+    if (envelope.status !== "anonymous" && envelope.status !== "revoked") {
+      if (!envelope.csrfToken) throw new Error("退出核验状态不可用。");
+      await postIdentity("/session/logout", { requestId }, envelope.csrfToken);
+    }
+    removeStoredValue(window.localStorage, pendingLogoutKey);
+    currentState = "anonymous";
+    currentEnvelope = { status: "anonymous" };
+    publishState("anonymous");
+  } catch (error) {
+    writeStoredValue(window.localStorage, pendingLogoutKey, requestId);
+    removeStoredValue(window.localStorage, sessionHintKey);
+    currentState = "revoked";
+    throw error;
+  }
+}
+
+async function authenticatedEnvelope(): Promise<SessionEnvelope & { status: "authenticated"; csrfToken: string }> {
+  await getCurrentAuthUser();
+  const envelope = currentEnvelope;
+  if (!envelope || envelope.status !== "authenticated" || !envelope.csrfToken)
+    throw new Error("当前登录状态不可用于安全设置。");
+  return envelope as SessionEnvelope & { status: "authenticated"; csrfToken: string };
+}
+
+async function identityMutation(
+  path: string,
+  method: "POST" | "DELETE",
+  body: Record<string, unknown>,
+) {
+  const envelope = await authenticatedEnvelope();
+  const response = await identityFetch(path, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Rinspace-CSRF": envelope.csrfToken,
+      "x-device-id": getDeviceId(),
+    },
+    body: JSON.stringify(body),
+  });
+  return decodeEnvelope(response);
+}
+
+function checkedItems<T>(value: SessionEnvelope, check: (item: unknown) => item is T) {
+  const items = (value as SessionEnvelope & { items?: unknown }).items;
+  if (!Array.isArray(items) || !items.every(check))
+    throw new Error("安全设置返回格式异常。");
+  return items;
+}
+
+export async function listIdentityDevices(): Promise<IdentityDeviceSession[]> {
+  await authenticatedEnvelope();
+  const response = await identityFetch("/sessions");
+  return checkedItems(await decodeEnvelope(response), (item): item is IdentityDeviceSession =>
+    isRecord(item) && typeof item.sid === "string" && typeof item.clientLabel === "string" &&
+    typeof item.current === "boolean" && typeof item.revoked === "boolean" &&
+    typeof item.cleanupComplete === "boolean" && isRecord(item.runtimes));
+}
+
+export async function listIdentityCredentials(): Promise<IdentityPersonalCredential[]> {
+  await authenticatedEnvelope();
+  const response = await identityFetch("/credentials");
+  return checkedItems(await decodeEnvelope(response), (item): item is IdentityPersonalCredential =>
+    isRecord(item) && typeof item.ref === "string" && typeof item.provider === "string" &&
+    typeof item.kind === "string" && typeof item.label === "string" &&
+    Array.isArray(item.scopes) && item.scopes.every((scope) => typeof scope === "string") &&
+    typeof item.state === "string");
+}
+
+export async function beginIdentityStepUp(purpose: string, target: string): Promise<StepUpChallenge> {
+  const result = await identityMutation("/step-up", "POST", { purpose, target });
+  if (!result.challengeId) throw new Error("安全核验请求缺少 challengeId。");
+  return { challengeId: result.challengeId, retryAfter: result.retryAfter };
+}
+
+export async function completeIdentityStepUp(purpose: string, target: string, challengeId: string, code: string) {
+  const result = await identityMutation("/step-up", "POST", { purpose, target, challengeId, code });
+  const proof = (result as SessionEnvelope & { stepUpProof?: unknown }).stepUpProof;
+  if (typeof proof !== "string" || !proof) throw new Error("安全核验结果缺少操作证明。");
+  return proof;
+}
+
+export async function completeCloudBaseStepUp(purpose: string, target: string, challenge: OtpChallenge, code: string) {
+  if (publicEnv.localRealClient) {
+    const result = await identityMutation('/step-up/cloudbase', 'POST', {
+      purpose, target, phone: challenge.phoneNumber, verificationId: challenge.verificationId, code,
+    });
+    const proof = (result as SessionEnvelope & { stepUpProof?: unknown }).stepUpProof;
+    if (typeof proof !== 'string' || !proof) throw new Error('安全核验结果缺少操作证明。');
+    return proof;
+  }
+  const verified = await cloudBaseAuthMutation("/verification/verify", {
+    verification_id: challenge.verificationId, verification_code: code,
+  });
+  if (typeof verified.verification_token !== "string" || !verified.verification_token) {
+    throw new Error("CloudBase 安全核验缺少凭据。");
+  }
+  const result = await identityMutation("/step-up/cloudbase", "POST", {
+    purpose, target, phone: challenge.phoneNumber, verificationToken: verified.verification_token,
+  });
+  const proof = (result as SessionEnvelope & { stepUpProof?: unknown }).stepUpProof;
+  if (typeof proof !== "string" || !proof) throw new Error("安全核验结果缺少操作证明。");
+  return proof;
+}
+
+export async function revokeIdentityDevice(sid: string, stepUpProof: string) {
+  return identityMutation(`/sessions/${encodeURIComponent(sid)}`, "DELETE", { stepUpProof });
+}
+
+export async function sendIdentityStepUpOtp(purpose: string, target: string, phone: string): Promise<OtpChallenge> {
+  if (!publicEnv.localRealClient) return sendCloudBasePhoneOtp(phone);
+  const result = await identityMutation('/step-up/cloudbase/challenge', 'POST', { purpose, target, phone });
+  const value: unknown = result;
+  if (!isRecord(value) || typeof value.verificationId !== 'string' || !value.verificationId ||
+      typeof value.phoneNumber !== 'string' || !/^\+861[0-9]{10}$/.test(value.phoneNumber) ||
+      value.isUser !== true || typeof value.retryAfter !== 'number') throw new Error('安全核验请求返回格式异常。');
+  return { verificationId: value.verificationId, phoneNumber: value.phoneNumber, isUser: true, retryAfter: value.retryAfter };
+}
+
+export async function revokeAllIdentityDevices(stepUpProof: string) {
+  const result = await identityMutation("/sessions/revoke-all", "POST", { confirm: true, stepUpProof });
+  clearStoredSession();
+  return result;
+}
+
+export async function revokeIdentityCredential(ref: string, stepUpProof: string) {
+  return identityMutation(`/credentials/${encodeURIComponent(ref)}`, "DELETE", { stepUpProof });
+}
+
+export async function revokeAllIdentityPersonalAccess(stepUpProof: string) {
+  const result = await identityMutation("/security/revoke-all", "POST", { confirm: true, stepUpProof });
+  clearStoredSession();
+  return result;
+}
+
+function browserClientLabel() {
+  const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  return `${mobile ? "Mobile" : "Desktop"} browser`;
 }

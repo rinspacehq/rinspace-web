@@ -22,8 +22,8 @@ import {
   useNoticeToasts,
 } from 'components/ui';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { Alert, Form } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Form } from '@/components/ui/compat';
+import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import SiteTopbar from '@/components/SiteTopbarShell';
 
@@ -32,6 +32,7 @@ import LoadingState from '@/components/LoadingState';
 import { MathInline } from '@/components/MathText';
 import TagPicker, { joinTagValues, splitTagValues } from '@/components/TagPicker';
 import UserIdentity from '@/components/UserIdentity';
+import BookProfileDialog from '@/features/publish/BookProfileDialog';
 import { localizedErrorMessage } from '@/i18n/errors';
 import { formatDate, formatNumber } from '@/i18n/format';
 import { feedPresentationDate } from '@/i18n/feedPresentation';
@@ -39,14 +40,14 @@ import { useResolvedLocale } from '@/i18n/LanguageProvider';
 import type { LocaleId } from '@/i18n/types';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { deleteContent, loadContentDetail, loadContentFeed, updateContent } from '@/services/domains/article';
-import { openBookCodeWorkspace } from '@/services/domains/book';
 import { loadCreatorContributions } from '@/services/domains/creator';
 import { loadCurrentUserInfo, loadPersonalQuestionPage } from '@/services/domains/identity';
-import { openArticleCodeWorkspace } from '@/services/domains/publication';
 import { deleteQuestion, loadQuestionDetail, updateQuestion } from '@/services/domains/question';
-import type { CurrentUserInfo, FeedItem, PersonalQuestionSummary, PublishContentType, QuestionTagInput } from '@/services/contracts';
+import type { CurrentUserInfo, FeedItem, PersonalQuestionSummary, PostDetail, PublishContentType, QuestionTagInput } from '@/services/contracts';
 import { blogEditPath } from '@/utils/blogBody';
-import { contentPath, legacyTagPath, questionPath } from '@/utils/routes';
+import { contentEditDestination } from '@/utils/contentEditDestination';
+import { contentTypeMetaChar } from '@/utils/contentTypeMeta';
+import { bookWorkspacePath, contentPath, legacyTagPath, questionPath } from '@/utils/routes';
 import {
   contentStatusForCreatorControls,
   creatorPageState,
@@ -63,14 +64,13 @@ import {
   normalizeCreatorPeriod,
   type CreatorAnalyticsGranularity,
 } from './creatorInsights';
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 
 type CreatorTab = 'blog' | 'book' | 'question' | 'discussion' | 'dynamic';
 type CreatorView = 'home' | 'content' | 'analytics';
 type EditingKey = `${CreatorTab}:${string}`;
 
 function isOriginalStyleBook(item: FeedItem) {
-  return item.book?.kind === 'original' || item.book?.kind === 'markdown';
+  return item.book?.kind === 'original' || item.book?.kind === 'markdown' || item.book?.kind === 'typst';
 }
 
 type EditDraft = {
@@ -82,14 +82,6 @@ type EditDraft = {
 type PendingDeleteAction =
   | { kind: 'feed'; tab: Exclude<CreatorTab, 'question'>; item: FeedItem }
   | { kind: 'question'; item: PersonalQuestionSummary };
-
-const tabMetaChars: Record<CreatorTab, string> = {
-  blog: 'b',
-  book: 'k',
-  question: 'q',
-  discussion: 'd',
-  dynamic: 's',
-};
 
 const tabOrder: CreatorTab[] = ['blog', 'book', 'question', 'discussion', 'dynamic'];
 
@@ -115,7 +107,9 @@ function CreatorMetaCategory({ tab, label }: { tab: CreatorTab; label: string })
       title={label}
     >
       <span className="creator-row-category-token">
-        <span className="char" aria-hidden="true">{tabMetaChars[tab]}</span>
+        <span className="char" aria-hidden="true">
+          {contentTypeMetaChar(tab, label.slice(0, 1).toLowerCase())}
+        </span>
         <span className="label">{label}</span>
       </span>
     </span>
@@ -229,8 +223,6 @@ function itemKey(tab: CreatorTab, id: string): EditingKey {
 function CreatorPage() {
   const { t } = useFeatureTranslation('creator');
   const locale = useResolvedLocale();
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === 'demo';
   const [searchParams, setSearchParams] = useSearchParams();
   const activeView = creatorView(searchParams.get('view'));
   const requestedTab = searchParams.get('type');
@@ -248,6 +240,7 @@ function CreatorPage() {
   const [busyKey, setBusyKey] = useState('');
   const [editingKey, setEditingKey] = useState<EditingKey | ''>('');
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteAction | null>(null);
+  const [quickEditPost, setQuickEditPost] = useState<PostDetail | null>(null);
   const [draft, setDraft] = useState<EditDraft>({
     title: '',
     body: '',
@@ -506,7 +499,10 @@ function CreatorPage() {
     }
   };
 
-  const removeFeedItem = async (tab: Exclude<CreatorTab, 'question'>, item: FeedItem) => {
+  const removeFeedItem = async (
+    tab: Exclude<CreatorTab, 'question'>,
+    item: FeedItem,
+  ) => {
     const key = itemKey(tab, item.id);
     setBusyKey(key);
     setError('');
@@ -520,6 +516,7 @@ function CreatorPage() {
       setNotice(t('notice.contentDeleted'));
     } catch (err) {
       setError(localizedErrorMessage(err, 'creator.deleteFailed'));
+      throw err;
     } finally {
       setBusyKey('');
     }
@@ -611,24 +608,27 @@ function CreatorPage() {
     setPendingDelete(null);
   };
 
-  const openCodeWorkspace = async (tab: 'blog' | 'book', item: FeedItem) => {
+  const beginQuickEdit = async (tab: 'blog' | 'book', item: FeedItem) => {
     const key = itemKey(tab, item.id);
     setBusyKey(key);
     setError('');
     setNotice('');
     try {
-      if (demoMode && bootstrap) {
-        await bootstrap.ports.workspace.open({ projectId: item.id });
-        return;
-      }
-      const workspace = tab === 'book'
-        ? await openBookCodeWorkspace(item.id)
-        : await openArticleCodeWorkspace(item.id);
-      window.location.assign(workspace.url);
+      const detail = await loadContentDetail(item.id);
+      setQuickEditPost(detail);
     } catch (err) {
-      setError(localizedErrorMessage(err, 'creator.workspaceOpenFailed'));
+      setError(localizedErrorMessage(err, 'creator.loadFailed'));
+    } finally {
       setBusyKey('');
     }
+  };
+
+  const applyQuickEdit = (saved: PostDetail) => {
+    const update = (items: FeedItem[]) => items.map((item) => (item.id === saved.id ? saved : item));
+    if (saved.type === 'blog') setBlogs(update);
+    if (saved.type === 'book') setBooks(update);
+    setQuickEditPost(saved);
+    setNotice(t('notice.contentSaved'));
   };
 
   const renderDraft = (
@@ -697,7 +697,7 @@ function CreatorPage() {
           const saving = busyKey === key;
           const pageState = creatorPageState(item);
           const sourceVisibility = creatorSourceVisibility(item);
-          const canOpenCode = (tab === 'blog' && item.editor === 'rin') || (tab === 'book' && item.book?.kind === 'original');
+          const editDestination = contentEditDestination(item);
           const timeLabel = creatorFeedTime(item, locale);
           return (
             <article className="creator-row" key={key}>
@@ -711,16 +711,20 @@ function CreatorPage() {
                 {item.excerpt ? <p><MathInline text={item.excerpt} /></p> : null}
               </div>
               <div className="creator-row-actions">
-                {tab === 'blog' && canOpenCode ? (
-                  <Button className="secondary-link" type="button" disabled={saving} onClick={() => void openCodeWorkspace('blog', item)}>
+                {tab === 'blog' && editDestination === 'quick-edit' ? (
+                  <Button className="secondary-link" type="button" disabled={saving} onClick={() => void beginQuickEdit('blog', item)}>
                     {saving ? t('common.opening') : t('common.edit')}
                   </Button>
                 ) : tab === 'blog' ? (
                   <Link className="secondary-link" to={blogEditPath(item)}>
                     {t('common.edit')}
                   </Link>
-                ) : tab === 'book' && canOpenCode ? (
-                  <Button className="secondary-link" type="button" disabled={saving} onClick={() => void openCodeWorkspace('book', item)}>
+                ) : tab === 'book' && editDestination === 'book-workspace' ? (
+                  <Link className="secondary-link" to={bookWorkspacePath(item.id)}>
+                    {t('common.edit')}
+                  </Link>
+                ) : tab === 'book' && editDestination === 'quick-edit' ? (
+                  <Button className="secondary-link" type="button" disabled={saving} onClick={() => void beginQuickEdit('book', item)}>
                     {saving ? t('common.opening') : t('common.edit')}
                   </Button>
                 ) : tab === 'book' ? (
@@ -895,7 +899,7 @@ function CreatorPage() {
 
   return (
     <>
-      <Helmet title={activeViewLabel} />
+      <Helmet title={`${activeViewLabel} - ${t('navigation:brandName')}`} />
       <SiteTopbar />
 
       <ConfirmActionDialog
@@ -918,6 +922,15 @@ function CreatorPage() {
         busy={Boolean(busyKey)}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => void confirmPendingDelete()}
+      />
+
+      <BookProfileDialog
+        open={Boolean(quickEditPost)}
+        post={quickEditPost}
+        user={user}
+        variant={quickEditPost?.type === 'blog' ? 'article' : 'book'}
+        onClose={() => setQuickEditPost(null)}
+        onSaved={applyQuickEdit}
       />
 
       <AnimateSidebarProvider className="creator-workspace-shell">
@@ -960,11 +973,6 @@ function CreatorPage() {
 
         <AnimateSidebarInset className="creator-workspace-main">
           <div className="creator-mobile-toolbar"><AnimateSidebarTrigger /></div>
-          {demoMode ? (
-            <Alert className="demo-creation-capability-note" role="status">
-              {t('demoCapabilities.notice')}
-            </Alert>
-          ) : null}
           {loading ? <div className="creator-workspace-loading"><LoadingState variant="compact" /></div> : null}
           {!loading && !user ? (
             <section className="creator-auth-state">

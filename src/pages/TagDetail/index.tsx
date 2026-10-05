@@ -1,7 +1,6 @@
 import { AnimateButton , useNoticeToasts } from 'components/ui';
 import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from "react";
-import { RuntimeHelmet as Helmet } from "@/components/RuntimeHelmet";
 import {
   Link,
   useLocation,
@@ -12,8 +11,9 @@ import {
 import SiteIcpLink from "@/components/SiteIcpLink";
 import SiteTopbar from "@/components/SiteTopbarShell";
 
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import AvatarName from "@/components/AvatarName";
+import CardActionButton from '@/components/CardActionButton';
+import DocumentMetadataController, { absolutePublicUrl } from '@/components/DocumentMetadataController';
 import LoadingState from "@/components/LoadingState";
 import MathText, { MathInline } from "@/components/MathText";
 import TagKnowledgeConnections from '@/features/tags/TagKnowledgeConnections';
@@ -23,13 +23,13 @@ import {
   feedPresentationMetrics,
   type FeedPresentationMetric,
 } from '@/i18n/feedPresentation';
-import { useLanguage } from '@/i18n/LanguageProvider';
+import { useLanguage, useResolvedLocale } from '@/i18n/LanguageProvider';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
-import { loadContentFeed } from '@/services/domains/article';
-import { followTarget } from '@/services/domains/discussion';
+import { loadBookFeed, loadContentFeed } from '@/services/domains/article';
+import { followTarget, likePost } from '@/services/domains/discussion';
 import { listRevisions } from '@/services/domains/moderation';
 import { loadAnswerQuestionPage } from '@/services/domains/question';
-import { loadTagCultivations, loadTagDetail, loadTagPage, loadTagStats, openTagCodeWorkspace } from '@/services/domains/tag';
+import { loadTagCultivations, loadTagDetail, loadTagPage, loadTagStats } from '@/services/domains/tag';
 import type { AnswerQuestionInfo, AnswerQuestionPageInput, FeedItem, ObjectReferenceSummary, RevisionSummary, TagCultivationUser, TagDetail, TagPageItem, TagReferenceSummary, TagStats } from '@/services/contracts';
 import { messageFromError } from "@/services/errors";
 import { useRinPageContext } from "@/utils/rinPageContext";
@@ -60,9 +60,7 @@ type ContentTab =
   | "wiki"
   | "all"
   | "blog"
-  | "question"
-  | "discussion"
-  | "dynamic";
+  | "book";
 type TagSort = "hot" | "asc" | "desc";
 type CombinedTagItem =
   | { kind: "content"; item: FeedItem }
@@ -75,6 +73,39 @@ type WikiReferenceLink = {
   href: string;
   resolved: boolean;
 };
+
+function tagSearchGraph(tag: TagDetail, contentItems: FeedItem[]) {
+  const canonical = absolutePublicUrl(tagReadPath(tag.id, tag.slugName || tagName(tag)));
+  const pageId = `${canonical}#webpage`;
+  const entityId = `${canonical}#entity`;
+  const term: Record<string, unknown> = {
+    '@type': 'DefinedTerm', '@id': entityId, name: tagName(tag),
+    description: tag.usageExcerpt || tag.excerpt || undefined, url: canonical,
+  };
+  const broader = tag.parentTags.slice(0, 12).map((parent) => {
+    const url = absolutePublicUrl(tagReadPath(parent.tagId, parent.slugName || parent.displayName));
+    return { '@type': 'DefinedTerm', '@id': `${url}#entity`, name: parent.displayName || parent.slugName };
+  });
+  if (broader.length) term.inDefinedTermSet = broader;
+  const related = tag.outgoingReferences.slice(0, 16).map((reference) => {
+    const url = absolutePublicUrl(tagReadPath(reference.targetTagId, reference.targetSlugName || reference.targetDisplayName));
+    return { '@type': 'DefinedTerm', '@id': `${url}#entity`, name: reference.targetDisplayName || reference.targetSlugName };
+  });
+  if (related.length) term.relatedLink = related;
+  const hasPart = contentItems
+    .filter((item) => item.type === 'blog' || item.type === 'book')
+    .slice(0, 12)
+    .map((item) => {
+      const url = absolutePublicUrl(contentPath(item.type, item.id, item.title));
+      return { '@type': item.type === 'book' ? 'Book' : 'BlogPosting', '@id': `${url}#entity`, name: item.title, url };
+    });
+  const page: Record<string, unknown> = {
+    '@type': 'CollectionPage', '@id': pageId, name: tagName(tag), url: canonical,
+    mainEntity: { '@id': entityId },
+  };
+  if (hasPart.length) page.hasPart = hasPart;
+  return { '@context': 'https://schema.org', '@graph': [page, term] };
+}
 type WikiContributor = {
   key: string;
   userId: string;
@@ -89,14 +120,7 @@ type WikiContributor = {
 
 const sortOptions: TagSort[] = ["hot", "asc", "desc"];
 
-const contentTabs: ContentTab[] = [
-  "wiki",
-  "all",
-  "blog",
-  "question",
-  "discussion",
-  "dynamic",
-];
+const contentTabs: ContentTab[] = ["wiki", "all", "blog", "book"];
 
 function tagName(
   tag: Pick<TagDetail | TagPageItem, "displayName" | "slugName">,
@@ -353,6 +377,7 @@ function sortCombinedTagItems(items: CombinedTagItem[], sort: TagSort, locale: '
 
 function feedItemTypeKey(item: FeedItem) {
   if (item.type === "announcement" || item.forumAnnouncement) return "announcement";
+  if (item.type === "book") return "book";
   if (item.type === "blog") return "blog";
   if (item.type === "discussion" || item.type === "forum") return "discussion";
   if (item.type === "dynamic" || item.type === "status") return "dynamic";
@@ -372,10 +397,7 @@ function countForTab(
   if (!stats) return fallback;
   if (tab === "wiki") return 0;
   if (tab === "all") return stats.total;
-  if (tab === "question") return stats.questions;
   if (tab === "blog") return stats.blogs;
-  if (tab === "discussion") return stats.discussions;
-  if (tab === "dynamic") return stats.dynamics;
   return fallback;
 }
 
@@ -618,16 +640,12 @@ function tagIncomingReferenceLinks(tag: TagDetail) {
   ]);
 }
 
-function TagDetailWikiArticle({
+export function TagDetailWikiArticle({
   tag,
   intro,
-  editBusy,
-  onEdit,
 }: {
   tag: TagDetail;
   intro: string;
-  editBusy: boolean;
-  onEdit: () => void;
 }) {
   const { t } = useFeatureTranslation('reader');
   const wikiHtml = useMemo(
@@ -673,9 +691,6 @@ function TagDetailWikiArticle({
       <div className="tag-detail-wiki-head">
         <span>Wiki</span>
         <div className="tag-detail-wiki-actions">
-          <AnimateButton unstyled type="button" disabled={editBusy} onClick={onEdit}>
-            {editBusy ? t('tagDetail.opening') : t('tagDetail.edit')}
-          </AnimateButton>
           <Link to={tagWikiPath(tag.id, tag.slugName || tagName(tag))}>
             {t('tagDetail.details')}
           </Link>
@@ -732,10 +747,59 @@ function TagDetailWikiArticle({
   );
 }
 
+export function TagSocialActions({
+  isLiked,
+  likeCount,
+  likeBusy,
+  isFollower,
+  followCount,
+  followBusy,
+  repositoryReady,
+  onLike,
+  onFollow,
+}: {
+  isLiked: boolean;
+  likeCount: number;
+  likeBusy: boolean;
+  isFollower: boolean;
+  followCount: number;
+  followBusy: boolean;
+  repositoryReady: boolean;
+  onLike: () => void;
+  onFollow: () => void;
+}) {
+  const { t } = useFeatureTranslation('reader');
+  const resolvedLocale = useResolvedLocale();
+
+  return (
+    <div className="tag-detail-follow-row home-card-actions" aria-label={t('tagDetail.interactions')}>
+      <CardActionButton
+        icon={isLiked ? "heart-fill" : "heart"}
+        label={isLiked ? t('tagDetail.liked') : t('tagDetail.like')}
+        value={formatNumber(resolvedLocale, likeCount)}
+        active={isLiked}
+        toggle
+        tone="like"
+        iconSize="1.25rem"
+        disabled={likeBusy || !repositoryReady}
+        onClick={onLike}
+      />
+      <CardActionButton
+        icon={isFollower ? "bookmark-check" : "bookmark"}
+        label={isFollower ? t('tagDetail.following') : t('tagDetail.follow')}
+        value={formatNumber(resolvedLocale, followCount)}
+        active={isFollower}
+        toggle
+        iconSize="1.25rem"
+        disabled={followBusy || !repositoryReady}
+        onClick={onFollow}
+      />
+    </div>
+  );
+}
+
 function TagDetailPage() {
   const { t } = useFeatureTranslation('reader');
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === 'demo';
   const { resolvedLocale } = useLanguage();
   const params = useParams();
   const location = useLocation();
@@ -771,20 +835,20 @@ function TagDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [followBusy, setFollowBusy] = useState(false);
-  const [followStatus, setFollowStatus] = useState("");
   const [followError, setFollowError] = useState("");
-  const [editBusy, setEditBusy] = useState(false);
+  const [likeBusy, setLikeBusy] = useState(false);
+  const [likeError, setLikeError] = useState("");
   useNoticeToasts({
     error,
-    followStatus,
     followError,
+    likeError,
   });
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
-    setFollowStatus("");
     setFollowError("");
+    setLikeError("");
     setTag(null);
     setTagState(null);
     setTagStats(null);
@@ -808,12 +872,9 @@ function TagDetailPage() {
     const contentPageSize = activeTab === "all" ? aggregatePageSize : pageSize;
     const questionPage = activeTab === "all" ? 1 : page;
     const questionPageSize = activeTab === "all" ? aggregatePageSize : pageSize;
-    const contentType =
-      activeTab === "question" || activeTab === "wiki" || activeTab === "all"
-        ? undefined
-        : activeTab;
-    const shouldLoadContent = activeTab !== "question" && activeTab !== "wiki";
-    const shouldLoadQuestions = activeTab !== "wiki";
+    const contentType = activeTab === "blog" ? "blog" : undefined;
+    const shouldLoadContent = activeTab !== "wiki";
+    const shouldLoadQuestions = activeTab === "all";
     void loadTagDetail(
       routeTagId ? { tagId: routeTagId } : { name: routeTagName },
     )
@@ -856,13 +917,20 @@ function TagDetailPage() {
                 generatedAt: "",
               }),
           shouldLoadContent
-            ? loadContentFeed({
-                type: contentType,
-                tagId: detail.tagId,
-                tag: detailSlug,
-                page: contentPage,
-                size: contentPageSize,
-              })
+            ? activeTab === "book"
+              ? loadBookFeed({
+                  tagId: detail.tagId,
+                  tag: detailSlug,
+                  page: contentPage,
+                  size: contentPageSize,
+                })
+              : loadContentFeed({
+                  type: contentType,
+                  tagId: detail.tagId,
+                  tag: detailSlug,
+                  page: contentPage,
+                  size: contentPageSize,
+                })
             : Promise.resolve({
                 count: 0,
                 items: [],
@@ -925,6 +993,8 @@ function TagDetailPage() {
 
   const isFollower = Boolean(tagState?.isFollower);
   const followCount = tagState?.followCount ?? tag?.followCount ?? 0;
+  const isLiked = Boolean(tagState?.isLiked);
+  const likeCount = tagState?.likeCount ?? 0;
   const questionCount = tagState?.questionCount ?? tag?.questionCount ?? 0;
   const totalQuestions = Math.max(questionCount, loadedQuestionCount);
   const totalTaggedContent = tagStats?.total ?? totalQuestions;
@@ -933,9 +1003,7 @@ function TagDetailPage() {
     activeTab,
     activeTab === "wiki"
       ? 0
-      : activeTab === "question"
-        ? totalQuestions
-        : activeTab === "all"
+      : activeTab === "all"
           ? totalTaggedContent
           : tagContentCount,
   );
@@ -947,7 +1015,8 @@ function TagDetailPage() {
   const tagIntro = tag
     ? wikiPlainTextFromHtml(tag.usageExcerpt) ||
       wikiPlainTextFromHtml(tag.excerpt) ||
-      tagTitle
+      wikiPlainTextFromHtml(tag.parsedText) ||
+      t('tagDetail.searchDescription', { tag: tagTitle })
     : tagTitle;
   const displayedContentItems = useMemo(
     () => sortFeedItems(tagContentItems, sort, resolvedLocale),
@@ -981,36 +1050,24 @@ function TagDetailPage() {
                   author: entry.item.author,
                   detail: entry.item.excerpt || feedItemMetricSummary(entry.item, resolvedLocale, t),
                 })
-              : t('tagDetail.context.item', {
+          : t('tagDetail.context.item', {
                   type: t('tagDetail.type.question'),
                   title: entry.item.title,
                   author: authorLabel(entry.item),
                   detail: entry.item.description || t(`tagDetail.status.${statusKey(entry.item)}`),
                 }),
           )
-        : activeTab === "question"
-          ? tagQuestions
-              .slice(0, pageSize)
-              .map(
-                (item) =>
-                  t('tagDetail.context.item', {
-                    type: t('tagDetail.type.question'),
-                    title: item.title,
-                    author: authorLabel(item),
-                    detail: item.description || t(`tagDetail.status.${statusKey(item)}`),
-                  }),
-              )
-          : displayedContentItems
-              .slice(0, pageSize)
-              .map(
-                (item) =>
-                  t('tagDetail.context.item', {
-                    type: t(`tagDetail.type.${feedItemTypeKey(item)}`),
-                    title: item.title,
-                    author: item.author,
-                    detail: item.excerpt || feedItemMetricSummary(item, resolvedLocale, t),
-                  }),
-              );
+        : displayedContentItems
+            .slice(0, pageSize)
+            .map(
+              (item) =>
+                t('tagDetail.context.item', {
+                  type: t(`tagDetail.type.${feedItemTypeKey(item)}`),
+                  title: item.title,
+                  author: item.author,
+                  detail: item.excerpt || feedItemMetricSummary(item, resolvedLocale, t),
+                }),
+            );
     return {
       kind: "tag" as const,
       id: String(tag.id),
@@ -1070,7 +1127,6 @@ function TagDetailPage() {
     tag,
     tagCultivations,
     tagIntro,
-    tagQuestions,
     tagStats,
     tagTitle,
     totalQuestions,
@@ -1101,11 +1157,10 @@ function TagDetailPage() {
   const toggleFollow = async () => {
     if (!tag) return;
     const slugName = tag.slugName || tagLookup;
-    setFollowStatus("");
     setFollowError("");
     setFollowBusy(true);
     try {
-      await followTarget({
+      const result = await followTarget({
         targetType: "tag",
         slug: slugName,
         targetId: slugName,
@@ -1120,8 +1175,10 @@ function TagDetailPage() {
         originalText: current?.originalText || tag.originalText,
         parsedText: current?.parsedText || tag.parsedText,
         questionCount: current?.questionCount ?? tag.questionCount,
-        followCount: Math.max(0, followCount + (isFollower ? -1 : 1)),
-        isFollower: !isFollower,
+        followCount: result.followerCount,
+        likeCount: current?.likeCount ?? likeCount,
+        isFollower: result.following,
+        isLiked: current?.isLiked ?? isLiked,
         createdAt:
           current?.createdAt ||
           Math.floor(new Date(tag.createdAt).getTime() / 1000),
@@ -1130,11 +1187,6 @@ function TagDetailPage() {
         reserved: current?.reserved ?? false,
         usageExcerpt: current?.usageExcerpt || tag.usageExcerpt,
       }));
-      setFollowStatus(
-        isFollower
-          ? t('tagDetail.unfollowed', { tag: tagName(tag) })
-          : t('tagDetail.followed', { tag: tagName(tag) }),
-      );
     } catch (followFailure) {
       setFollowError(messageFromError(followFailure, 'reader.tagFollowFailed'));
     } finally {
@@ -1142,23 +1194,43 @@ function TagDetailPage() {
     }
   };
 
-  const openTagEditor = async () => {
-    if (!tag || editBusy) return;
-    setError("");
-    setEditBusy(true);
+  const toggleLike = async () => {
+    if (!tag || likeBusy) return;
+    setLikeError("");
+    setLikeBusy(true);
     try {
-      if (demoMode && bootstrap) {
-        await bootstrap.ports.workspace.open({ projectId: tag.slugName || tag.tagId });
-        return;
-      }
-      const workspace = await openTagCodeWorkspace({
-        tagId: tag.tagId,
-        slugName: tag.slugName || tagLookup,
+      const result = await likePost({
+        targetType: "tag",
+        targetId: tag.tagId,
+        slug: tag.slugName || tagLookup,
+        bookmark: !isLiked,
+        isCancel: isLiked,
       });
-      window.location.assign(workspace.url);
-    } catch (openError) {
-      setError(messageFromError(openError, 'reader.workspaceOpenFailed'));
-      setEditBusy(false);
+      setTagState((current) => ({
+        tagId: current?.tagId || tag.tagId,
+        slugName: current?.slugName || tag.slugName || tagLookup,
+        displayName: current?.displayName || tag.displayName,
+        description: current?.description || tag.excerpt,
+        excerpt: current?.excerpt || tag.excerpt,
+        originalText: current?.originalText || tag.originalText,
+        parsedText: current?.parsedText || tag.parsedText,
+        questionCount: current?.questionCount ?? tag.questionCount,
+        followCount: current?.followCount ?? followCount,
+        likeCount: result.likeCount,
+        isFollower: current?.isFollower ?? isFollower,
+        isLiked: result.liked,
+        createdAt:
+          current?.createdAt ||
+          Math.floor(new Date(tag.createdAt).getTime() / 1000),
+        updatedAt: Math.floor(Date.now() / 1000),
+        recommend: current?.recommend ?? false,
+        reserved: current?.reserved ?? false,
+        usageExcerpt: current?.usageExcerpt || tag.usageExcerpt,
+      }));
+    } catch (likeFailure) {
+      setLikeError(messageFromError(likeFailure, 'reader.tagLikeFailed'));
+    } finally {
+      setLikeBusy(false);
     }
   };
 
@@ -1187,10 +1259,23 @@ function TagDetailPage() {
 
   return (
     <>
-      <Helmet title={title} />
+      <DocumentMetadataController metadata={{
+        title,
+        description: tag?.usageExcerpt || tag?.excerpt,
+        canonicalPath: tag ? tagReadPath(tag.id, tag.slugName || tagName(tag)) : location.pathname,
+        robots: tag?.lifecycle && tag.lifecycle !== 'active' ? 'noindex,follow' : 'index,follow',
+        openGraphType: 'website',
+        jsonLd: tag ? tagSearchGraph(tag, tagContentItems) : undefined,
+      }} />
       <SiteTopbar />
 
-      <main className="tag-detail-shell">
+      <main
+        className="tag-detail-shell"
+        data-rin-public-document="tag"
+        data-rin-object-id={tag?.tagId}
+        data-rin-public-version={tag?.publicVersion}
+        data-rin-content-digest={tag?.contentDigest}
+      >
         {loading ? <LoadingState variant="panel" /> : null}
 
         {tag ? (
@@ -1204,32 +1289,31 @@ function TagDetailPage() {
                       <span className="label">{t('tagDetail.tagFallback')}</span>
                     </span>
                   </span>
-                  <div className="tag-detail-follow-row">
-                    <span>{t('tagDetail.followCount', { count: followCount, displayCount: formatNumber(resolvedLocale, followCount) })}</span>
-                    <AnimateButton unstyled
-                      className={
-                        isFollower
-                          ? "tag-follow-large active"
-                          : "tag-follow-large"
-                      }
-                      type="button"
-                      disabled={followBusy}
-                      onClick={() => void toggleFollow()}
-                    >
-                      {isFollower ? t('tagDetail.following') : t('tagDetail.follow')}
-                    </AnimateButton>
-                  </div>
+                  <TagSocialActions
+                    isLiked={isLiked}
+                    likeCount={likeCount}
+                    likeBusy={likeBusy}
+                    isFollower={isFollower}
+                    followCount={followCount}
+                    followBusy={followBusy}
+                    repositoryReady={tag.repositoryState === undefined || tag.repositoryState === "active"}
+                    onLike={() => void toggleLike()}
+                    onFollow={() => void toggleFollow()}
+                  />
                 </div>
                 <div className="tag-detail-title-row">
                   <h1>
                     <MathInline text={tagTitle} />
                   </h1>
                 </div>
-                {tagIntro && tagIntro !== tagTitle ? (
-                  <p className="tag-detail-intro">
+                {tagIntro ? (
+                  <p className="tag-detail-intro" data-rin-primary-text="description">
                     <MathInline text={tagIntro} />
                   </p>
                 ) : null}
+                <p className="tag-detail-intro" data-rin-tag-lifecycle="true">
+                  {t('tagDetail.lifecycle', { state: tag.lifecycle || "active" })}
+                </p>
                 {tag.repositoryState === "pending" ||
                 tag.repositoryState === "failed" ? (
                   <p className="tag-detail-intro" role="status">
@@ -1279,8 +1363,6 @@ function TagDetailPage() {
                 <TagDetailWikiArticle
                   tag={tag}
                   intro={tagIntro}
-                  editBusy={editBusy}
-                  onEdit={() => void openTagEditor()}
                 />
               ) : activeTab === "all" ? (
                 displayedCombinedItems.length ? (
@@ -1401,66 +1483,6 @@ function TagDetailPage() {
                 ) : (
                   <div className="state-strip">{t('tagDetail.emptyContent')}</div>
                 )
-              ) : activeTab === "question" ? (
-                <>
-                  {tagQuestions.length ? (
-                    <div className="tag-question-list">
-                      {tagQuestions.map((item, index) => (
-                        <article className="tag-question-row" key={item.id}>
-                          <span className="questions-index">
-                            {formatNumber(resolvedLocale, (page - 1) * pageSize + index + 1, { minimumIntegerDigits: 2, useGrouping: false })}
-                          </span>
-                          <div className="tag-question-body">
-                            <div className="stream-card-head">
-                              <span>{t(`tagDetail.status.${statusKey(item)}`)}</span>
-                              <strong>{t('tagDetail.voteCount', { count: item.vote_count, displayCount: formatNumber(resolvedLocale, item.vote_count) })}</strong>
-                            </div>
-                            <h2>
-                              <Link to={questionPath(item)}>
-                                <MathInline text={item.title} />
-                              </Link>
-                            </h2>
-                            <p className="stream-meta">
-                              <Link
-                                className="identity-link"
-                                to={profilePath(item)}
-                              >
-                                <AvatarName
-                                  name={authorLabel(item)}
-                                  imageUrl={item.user_info?.avatar}
-                                  rank={item.user_info?.rank}
-                                />
-                              </Link>
-                              <span className="meta-dot">·</span>
-                              {questionDateLabel(
-                                resolvedLocale,
-                                item.update_time || item.create_time,
-                              )}
-                            </p>
-                            {item.description ? (
-                              <p className="stream-excerpt">
-                                <MathInline text={item.description} />
-                              </p>
-                            ) : null}
-                            <div className="tag-row">
-                              {item.tags.slice(0, 4).map((itemTag) => (
-                                <Link
-                                  to={legacyTagPath(itemTag.slug_name)}
-                                  key={itemTag.slug_name}
-                                >
-                                  {questionTagLabel(itemTag)}
-                                </Link>
-                              ))}
-                              <strong>{t('tagDetail.answerCount', { count: item.answer_count, displayCount: formatNumber(resolvedLocale, item.answer_count) })}</strong>
-                            </div>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="state-strip">{t('tagDetail.emptyQuestions')}</div>
-                  )}
-                </>
               ) : displayedContentItems.length ? (
                 <div className="tag-question-list">
                   {displayedContentItems.map((item, index) => (

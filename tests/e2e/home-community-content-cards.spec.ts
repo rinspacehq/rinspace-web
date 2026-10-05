@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { identitySessionMock } from './identity-session-mock';
 
 const publishedAt = '2026-08-19T05:30:00Z';
 const contentUpdatedAt = '2026-08-23T12:04:00Z';
@@ -131,6 +132,33 @@ const publishedBook = {
   },
 };
 
+const tagActivity = {
+  id: '5815',
+  revisionId: '701',
+  type: 'tag',
+  title: '更新了标签：Weil Pairings',
+  author: 'Lunifans',
+  authorId: 'lunifans',
+  authorUid: 'uid-lunifans',
+  authorAvatar: '',
+  authorRank: 96,
+  meta: '标签 · 更新',
+  excerpt: 'A pairing on torsion points.',
+  tags: ['weil-pairings'],
+  tagItems: [{ tagId: '5815', slugName: 'weil-pairings', displayName: 'Weil Pairings' }],
+  interactions: '2 内容 · 11 关注',
+  heat: '更新',
+  readCount: 128,
+  likeCount: 7,
+  liked: false,
+  followCount: 11,
+  isFollowed: true,
+  shareCount: 4,
+  publishedAt,
+  contentUpdatedAt: publishedAt,
+  createdAt: publishedAt,
+};
+
 const comments = [
   {
     id: 1,
@@ -177,6 +205,16 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({ status: 401, json: { message: 'anonymous' } });
       return;
     }
+    if (url.hostname === 'api.github.com' && url.pathname === '/orgs/rinspacehq/repos') {
+      await route.fulfill({
+        json: [
+          { name: 'markdown-writer', fork: false, archived: false, disabled: false, stargazers_count: 42 },
+          { name: 'rinspace-web', fork: false, archived: false, disabled: false, stargazers_count: 99 },
+          { name: 'mastodon', fork: true, archived: false, disabled: false, stargazers_count: 88 },
+        ],
+      });
+      return;
+    }
     if (!url.pathname.includes('/api/')) {
       await route.continue();
       return;
@@ -196,6 +234,18 @@ test.beforeEach(async ({ page }) => {
       });
       return;
     }
+    if (url.pathname.endsWith('/api/books') && request.method() === 'GET') {
+      await route.fulfill({
+        json: {
+          items: [book, pdfBook, markdownBook],
+          count: 3,
+          page: 1,
+          pageSize: 24,
+          generatedAt: contentUpdatedAt,
+        },
+      });
+      return;
+    }
     if (url.pathname.endsWith('/api/home/sidebar')) {
       await route.fulfill({
         json: {
@@ -210,7 +260,7 @@ test.beforeEach(async ({ page }) => {
     }
     if (url.pathname.endsWith('/api/tags/activity')) {
       await route.fulfill({
-        json: { items: [book, pdfBook, markdownBook, publishedBook] },
+        json: { items: [tagActivity] },
       });
       return;
     }
@@ -242,6 +292,28 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test('right rail shows the aggregate GitHub stars card below sponsor', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-light');
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  await page.goto('/');
+
+  const sponsor = page.getByRole('link', { name: '赞助我们' });
+  const stars = page.getByRole('link', { name: 'Rinspace 开源项目 GitHub Stars' });
+  await expect(stars).toBeVisible();
+  await expect(stars.getByText('GITHUB', { exact: true })).toBeVisible();
+  await expect(stars.locator('.rin-animate-github-stars__number')).toHaveText('229');
+  await expect(stars).toHaveCSS('justify-items', 'start');
+  await expect(sponsor.evaluate((element) => {
+    const starsCard = document.querySelector('.github-stars-rail-link');
+    return starsCard
+      ? element.compareDocumentPosition(starsCard) & Node.DOCUMENT_POSITION_FOLLOWING
+      : 0;
+  })).resolves.toBeTruthy();
+  expect(pageErrors).toEqual([]);
+});
+
 test('desktop cards preserve original icon metrics and a centered comment dialog', async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith('desktop'));
   const pageErrors: string[] = [];
@@ -254,6 +326,27 @@ test('desktop cards preserve original icon metrics and a centered comment dialog
   const bookCard = page.locator('.home-book-card').filter({ hasText: book.title }).first();
   const pdfBookCard = page.locator('.home-book-card').filter({ hasText: pdfBook.title }).first();
   const markdownBookCard = page.locator('.home-book-card').filter({ hasText: markdownBook.title }).first();
+  const blogTitle = blogCard.locator('h2');
+  const bookTitle = bookCard.locator('h2');
+  const [blogTitleStyle, bookTitleStyle] = await Promise.all([blogTitle, bookTitle].map((title) => title.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return {
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      lineHeight: style.lineHeight,
+    };
+  })));
+  expect(bookTitleStyle).toEqual(blogTitleStyle);
+  const blogTitleLink = blogTitle.locator('a');
+  const bookTitleLink = bookTitle.locator('a');
+  await expect(blogTitleLink).toHaveCSS('text-decoration-line', 'none');
+  await expect(bookTitleLink).toHaveCSS('text-decoration-line', 'none');
+  await blogTitleLink.hover();
+  await expect(blogTitleLink).toHaveCSS('text-decoration-line', 'none');
+  await bookTitleLink.hover();
+  await expect(bookTitleLink).toHaveCSS('text-decoration-line', 'none');
+  await expect(blogCard.locator('.content-type-meta-blog .char')).toHaveText('a');
   await expect(blogCard.getByText('2026/08/23 20:04')).toBeVisible();
   await expect(blogCard.getByLabel('发布于 2026/08/19 13:30；更新于 2026/08/23 20:04')).toBeVisible();
   const likeButton = blogCard.getByRole('button', { name: '喜欢，12' });
@@ -289,6 +382,11 @@ test('desktop cards preserve original icon metrics and a centered comment dialog
     await expect(dynamicCard.locator('.home-card-action').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   }
   await expect(bookCard).toHaveAttribute('data-book-format', 'latex');
+  await expect(bookCard.locator('.content-type-meta-book .char')).toHaveText('b');
+  await expect.poll(async () => Promise.all([
+    blogCard.locator('.content-type-meta-blog .label').evaluate((element) => getComputedStyle(element).fontSize),
+    bookCard.locator('.content-type-meta-book .label').evaluate((element) => getComputedStyle(element).fontSize),
+  ])).toEqual(['11.04px', '11.04px']);
   await expect(pdfBookCard).toHaveAttribute('data-book-format', 'pdf');
   await expect(markdownBookCard).toHaveAttribute('data-book-format', 'markdown');
   await expect(page.locator('.home-book-card').filter({ hasText: publishedBook.title })).toHaveCount(0);
@@ -342,6 +440,14 @@ test('mobile uses a bottom sheet and book rating keeps Animate UI actions', asyn
   page.on('pageerror', (error) => pageErrors.push(error.message));
   await page.goto('/');
   const bookCard = page.locator('.home-book-card').filter({ hasText: book.title }).first();
+  const blogCard = page.locator('.stream-card-blog').filter({ hasText: blog.title }).first();
+  const [bookTitleSize, blogTitleSize] = await Promise.all([
+    bookCard.locator('h2').evaluate((node) => getComputedStyle(node).fontSize),
+    blogCard.locator('h2').evaluate((node) => getComputedStyle(node).fontSize),
+  ]);
+  expect(bookTitleSize).toBe(blogTitleSize);
+  await expect(bookCard.locator('h2 a')).toHaveCSS('text-decoration-line', 'none');
+  await expect(blogCard.locator('h2 a')).toHaveCSS('text-decoration-line', 'none');
   await expect(bookCard).toHaveAttribute('data-book-format', 'latex');
   await expect(bookCard.getByText('9.6 分', { exact: true })).toBeVisible();
   await expect(bookCard.getByRole('button', { name: '评分，28' })).toBeVisible();
@@ -380,6 +486,168 @@ test('mobile uses a bottom sheet and book rating keeps Animate UI actions', asyn
   expect(pageErrors).toEqual([]);
 });
 
+test('mobile home toolbar and cards use the compact responsive layout', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-light');
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  for (const width of [390, 360, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/');
+
+    const board = page.locator('.community-board');
+    const toolbar = page.locator('.home-community-toolbar');
+    const viewScroller = page.locator('.community-view-tabs-scroll');
+    const modeSelect = page.locator('.home-mobile-mode-select');
+    const bookCard = page.locator('.home-book-card').filter({ hasText: book.title }).first();
+    const blogCard = page.locator('.stream-card-blog').filter({ hasText: blog.title }).first();
+
+    await expect(board).toBeVisible();
+    await expect(modeSelect).toBeVisible();
+    await expect(page.locator('.home-desktop-mode-tabs')).toBeHidden();
+    await expect(page.locator('.community-view-head > strong')).toHaveCount(0);
+    await expect(modeSelect).toHaveValue('hot');
+    await expect(modeSelect).toHaveCSS('min-height', '34px');
+    await expect(viewScroller).toHaveCSS('overflow-x', 'auto');
+    await expect(viewScroller).toHaveCSS('scrollbar-width', 'none');
+
+    const boardBox = await board.boundingBox();
+    const toolbarBox = await toolbar.boundingBox();
+    const scrollerBox = await viewScroller.boundingBox();
+    const selectBox = await modeSelect.boundingBox();
+    expect(boardBox).not.toBeNull();
+    expect(toolbarBox).not.toBeNull();
+    expect(scrollerBox).not.toBeNull();
+    expect(selectBox).not.toBeNull();
+    expect(boardBox?.x).toBe(8);
+    expect(Math.abs((boardBox?.x || 0) + (boardBox?.width || 0) - (width - 8))).toBeLessThanOrEqual(1);
+    expect(Math.abs((scrollerBox?.y || 0) - (toolbarBox?.y || 0))).toBeLessThanOrEqual(1);
+    expect((selectBox?.x || 0) + (selectBox?.width || 0)).toBeLessThanOrEqual(width - 8 + 1);
+
+    const viewScrollMetrics = await viewScroller.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    if (width <= 360) {
+      expect(viewScrollMetrics.scrollWidth).toBeGreaterThan(viewScrollMetrics.clientWidth);
+      await viewScroller.evaluate((element) => {
+        element.scrollLeft = 48;
+      });
+      expect(await viewScroller.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    }
+
+    await page.getByRole('tab', { name: /^(书库|Books)$/ }).click();
+    await expect(bookCard).toBeVisible();
+    const bookLayout = await bookCard.evaluate((element) => {
+      const cover = element.querySelector<HTMLElement>('.home-book-cover');
+      const main = element.querySelector<HTMLElement>('.home-book-main');
+      const topline = element.querySelector<HTMLElement>('.home-book-topline');
+      const type = element.querySelector<HTMLElement>('.content-type-meta');
+      const tags = element.querySelector<HTMLElement>('.home-book-topline-tags');
+      const time = element.querySelector<HTMLElement>('.home-card-exact-time');
+      const footer = element.querySelector<HTMLElement>('.home-book-footer');
+      const actions = element.querySelector<HTMLElement>('.home-book-actions');
+      const author = element.querySelector<HTMLElement>('.home-book-author .avatar-name');
+      const authorName = element.querySelector<HTMLElement>('.home-book-author .avatar-name-text');
+      const cultivation = element.querySelector<HTMLElement>('.home-book-author .cultivation-badge');
+      if (
+        !cover
+        || !main
+        || !topline
+        || !type
+        || !tags
+        || !time
+        || !footer
+        || !actions
+        || !author
+        || !authorName
+        || !cultivation
+      ) {
+        return null;
+      }
+      const coverBox = cover.getBoundingClientRect();
+      const mainBox = main.getBoundingClientRect();
+      const toplineBox = topline.getBoundingClientRect();
+      const typeBox = type.getBoundingClientRect();
+      const tagsBox = tags.getBoundingClientRect();
+      const timeBox = time.getBoundingClientRect();
+      const footerBox = footer.getBoundingClientRect();
+      const actionsBox = actions.getBoundingClientRect();
+      const authorNameBox = authorName.getBoundingClientRect();
+      const cultivationBox = cultivation.getBoundingClientRect();
+      const descendantBoxes = Array.from(
+        element.querySelectorAll<HTMLElement>('.home-book-main *, .home-book-footer *'),
+        (child) => child.getBoundingClientRect(),
+      );
+      return {
+        cardRight: element.getBoundingClientRect().right,
+        coverRight: coverBox.right,
+        coverTop: coverBox.top,
+        mainLeft: mainBox.left,
+        mainTop: mainBox.top,
+        mainRight: mainBox.right,
+        toplineRight: toplineBox.right,
+        typeBottom: typeBox.bottom,
+        tagsBottom: tagsBox.bottom,
+        timeTop: timeBox.top,
+        footerDirection: getComputedStyle(footer).flexDirection,
+        footerWrap: getComputedStyle(footer).flexWrap,
+        footerRight: footerBox.right,
+        actionsRight: actionsBox.right,
+        descendantRight: Math.max(...descendantBoxes.map((box) => box.right)),
+        authorDisplay: getComputedStyle(author).display,
+        authorWrap: getComputedStyle(author).flexWrap,
+        authorNameTop: authorNameBox.top,
+        cultivationTop: cultivationBox.top,
+        cultivationGridColumn: getComputedStyle(cultivation).gridColumn,
+      };
+    });
+    expect(bookLayout).not.toBeNull();
+    expect(bookLayout?.coverRight).toBeLessThan(bookLayout?.mainLeft || 0);
+    expect(Math.abs((bookLayout?.coverTop || 0) - (bookLayout?.mainTop || 0))).toBeLessThanOrEqual(1);
+    expect(bookLayout?.toplineRight).toBeLessThanOrEqual((bookLayout?.mainRight || 0) + 1);
+    expect(bookLayout?.timeTop).toBeGreaterThanOrEqual(
+      Math.max(bookLayout?.typeBottom || 0, bookLayout?.tagsBottom || 0) - 1,
+    );
+    expect(bookLayout?.footerDirection).toBe('row');
+    expect(bookLayout?.footerWrap).toBe('wrap');
+    expect(Math.abs((bookLayout?.footerRight || 0) - (bookLayout?.actionsRight || 0))).toBeLessThanOrEqual(1);
+    expect(bookLayout?.descendantRight).toBeLessThanOrEqual((bookLayout?.cardRight || 0) + 1);
+    expect(bookLayout?.authorDisplay).toBe('flex');
+    expect(bookLayout?.authorWrap).toBe('wrap');
+    expect(bookLayout?.cultivationGridColumn).toBe('auto');
+    if (width === 390) {
+      expect(Math.abs(
+        (bookLayout?.authorNameTop || 0) - (bookLayout?.cultivationTop || 0),
+      )).toBeLessThanOrEqual(1);
+    }
+
+    await page.getByRole('tab', { name: /^(社区流|Community)$/ }).click();
+    await expect(blogCard).toBeVisible();
+    const blogFooterLayout = await blogCard.locator('.stream-footer').evaluate((element) => {
+      const actions = element.querySelector<HTMLElement>('.home-card-actions');
+      if (!actions) return null;
+      const footerBox = element.getBoundingClientRect();
+      const actionsBox = actions.getBoundingClientRect();
+      return {
+        direction: getComputedStyle(element).flexDirection,
+        wrap: getComputedStyle(element).flexWrap,
+        footerRight: footerBox.right,
+        actionsRight: actionsBox.right,
+      };
+    });
+    expect(blogFooterLayout).not.toBeNull();
+    expect(blogFooterLayout?.direction).toBe('row');
+    expect(blogFooterLayout?.wrap).toBe('wrap');
+    expect(Math.abs((blogFooterLayout?.footerRight || 0) - (blogFooterLayout?.actionsRight || 0))).toBeLessThanOrEqual(1);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    ).toBe(true);
+  }
+
+  expect(pageErrors).toEqual([]);
+});
+
 test('comment overlay fits narrow desktop and compact mobile widths', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-light');
   const viewports = [
@@ -403,15 +671,118 @@ test('comment overlay fits narrow desktop and compact mobile widths', async ({ p
   }
 });
 
-test('all home views keep the three original book formats and exclude published books', async ({ page }, testInfo) => {
+test('tag cards use exact time, read metric, and transparent Like Follow Share actions', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-light');
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async () => undefined },
+    });
+  });
   await page.goto('/');
   await page.getByRole('tab', { name: '标签' }).click();
-  await expect(page.getByText('3 条标签动态', { exact: true })).toBeVisible();
-  await expect(page.locator('.home-book-card[data-book-format="latex"]')).toHaveCount(1);
-  await expect(page.locator('.home-book-card[data-book-format="pdf"]')).toHaveCount(1);
-  await expect(page.locator('.home-book-card[data-book-format="markdown"]')).toHaveCount(1);
-  await expect(page.locator('.home-book-card').filter({ hasText: publishedBook.title })).toHaveCount(0);
+  await expect(page.getByText('1 条标签动态', { exact: true })).toBeVisible();
+
+  const tagCard = page.locator('.stream-card-tag').filter({ hasText: tagActivity.title });
+  await expect(tagCard).toBeVisible();
+  await expect(tagCard.locator('.content-type-meta-tag .char')).toHaveText('t');
+  await expect(tagCard.getByText('2026/08/19 13:30')).toBeVisible();
+  await expect(tagCard.locator('.stream-metrics')).toHaveText('128 阅读');
+  await expect(tagCard.locator('.home-card-action')).toHaveCount(3);
+  await expect(tagCard.locator('.home-card-action').evaluateAll((buttons) =>
+    buttons.map((button) => button.getAttribute('aria-label')),
+  )).resolves.toEqual(['喜欢，7', '关注，11', '分享，4']);
+  await expect(tagCard.getByRole('button', { name: '喜欢，7' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(tagCard.getByRole('button', { name: '关注，11' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(tagCard.getByRole('button', { name: '分享，4' })
+    .locator('.rin-community-action-icon--share')).toBeVisible();
+  await expect(tagCard.locator('.home-card-action').evaluateAll((buttons) =>
+    buttons.every((button) => getComputedStyle(button).backgroundColor === 'rgba(0, 0, 0, 0)'),
+  )).resolves.toBe(true);
+
+  await tagCard.getByRole('button', { name: '喜欢，7' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: '关闭' }).click();
+  await tagCard.getByRole('button', { name: '关注，11' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: '关闭' }).click();
+
+  const shareRequest = page.waitForRequest((request) =>
+    request.url().includes('/api/content/share') && request.method() === 'POST');
+  await tagCard.getByRole('button', { name: '分享，4' }).click();
+  const request = await shareRequest;
+  expect(request.postDataJSON()).toMatchObject({ targetType: 'tag', targetId: '5815' });
+});
+
+test('signed-in tag actions update every visible revision from confirmed responses', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-light');
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async () => undefined },
+    });
+    window.localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'viewer' }));
+  });
+  await page.route(/\.api\.tcloudbasegateway\.com\/auth\/v1\//, async (route) => {
+    await route.fulfill({ json: { sub: 'viewer', username: 'viewer', nickname: '测试用户' } });
+  });
+  await page.route('**/api/identity/v1/session', async (route) => {
+    await route.fulfill({ json: identitySessionMock('viewer', 'viewer') });
+  });
+  await page.route('**/api/tags/activity**', async (route) => {
+    await route.fulfill({
+      json: {
+        items: [
+          tagActivity,
+          {
+            ...tagActivity,
+            revisionId: '700',
+            title: '创建了标签：Weil Pairings',
+            publishedAt: '2026-08-18T05:30:00Z',
+            contentUpdatedAt: '2026-08-18T05:30:00Z',
+            createdAt: '2026-08-18T05:30:00Z',
+          },
+        ],
+      },
+    });
+  });
+  await page.route('**/api/like', async (route) => {
+    expect(route.request().postDataJSON()).toMatchObject({ targetType: 'tag', targetId: '5815' });
+    await route.fulfill({
+      json: { targetType: 'tag', targetId: '5815', liked: true, likeCount: 8 },
+    });
+  });
+  await page.route('**/api/follows', async (route) => {
+    expect(route.request().postDataJSON()).toMatchObject({
+      targetType: 'tag',
+      targetId: 'weil-pairings',
+      isCancel: true,
+    });
+    await route.fulfill({
+      json: { targetType: 'tag', targetId: '5815', following: false, followerCount: 10 },
+    });
+  });
+  await page.route('**/api/content/share', async (route) => {
+    await route.fulfill({
+      json: { targetType: 'tag', targetId: '5815', shareCount: 5 },
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('tab', { name: '标签' }).click();
+  const tagCards = page.locator('.stream-card-tag');
+  await expect(tagCards).toHaveCount(2);
+
+  await tagCards.first().getByRole('button', { name: '喜欢，7' }).click();
+  await expect(tagCards.getByRole('button', { name: '喜欢，8' })).toHaveCount(2);
+  await expect(tagCards.getByRole('button', { name: '喜欢，8' }).first()).toHaveAttribute('aria-pressed', 'true');
+
+  await tagCards.last().getByRole('button', { name: '关注，11' }).click();
+  await expect(tagCards.getByRole('button', { name: '关注，10' })).toHaveCount(2);
+  await expect(tagCards.getByRole('button', { name: '关注，10' }).first()).toHaveAttribute('aria-pressed', 'false');
+
+  await tagCards.first().getByRole('button', { name: '分享，4' }).click();
+  await expect(tagCards.getByRole('button', { name: '分享，5' })).toHaveCount(2);
 });
 
 test('signed-in card actions keep authoritative counts across success and failure', async ({ page }, testInfo) => {
@@ -425,7 +796,7 @@ test('signed-in card actions keep authoritative counts across success and failur
   let collected = true;
   let shareCount = 3;
   let reviewCount = 28;
-  let failReaction = true;
+  let failRepositoryLike = true;
   let failCollection = true;
   let failShare = false;
   let failRating = true;
@@ -455,7 +826,11 @@ test('signed-in card actions keep authoritative counts across success and failur
   const currentBlog = () => ({
     ...blog,
     favoriteCount,
+    collectionActive: collected,
     shareCount,
+    likeSource: 'repository',
+    likeCount: reaction.count,
+    liked: reaction.isActive,
     reaction_summary: [
       {
         emoji: 'heart',
@@ -470,19 +845,13 @@ test('signed-in card actions keep authoritative counts across success and failur
     bookRating: currentRating(),
   });
 
-  await page.addInitScript((issuedAt) => {
+  await page.addInitScript(() => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: async () => undefined },
     });
-    window.localStorage.setItem('rinspace-auth-session', JSON.stringify({
-      access_token: 'home-card-e2e-access-token',
-      refresh_token: 'home-card-e2e-refresh-token',
-      expires_in: 3600,
-      issued_at: issuedAt,
-      sub: 'viewer',
-    }));
-  }, Date.now());
+    window.localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'viewer' }));
+  });
 
   await page.route(/\.api\.tcloudbasegateway\.com\/auth\/v1\//, async (route) => {
     await route.fulfill({
@@ -498,6 +867,10 @@ test('signed-in card actions keep authoritative counts across success and failur
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    if (url.pathname.endsWith('/api/identity/v1/session')) {
+      await route.fulfill({ json: identitySessionMock('viewer', 'viewer') });
+      return;
+    }
     if (url.pathname.endsWith('/api/feed')) {
       feedRequestCount += 1;
       await route.fulfill({
@@ -529,8 +902,8 @@ test('signed-in card actions keep authoritative counts across success and failur
     if (url.pathname.endsWith('/api/personal/collection/page')) {
       await route.fulfill({
         json: {
-          items: collected ? [currentBlog()] : [],
-          count: collected ? 1 : 0,
+          items: [],
+          count: 0,
           page: 1,
           pageSize: 100,
           generatedAt: contentUpdatedAt,
@@ -538,22 +911,18 @@ test('signed-in card actions keep authoritative counts across success and failur
       });
       return;
     }
-    if (url.pathname.endsWith('/api/meta/reaction') && request.method() === 'PUT') {
-      if (failReaction) {
+    if (url.pathname.endsWith('/api/like') && request.method() === 'POST') {
+      if (failRepositoryLike) {
         await route.fulfill({ status: 503, json: { message: '喜欢暂时失败。' } });
         return;
       }
       reaction = { count: 11, isActive: false };
       await route.fulfill({
         json: {
-          reaction_summary: [
-            {
-              emoji: 'heart',
-              count: reaction.count,
-              tooltip: '',
-              is_active: reaction.isActive,
-            },
-          ],
+          targetType: 'blog',
+          targetId: blog.id,
+          liked: reaction.isActive,
+          likeCount: reaction.count,
         },
       });
       return;
@@ -641,14 +1010,14 @@ test('signed-in card actions keep authoritative counts across success and failur
   await expect(shareButton).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
   const failedReactionResponse = page.waitForResponse((response) =>
-    response.url().includes('/api/meta/reaction') && response.request().method() === 'PUT');
+    response.url().includes('/api/like') && response.request().method() === 'POST');
   await likeButton.click();
   await failedReactionResponse;
   await expect(likeButton).toBeEnabled();
   await expect(likeButton).toHaveAttribute('aria-pressed', 'true');
   await expect(likeButton).toHaveAccessibleName('喜欢，12');
 
-  failReaction = false;
+  failRepositoryLike = false;
   await likeButton.scrollIntoViewIfNeeded();
   const likeScrollY = await page.evaluate(() => window.scrollY);
   await likeButton.click();
@@ -673,6 +1042,10 @@ test('signed-in card actions keep authoritative counts across success and failur
   await page.waitForTimeout(100);
   expect(feedRequestCount).toBe(initialFeedRequestCount);
   expect(await page.evaluate(() => window.scrollY)).toBe(collectionScrollY);
+  await expect(
+    page.locator('.rin-ui-toast').filter({ hasText: `已取消收藏：${blog.title}` }).last(),
+  ).toBeVisible();
+  await expect(page.locator('.rin-ui-toast-region')).toHaveCSS('pointer-events', 'none');
 
   await shareButton.click();
   await expect(blogCard.getByRole('button', { name: '分享，4' })).toBeVisible();

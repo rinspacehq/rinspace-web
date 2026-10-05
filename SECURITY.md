@@ -2,11 +2,11 @@
 
 ## Supported Versions
 
-No public release exists yet. Once releases begin, the supported release lines and retention rules are defined in [`docs/version-support.md`](./docs/version-support.md); a release receives only the best-effort support expressly stated there or in a separate written contract.
+This frontend candidate is in migration preparation. It does not establish a new supported release line or authorize source publication, product cutover or deployment. The authoritative product remains the private Rinspace repository until the accepted frontend cutover. Vulnerability reports about still-distributed Rinspace Web artifacts are accepted on a best-effort basis; no maintenance schedule is promised by this candidate.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Rinspace Web, do **not** open a public issue, discussion, or pull request containing the details.
+If you discover a security vulnerability in a still-distributed Rinspace Web artifact, do **not** open a public issue, discussion, or pull request containing the details.
 
 When GitHub private vulnerability reporting is enabled, use **Security → Report a vulnerability**. Otherwise email **lunifans@outlook.com** with the affected version or commit, impact, reproduction steps, and a safe proof of concept. Do not include production credentials or unrelated personal data.
 

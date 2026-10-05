@@ -1,70 +1,104 @@
-import { getCloudBaseAuth, hasCloudBasePublishableKey } from './cloudbase';
-import { getCurrentAuthUser, getFreshAuthSession, replaceStoredSession } from './phoneAuth';
-import { requestJson, ServiceError } from './httpClient';
-import type { ApiOperations, ApiSchemas } from '@/generated/api-contract';
+import { publicEnv } from "@/app/config/env";
+import {
+  authHeaders as sessionAuthHeaders,
+  getAuthAccessToken,
+  getCurrentAuthUser,
+} from "./phoneAuth";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
-type ProfileResponse = ApiSchemas['Profile'];
-type ProfileUpdateRequest = ApiOperations['saveProfile']['requestBody'];
+const profileEndpoint = `${publicEnv.publicBasePath || ""}/api/profile`;
+const fileUploadEndpoint = `${publicEnv.publicBasePath || ""}/api/file`;
+
+type ProfileResponse = {
+  uid?: string;
+  nickname?: string;
+  avatarDataUrl?: string;
+  coverUrl?: string;
+  bio?: string;
+  website?: string;
+  location?: string;
+  aboutHtml?: string;
+  updatedAt?: string;
+  createdAt?: string;
+};
 
 type UploadedAvatar = {
   fileID: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
-export function parseProfileResponse(value: unknown): ProfileResponse | null {
-  if (!isRecord(value)) return null;
-  const stringFields = [
-    'uid', 'handle', 'username', 'nickname', 'avatarDataUrl', 'coverUrl', 'bio', 'website',
-    'location', 'aboutHtml', 'updatedAt', 'createdAt',
-  ] as const;
-  if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return null;
-  if (value.rank !== undefined && !Number.isInteger(value.rank)) return null;
-  const knownFields: readonly string[] = [...stringFields, 'rank'];
-  if (Object.keys(value).some((field) => !knownFields.includes(field))) return null;
-  return value;
-}
-
-async function requestProfile(method: 'GET' | 'POST', body: ProfileUpdateRequest | null = null) {
-  let payload: unknown;
+function parseJson(text: string): unknown {
+  if (!text) return null;
   try {
-    payload = await requestJson<unknown>('profile', {
-      method,
-      auth: 'required',
-      body: body ?? undefined,
-    });
-  } catch (error) {
-    if (error instanceof ServiceError && error.status === 404) return null;
-    if (error instanceof ServiceError && error.message && !error.message.startsWith('Request failed')) {
-      throw new Error(error.message);
-    }
-    throw new Error('资料保存失败，请稍后重试。');
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
   }
-  if (payload === null) return null;
-  const parsed = parseProfileResponse(payload);
-  if (!parsed) {
-    throw new Error('资料返回格式异常。');
+}
+
+function responseMessage(payload: unknown, fallback: string) {
+  if (typeof payload === "string" && payload.trim()) {
+    return payload;
   }
-  return parsed;
+  if (isRecord(payload) && typeof payload.message === "string") {
+    return payload.message;
+  }
+  return fallback;
+}
+
+async function requestProfile(
+  method: "GET" | "POST",
+  body: Record<string, unknown> | null = null,
+) {
+  const accessToken = await getAuthAccessToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...sessionAuthHeaders(accessToken),
+  };
+
+  const response = await fetch(profileEndpoint, {
+    method,
+    credentials: "same-origin",
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const payload = parseJson(await response.text());
+  if (response.status === 204 || response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(responseMessage(payload, "资料保存失败，请稍后重试。"));
+  }
+  if (!isRecord(payload)) {
+    throw new Error("资料返回格式异常。");
+  }
+  return payload as ProfileResponse;
 }
 
 export function messageFromError(error: unknown) {
   if (error instanceof Error) return error.message;
-  if (isRecord(error) && typeof error.message === 'string') {
+  if (isRecord(error) && typeof error.message === "string") {
     return error.message;
   }
-  return '操作失败，请稍后重试。';
+  return "操作失败，请稍后重试。";
 }
 
 export function normalizePhone(phone: string) {
-  return phone.replace(/\s+/g, '');
+  return phone.replace(/\s+/g, "");
 }
 
 export function isMainlandPhone(phone: string) {
   return /^1[3-9]\d{9}$/.test(normalizePhone(phone));
+}
+
+export async function sha256Hex(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export async function getCurrentUser() {
@@ -72,8 +106,8 @@ export async function getCurrentUser() {
 }
 
 export async function loadProfile(user: { id?: string }) {
-  if (!user.id) throw new Error('当前用户缺少 uid。');
-  return requestProfile('GET');
+  if (!user.id) throw new Error("当前用户缺少 uid。");
+  return requestProfile("GET");
 }
 
 export async function saveProfile(
@@ -88,29 +122,20 @@ export async function saveProfile(
     location?: string;
     aboutHtml?: string;
   },
-  options: Readonly<{ syncCloudBase?: boolean }> = {},
 ) {
-  if (!user.id) throw new Error('当前用户缺少 uid。');
+  if (!user.id) throw new Error("当前用户缺少 uid。");
 
   const nickname = profile.nickname.trim();
   if (nickname.length < 2 || nickname.length > 24) {
-    throw new Error('昵称需要 2 到 24 个字符。');
+    throw new Error("昵称需要 2 到 24 个字符。");
   }
-  const username = profile.username.trim().replace(/^@+/, '');
+  const username = profile.username.trim().replace(/^@+/, "");
 
-  if (options.syncCloudBase !== false) {
-    await updateCloudBaseUserProfile({
-      username,
-      nickname,
-      avatarUrl: profile.avatarDataUrl,
-    });
-  }
-
-  return requestProfile('POST', {
+  return requestProfile("POST", {
     username,
     nickname,
     avatarDataUrl: profile.avatarDataUrl,
-    coverUrl: profile.coverUrl || '',
+    coverUrl: profile.coverUrl || "",
     bio: profile.bio,
     website: profile.website,
     location: profile.location,
@@ -119,71 +144,52 @@ export async function saveProfile(
 }
 
 function validateAvatarFile(file: File) {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('请选择图片文件。');
+  if (!file.type.startsWith("image/")) {
+    throw new Error("请选择图片文件。");
   }
   if (file.size > MAX_AVATAR_BYTES) {
-    throw new Error('头像图片不能超过 2MB。');
+    throw new Error("头像图片不能超过 2MB。");
   }
-}
-
-function cloudBackedAvatar(value: string) {
-  const trimmed = value.trim();
-  return trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('cloud://');
-}
-
-async function syncCloudBaseSession() {
-  if (!hasCloudBasePublishableKey()) {
-    throw new Error('CloudBase publishable key 未配置，无法上传头像。');
-  }
-  const session = await getFreshAuthSession();
-  if (!session) {
-    throw new Error('请先登录后上传头像。');
-  }
-  const auth = getCloudBaseAuth();
-  await auth.setSession({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-  });
-  const nextSession = await auth.getSession();
-  if (isRecord(nextSession.data) && isRecord(nextSession.data.session)) {
-    const refreshed = nextSession.data.session;
-    if (
-      typeof refreshed.access_token === 'string' &&
-      typeof refreshed.refresh_token === 'string'
-    ) {
-      replaceStoredSession({
-        access_token: refreshed.access_token,
-        refresh_token: refreshed.refresh_token,
-        expires_in: typeof refreshed.expires_in === 'number' ? refreshed.expires_in : session.expires_in,
-        sub: typeof refreshed.user === 'object' && refreshed.user !== null && 'id' in refreshed.user && typeof refreshed.user.id === 'string'
-          ? refreshed.user.id
-          : session.sub,
-      });
-    }
-  }
-  return auth;
 }
 
 async function uploadProfileImageFile(
   user: { id?: string },
   file: File,
-  source: 'avatar' | 'cover',
+  source: "avatar" | "cover",
 ): Promise<UploadedAvatar> {
-  if (!user.id) throw new Error('当前用户缺少 uid。');
+  if (!user.id) throw new Error("当前用户缺少 uid。");
   validateAvatarFile(file);
 
+  const accessToken = await getAuthAccessToken();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...sessionAuthHeaders(accessToken),
+  };
+
   const body = new FormData();
-  body.set('source', source);
-  body.set('file', file);
-  const payload = await requestJson<unknown>('file', {
-    method: 'POST',
-    auth: 'required',
+  body.set("source", source);
+  body.set("file", file);
+  const uploadResponse = await fetch(fileUploadEndpoint, {
+    method: "POST",
+    credentials: "same-origin",
+    headers,
     body,
-    bodyEncoding: 'form-data',
   });
-  if (typeof payload !== 'string' || !payload.startsWith('https://')) {
-    throw new Error(source === 'cover' ? '封面上传失败：缺少公开图片地址。' : 'CloudBase 头像上传失败：缺少公开头像地址。');
+  const payload = parseJson(await uploadResponse.text());
+  if (!uploadResponse.ok) {
+    throw new Error(
+      responseMessage(
+        payload,
+        source === "cover" ? "封面上传失败。" : "头像上传失败。",
+      ),
+    );
+  }
+  if (typeof payload !== "string" || !payload.startsWith("https://")) {
+    throw new Error(
+      source === "cover"
+        ? "封面上传失败：缺少公开图片地址。"
+        : "头像上传失败：缺少公开头像地址。",
+    );
   }
 
   return {
@@ -191,45 +197,16 @@ async function uploadProfileImageFile(
   };
 }
 
-export async function uploadAvatarFile(user: { id?: string }, file: File): Promise<UploadedAvatar> {
-  return uploadProfileImageFile(user, file, 'avatar');
+export async function uploadAvatarFile(
+  user: { id?: string },
+  file: File,
+): Promise<UploadedAvatar> {
+  return uploadProfileImageFile(user, file, "avatar");
 }
 
-export async function uploadCoverFile(user: { id?: string }, file: File): Promise<UploadedAvatar> {
-  return uploadProfileImageFile(user, file, 'cover');
-}
-
-async function updateCloudBaseUserProfile(input: { username: string; nickname: string; avatarUrl: string }) {
-  if (!hasCloudBasePublishableKey()) {
-    return;
-  }
-  const auth = await syncCloudBaseSession();
-  const params: Parameters<typeof auth.updateUser>[0] = {
-    nickname: input.nickname,
-  };
-  const modernParams = params as Parameters<typeof auth.updateUser>[0] & {
-    user_metadata?: Record<string, string>;
-    picture?: string;
-  };
-  modernParams.user_metadata = {
-    nickname: input.nickname,
-    nickName: input.nickname,
-    ...(input.username
-      ? {
-          preferred_username: input.username,
-        }
-      : {}),
-    ...(input.avatarUrl
-      ? {
-          avatarUrl: input.avatarUrl,
-          avatar_url: input.avatarUrl,
-          picture: input.avatarUrl,
-        }
-      : {}),
-  };
-  if (cloudBackedAvatar(input.avatarUrl)) {
-    modernParams.picture = input.avatarUrl;
-    params.avatar_url = input.avatarUrl;
-  }
-  await auth.updateUser(params);
+export async function uploadCoverFile(
+  user: { id?: string },
+  file: File,
+): Promise<UploadedAvatar> {
+  return uploadProfileImageFile(user, file, "cover");
 }

@@ -4,3 +4,8 @@ export function contentDeletionCommand(slug: string, idempotencyKey: string) {
     idempotencyKey,
   };
 }
+
+export function contentDeletionStepUpHeader(proof?: string): Record<string, string> {
+  const normalized = proof?.trim();
+  return normalized ? { "X-Rinspace-Step-Up": normalized } : {};
+}

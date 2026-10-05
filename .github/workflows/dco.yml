@@ -1,8 +1,10 @@
-name: Developer Certificate of Origin
+name: DCO
 
-"on":
+'on':
+  # Metadata only: checkout is pinned to the trusted BASE, never the PR head.
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
@@ -10,16 +12,27 @@ permissions:
 
 jobs:
   dco:
-    name: Verify DCO sign-offs for every commit author and coauthor
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Checkout the trusted base commit only
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - name: Check commit messages through the read-only GitHub API
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/check-dco.mjs --event "$GITHUB_EVENT_PATH"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.22.3'
+      - name: Verify every author and co-author from PR metadata
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { execFileSync } = require('node:child_process');
+            const pr = context.payload.pull_request;
+            if (pr.commits < 1 || pr.commits > 250) throw new Error('Complete DCO metadata requires 1–250 commits; split a larger PR.');
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              ...context.repo, pull_number: pr.number, per_page: 100,
+            });
+            if (commits.length !== pr.commits || commits.at(-1)?.sha !== pr.head.sha) throw new Error('PR metadata changed or is incomplete; rerun DCO.');
+            execFileSync('node', ['scripts/release/check-dco.mjs'], {
+              input: JSON.stringify(commits), stdio: ['pipe', 'inherit', 'inherit'],
+            });

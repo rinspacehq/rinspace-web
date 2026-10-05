@@ -1,0 +1,414 @@
+{
+  "version": 1,
+  "note": "Wire/invariant fixtures only, not approved business limits or authorized operations.",
+  "states": {
+    "recharge": [
+      "RESERVED",
+      "PAYABLE",
+      "QUERY_UNKNOWN",
+      "CLOSE_PENDING",
+      "PAID_CONFIRMED",
+      "CREDIT_POSTED",
+      "CLOSED_UNPAID",
+      "EXCEPTION"
+    ],
+    "refund": [
+      "REQUESTED_RESERVED",
+      "REJECTED",
+      "CANCELLED",
+      "APPROVED_QUEUED",
+      "SUBMITTED",
+      "RESULT_UNKNOWN",
+      "CHANNEL_SUCCEEDED",
+      "COMPLETED",
+      "FAILED_FINAL",
+      "EXCEPTION"
+    ],
+    "tip": [
+      "PENDING",
+      "COMPLETED",
+      "REJECTED",
+      "EXCEPTION"
+    ],
+    "conversion": [
+      "PENDING",
+      "COMPLETED",
+      "REJECTED",
+      "EXCEPTION"
+    ],
+    "policy": [
+      "PENDING",
+      "COMPLETED",
+      "REJECTED",
+      "EXCEPTION"
+    ]
+  },
+  "operations": [
+    {
+      "name": "exact-large-operation",
+      "valid": true,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": "9007199254740993",
+        "created_at": "2026-09-19T12:00:00.123456789Z"
+      }
+    },
+    {
+      "name": "wrong_kind",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "withdrawal",
+        "state": "PAID_CONFIRMED",
+        "version": "9007199254740993",
+        "created_at": "2026-09-19T12:00:00.123456789Z"
+      }
+    },
+    {
+      "name": "wrong_state",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "refund",
+        "state": "CREDIT_POSTED",
+        "version": "9007199254740993",
+        "created_at": "2026-09-19T12:00:00.123456789Z"
+      }
+    },
+    {
+      "name": "state_substring",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAYABLE|QUERY_UNKNOWN",
+        "version": "9007199254740993",
+        "created_at": "2026-09-19T12:00:00.123456789Z"
+      }
+    },
+    {
+      "name": "zero_version",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": "0",
+        "created_at": "2026-09-19T12:00:00.123456789Z"
+      }
+    },
+    {
+      "name": "number_version",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": 1,
+        "created_at": "2026-09-19T12:00:00.123456789Z"
+      }
+    },
+    {
+      "name": "invalid_day",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": "9007199254740993",
+        "created_at": "2026-02-30T00:00:00Z"
+      }
+    },
+    {
+      "name": "offset_time",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": "9007199254740993",
+        "created_at": "2026-09-19T08:00:00+08:00"
+      }
+    },
+    {
+      "name": "comma_fraction",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": "9007199254740993",
+        "created_at": "2026-09-19T00:00:00,123Z"
+      }
+    },
+    {
+      "name": "overprecise_time",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": "9007199254740993",
+        "created_at": "2026-09-19T00:00:00.1234567890Z"
+      }
+    },
+    {
+      "name": "zero_time",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "kind": "recharge",
+        "state": "PAID_CONFIRMED",
+        "version": "9007199254740993",
+        "created_at": "0001-01-01T00:00:00Z"
+      }
+    }
+  ],
+  "summaries": [
+    {
+      "name": "ordinary-summary",
+      "valid": true,
+      "value": {
+        "ordinary": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "100000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "5000"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "large-exact-balance",
+      "valid": true,
+      "value": {
+        "ordinary": {
+          "total": "9223372036854775807",
+          "available": "9223372036854775800",
+          "reserved": "3",
+          "restricted": "4"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "100000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "5000"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "lowered-limit",
+      "valid": true,
+      "value": {
+        "ordinary": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "10000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "0"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "over-int64-combined-obligations",
+      "valid": true,
+      "value": {
+        "ordinary": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "100000",
+          "confirmed_fen": "9223372036854775807",
+          "unresolved_fen": "9223372036854775807",
+          "remaining_fen": "0"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "balance-mismatch",
+      "valid": false,
+      "value": {
+        "ordinary": {
+          "total": "0",
+          "available": "1",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "100000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "5000"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "quota-mismatch",
+      "valid": false,
+      "value": {
+        "ordinary": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "100000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "10000"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "bad-date",
+      "valid": false,
+      "value": {
+        "ordinary": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-02-30",
+          "limit_fen": "100000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "5000"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "numeric-balance",
+      "valid": false,
+      "value": {
+        "ordinary": {
+          "total": 0,
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "100000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "5000"
+        },
+        "policy_version": "1",
+        "watermark": "9007199254740993"
+      }
+    },
+    {
+      "name": "zero-policy",
+      "valid": false,
+      "value": {
+        "ordinary": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "bound": {
+          "total": "0",
+          "available": "0",
+          "reserved": "0",
+          "restricted": "0"
+        },
+        "quota": {
+          "date": "2026-09-19",
+          "limit_fen": "100000",
+          "confirmed_fen": "90000",
+          "unresolved_fen": "5000",
+          "remaining_fen": "5000"
+        },
+        "policy_version": "0",
+        "watermark": "9007199254740993"
+      }
+    }
+  ]
+}

@@ -1,2 +1,25 @@
 /* Manual dark-theme overrides appended to the generated file.
    Add hand-tuned rules here; they survive regeneration. */
+
+/* Interactive boundaries need the stronger 3:1 token; decorative dividers
+   continue to use --rin-border-subtle so dense editorial pages stay quiet. */
+[data-theme="dark"] :where(
+  .auth-dialog-form input,
+  .auth-dialog-form textarea,
+  .book-detail-read-action,
+  .book-reader-side-action,
+  .writer-publish-bar input,
+  .writer-publish-bar textarea,
+  .writer-publish-bar select
+) {
+  border-color: var(--rin-border-strong);
+}
+
+[data-theme="dark"] .meta-category.content-type-meta {
+  --cs-color-primary: var(--rin-ink);
+  --cs-color-secondary: var(--rin-ink-muted);
+}
+
+[data-theme="dark"] .stream-card:hover {
+  border-color: var(--rin-border-strong);
+}

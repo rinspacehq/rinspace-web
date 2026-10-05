@@ -1,13 +1,32 @@
 import React from 'react';
-import { installWorldTransitionLifecycle } from '@rinspace/world-shell';
+import ReactDOM from 'react-dom/client';
 
 import 'katex/dist/katex.min.css';
-import '@rinspace/world-shell/styles.css';
 
 import App from './App';
-import { BootstrapProvider } from './app/bootstrap/context';
-import { startApplication } from './app/bootstrap/start';
+import { removeStaticDocumentMetadata } from './components/DocumentMetadataController';
+import { startPwaInstallPromptCapture } from './services/pwaInstallPrompt';
+import { installManagedSessionRecovery } from './services/sessionRecovery';
 import './styles/index.css';
+
+startPwaInstallPromptCapture();
+installManagedSessionRecovery();
+
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+
+removeStaticDocumentMetadata();
+
+async function waitForRinspaceFonts() {
+  if (!document.fonts) return;
+  await Promise.all([
+    document.fonts.load('400 1rem "IBM Plex Sans"', 'Rinspace'),
+    document.fonts.load('400 1rem "IBM Plex Mono"', 'Rinspace'),
+    document.fonts.load('700 1.35rem "Rinspace Newsreader"', 'Rinspace'),
+    document.fonts.load('400 1rem "Rinspace Noto Sans SC"', '芥子环'),
+    document.fonts.load('700 1.35rem "Rinspace Noto Serif SC"', '芥子环'),
+  ]);
+  await document.fonts.ready;
+}
 
 const handleImgLoad = (evt: Event | UIEvent) => {
   const { target } = evt;
@@ -53,18 +72,12 @@ document.addEventListener('error', handleImgLoad, true);
 document.addEventListener('load', handleImgLoad, true);
 document.addEventListener('click', handleClickLink, true);
 
-const rootElement = document.getElementById('root');
-if (!(rootElement instanceof HTMLElement)) throw new Error('Rinspace root element is missing.');
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
 
-installWorldTransitionLifecycle();
-
-void startApplication({
-  rootElement,
-  renderApplication: (bootstrap) => (
-    <React.StrictMode>
-      <BootstrapProvider value={bootstrap}>
-        <App />
-      </BootstrapProvider>
-    </React.StrictMode>
-  ),
+void waitForRinspaceFonts().then(() => {
+  document.documentElement.classList.remove('rin-fonts-loading');
 });

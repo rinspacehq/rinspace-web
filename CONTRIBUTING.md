@@ -1,134 +1,47 @@
-# Contributing to Rinspace Web
+# 修改 Rinspace 表世界前端
 
-[简体中文](./CONTRIBUTING.zh-CN.md)
+本文随当前真实前端的迁移候选准备；现有 `rinspacehq/rinspace-web` 尚未完成内容
+迁移。迁移后继续使用这个仓库的历史、Issue、PR 和贡献归属，不另建一套产品前端。
 
-Thank you for helping improve Rinspace Web. This repository contains the public Web frontend and deterministic demo runtime; it does not contain the private Rinspace backend or production credentials.
+## 开发与验证
 
-## Before you start
+按 [README.md](README.md) 安装并运行 `pnpm dev:real`，直接修改现有 `src/`。
+本地默认连接正式服务；自己的真实账号只在需要查看受保护页面时使用，不要求
+贡献者部署后端、创建虚拟业务数据库或领取共用测试账号。
 
-- Search existing issues and pull requests before opening a duplicate.
-- Discuss large behavior, API, dependency, licensing, or architecture changes in an issue before implementation.
-- Never submit production data, personal information, access tokens, private endpoints, internal incident material, or third-party work that you are not entitled to contribute.
-- Report vulnerabilities through [`SECURITY.md`](./SECURITY.md), not a public issue or pull request.
+PR 请说明改动的页面、行为和验证方式，附必要的明暗主题及窄屏对照。运行受影响
+区域的单测和 README 中的类型、路由、国际化检查；不要删断言、跳过失败测试或
+用另一份 Demo 页面取得通过。必要的接口、固定依赖和页面行为需要一起保持。
 
-## One-command contribution sign-off
+自动化检查使用可复现的测试输入，不带生产凭据，不自动执行正式账号业务写入。
+真实操作仅在页面开发确有需要时由账号持有人主动执行；未经授权不测试发布、
+付款、删除或他人的账号状态。
 
-Ordinary contributions do not require an external CLA service, a separate account, an identity document, or a private contributor registry. Every commit author certifies the repository's [`DCO`](./DCO) 1.1 and accepts [`CONTRIBUTION-LICENSE.md`](./CONTRIBUTION-LICENSE.md) by adding a matching sign-off:
+## 沿用现有贡献条款
 
-```bash
-git commit -s
-```
+普通贡献继续使用现有 rinspace-web 的 [DCO](DCO) 1.1 签署和
+[CONTRIBUTION-LICENSE.md](CONTRIBUTION-LICENSE.md)：
+贡献者保留著作权，按 Apache License 2.0 许可有意提交的贡献，供 AGPL-3.0-only
+社区版及独立商业许可按原条款使用。每位作者及共同作者添加匹配的 Signed-off-by；
+例如 git commit -s。无需另注册 CLA 服务，不重新设计一套贡献许可。
 
-The resulting commit message contains:
+现有 LICENSE、LICENSING.md、CONTRIBUTION-LICENSE.md、DCO、第三方和资产/商标
+条款继续保留；本文只补充新的真实前端开发入口，不取代或追溯改变这些条款。
 
-```text
-Signed-off-by: Your Name <you@example.com>
-```
+漏洞报告使用 [SECURITY.md](SECURITY.md) 中的私密渠道，不公开提交凭据或漏洞细节。
 
-The name and email must match the commit author. A GitHub `noreply` email is accepted. Each person named in a `Co-authored-by` trailer must add a matching `Signed-off-by` trailer. If you forgot, update the commit message—for the latest commit, use `git commit --amend --signoff`; for several commits, use an interactive rebase or ask a maintainer for help.
+## 提交内容
 
-You retain copyright. Contributions are licensed under Apache License 2.0 so Rinspace can include them in the `AGPL-3.0-only` community edition and separately licensed commercial editions. The DCO workflow reads commit metadata through GitHub's read-only API, checks every commit, and never executes code from the pull request.
+- 提交源码和必要的非秘密测试输入；不提交 `node_modules/`、构建产物、环境文件、
+  浏览器资料目录、会话状态、Cookie、token、验证码或私有用户数据。
+- 截图和错误报告先脱敏，不展示手机号、凭据、授权回调 query 或私人内容。
+- 第三方代码、字体、图标和图片须说明来源，并保留实际许可证；不要把第三方
+  附加条款改写成项目自身许可。
+- 本地使用自己的修改无需维护者批准。PR 合入、固定发行与官网部署是不同步骤，
+  贡献不会自动进入生产。
 
-If an employer, customer, school, or another organization may own the work, obtain authority before submitting. Large, organization-wide, ownership-complex, or patent-sensitive contributions may require a separate written agreement before merge; open an issue first and do not include confidential material. This exception is a maintainer review, not a routine hurdle for normal fixes and features.
+## 同一份代码
 
-## Prepare your fork and toolchain
-
-Use Git, Node.js 22.x, and pnpm 9.7.0. The installation and Docker alternatives for Windows, macOS, and Linux are in the [README](./README.md#beginner-friendly-quick-start). Fork the repository on GitHub, then replace `YOUR_ACCOUNT` below with your account name:
-
-```bash
-git clone https://github.com/YOUR_ACCOUNT/rinspace-web.git
-cd rinspace-web
-git remote add upstream https://github.com/rinspacehq/rinspace-web.git
-git remote -v
-corepack enable
-corepack prepare pnpm@9.7.0 --activate
-pnpm install --frozen-lockfile
-```
-
-If Corepack cannot create a global shim, use `corepack pnpm ...` for each command. If Corepack is unavailable but npm works, run `npm install --global pnpm@9.7.0`. Do not use `npm install` for repository dependencies and do not regenerate `pnpm-lock.yaml` without an intentional dependency change.
-
-Configure an author identity before the first commit. A GitHub `noreply` address is fine:
-
-```bash
-git config user.name "Your Name"
-git config user.email "YOUR_ID+YOUR_ACCOUNT@users.noreply.github.com"
-```
-
-## Make and verify a change
-
-Create one focused branch from an up-to-date upstream branch:
-
-```bash
-git fetch upstream
-git switch main
-git merge --ff-only upstream/main
-git switch -c fix/short-description
-```
-
-Run the demo with `pnpm start`. Use a branch prefix such as `fix/`, `feat/`, `docs/`, or `test/`; do not mix unrelated cleanup into the same pull request. Demo behavior must remain deterministic, use only synthetic data, and fail closed instead of calling production or unspecified external services.
-
-While iterating, run the smallest relevant test. Before submission, run the baseline checks from the repository root:
-
-```bash
-pnpm check
-pnpm lint
-pnpm test
-pnpm build
-git diff --check
-git status --short
-```
-
-For browser-visible behavior, add or update Playwright coverage and run the relevant browser test from `package.json`. For packaging, containers, runtime configuration, routes, contracts, or translations, run the corresponding checks documented in the README. Update `README.md` and `README.zh-CN.md` together when shared behavior changes.
-
-Review every changed file, then create a signed-off commit:
-
-```bash
-git diff
-git add path/to/changed-file path/to/test-file
-git commit -s -m "fix(scope): describe the user-visible result"
-git show --stat --oneline HEAD
-```
-
-Do not use `git add .` without reviewing untracked files. A good commit subject is imperative, specific, and under roughly 72 characters. Common types are `fix`, `feat`, `docs`, `test`, `refactor`, `build`, and `ci`.
-
-## Using Codex or another coding AI
-
-Read [`AGENTS.md`](./AGENTS.md) first. AI assistance is welcome, but the human contributor remains responsible for correctness, security, third-party rights, tests, and the DCO certification. Never give an AI production data or credentials, and disclose substantial generated or copied material plus its sources in the pull request.
-
-Copy, fill in, and give this prompt to the coding agent:
-
-```text
-Work in the current Rinspace Web repository. Read AGENTS.md, README.md, CONTRIBUTING.md, package.json, and the relevant nearby tests before changing anything.
-
-Outcome: <one concrete user-visible result>
-Acceptance criteria:
-- <observable behavior or failing test that must pass>
-- <edge case and security/privacy expectation>
-Constraints:
-- Keep the change focused; preserve unrelated work and public API compatibility unless explicitly required.
-- Use only synthetic demo data. Add no credentials, private endpoints, production fallback, or unreviewed dependency.
-- Update English and Chinese docs together when shared behavior changes.
-Verification:
-- Run the smallest relevant test while iterating.
-- Before handoff run pnpm check, pnpm lint, pnpm test, plus <feature-specific command>.
-Handoff:
-- Summarize changed files, behavior, commands and results, residual risks, and anything not verified.
-- Show git diff/status. Do not commit, push, deploy, or open a PR unless I explicitly ask.
-
-If the requested outcome conflicts with repository safety or licensing rules, stop and explain the conflict instead of weakening a gate.
-```
-
-For an AI-assisted local or server deployment, use the purpose-built [Codex deployment prompt](./docs/ai-deployment.md).
-
-## Pull requests
-
-- Push the branch with `git push -u origin fix/short-description`, then open a pull request from your fork to `rinspacehq/rinspace-web:main`.
-- Use a clear title and explain the problem, user-visible result, implementation boundaries, security/privacy impact, tests run, screenshots for visual changes, compatibility or migration impact, and rollback plan.
-- Link the issue with `Fixes #123` only when merging the pull request should close it. Mark unfinished work as a draft.
-- Add tests for bug fixes and new behavior. State any test you could not run and why; do not report an unrun check as passing.
-- Do not weaken runtime validation, origin checks, secret scanning, third-party inventory, license notices, or release gates merely to make CI pass.
-- Disclose every added dependency, copied snippet, font, image, template, generated binary, or other third-party input with its exact source and license.
-- State whether AI assistance was used and what the human contributor reviewed. This disclosure does not replace source/license disclosure or the DCO sign-off.
-- Follow [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
-
-Maintainers may decline or request changes to any contribution. Submission does not guarantee acceptance, payment, employment, support, or a release schedule.
+迁移完成后，维护者和贡献者在同一公开来源修改页面、样式、路由、翻译与请求
+代码。私仓只升级经审查和集成验证的固定发行，不复制补丁或维护私有覆盖 CSS。
+保持这个边界是本项目开源的主要目标，不是让本地具备官网的所有业务能力。

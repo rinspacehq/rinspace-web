@@ -1,0 +1,40 @@
+.rin-tweet-dialog {
+  position: fixed;
+  z-index: 1001;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: auto;
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  translate: -50% -50%;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.rin-tweet-dialog__published {
+  position: absolute;
+  z-index: 2;
+  inset-inline: 1rem;
+  top: 3.8rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  color: var(--ink, #17212b);
+  background: var(--surface-soft, #edf3f7);
+  border: 1px solid var(--border, #d8e0e7);
+  border-radius: 10px;
+}
+
+.rin-tweet-dialog__published + .rin-tweet-composer {
+  padding-top: 4.8rem;
+}
+
+.rin-tweet-dialog__published a {
+  color: var(--accent, #466b88);
+  font-weight: 700;
+}

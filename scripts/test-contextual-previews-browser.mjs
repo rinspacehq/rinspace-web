@@ -23,7 +23,7 @@ function postFixture(id, type, body) {
         ? "站内预览测试书"
         : type === "question"
           ? "站内预览目标问题"
-          : "站内预览测试博客",
+          : "站内预览测试文章",
     author: "Lunifans",
     authorId: "lunifans",
     authorUid: "user-42",

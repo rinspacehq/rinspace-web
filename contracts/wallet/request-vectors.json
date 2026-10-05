@@ -1,0 +1,330 @@
+{
+  "version": 1,
+  "note": "Wire syntax only. Valid extreme amounts are not approved business limits. Raw body strings preserve duplicate keys and invalid spellings.",
+  "cases": [
+    {
+      "name": "recharge",
+      "action": "recharge.create",
+      "body": "{\"amount_fen\":\"100\",\"policy_version\":\"1\",\"agreement_version\":\"1\"}",
+      "valid": true
+    },
+    {
+      "name": "recharge-large-exact",
+      "action": "recharge.create",
+      "body": "{\"amount_fen\":\"9223372036854775800\",\"policy_version\":\"1\",\"agreement_version\":\"1\"}",
+      "valid": true
+    },
+    {
+      "name": "payment-session",
+      "action": "recharge.payment_session",
+      "body": "{}",
+      "valid": true
+    },
+    {
+      "name": "blog-tip",
+      "action": "tip.preview",
+      "body": "{\"content_type\":\"blog\",\"post_id\":\"9007199254740993\",\"quantity\":\"1\"}",
+      "valid": true
+    },
+    {
+      "name": "book-tip",
+      "action": "tip.preview",
+      "body": "{\"content_type\":\"book\",\"post_id\":\"9223372036854775807\",\"quantity\":\"10\"}",
+      "valid": true
+    },
+    {
+      "name": "tip-confirm",
+      "action": "tip.create",
+      "body": "{\"preview_id\":\"12345678-1234-4234-8234-123456789abc\"}",
+      "valid": true
+    },
+    {
+      "name": "conversion-preview",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"20\"}",
+      "valid": true
+    },
+    {
+      "name": "conversion-confirm",
+      "action": "conversion.create",
+      "body": "{\"preview_id\":\"12345678-1234-4234-8234-123456789abc\"}",
+      "valid": true
+    },
+    {
+      "name": "refund-request",
+      "action": "refund.request",
+      "body": "{\"amount_fen\":\"100\",\"reason\":\"退还未使用部分\",\"policy_version\":\"1\"}",
+      "valid": true
+    },
+    {
+      "name": "refund-cancel",
+      "action": "refund.cancel",
+      "body": "{\"expected_version\":\"1\",\"reason\":\"取消申请\"}",
+      "valid": true
+    },
+    {
+      "name": "refund-approve",
+      "action": "refund.review",
+      "body": "{\"decision\":\"approve\",\"expected_version\":\"2\",\"reason\":\"核对原单及可退余额\"}",
+      "valid": true
+    },
+    {
+      "name": "refund-reject",
+      "action": "refund.review",
+      "body": "{\"decision\":\"reject\",\"expected_version\":\"2\",\"reason\":\"需要补充原单信息\"}",
+      "valid": true
+    },
+    {
+      "name": "refund-revoke",
+      "action": "refund.revoke",
+      "body": "{\"expected_version\":\"3\",\"reason\":\"尚未提交渠道，重新复核\"}",
+      "valid": true
+    },
+    {
+      "name": "case-start-review",
+      "action": "case.review",
+      "body": "{\"decision\":\"start_review\",\"expected_version\":\"1\",\"reason\":\"核对渠道证据\"}",
+      "valid": true
+    },
+    {
+      "name": "case-resolve",
+      "action": "case.review",
+      "body": "{\"decision\":\"resolve\",\"expected_version\":\"2\",\"reason\":\"证据核对完成\"}",
+      "valid": true
+    },
+    {
+      "name": "case-restrict",
+      "action": "case.restrict",
+      "body": "{\"lot_id\":\"22345678-1234-4234-8234-123456789abc\",\"quantity\":\"7\",\"expected_version\":\"2\",\"reason\":\"限制争议来源\"}",
+      "valid": true
+    },
+    {
+      "name": "case-release",
+      "action": "case.release",
+      "body": "{\"expected_version\":\"3\",\"reason\":\"解除限制\"}",
+      "valid": true
+    },
+    {
+      "name": "case-appeal",
+      "action": "case.appeal",
+      "body": "{\"expected_version\":\"3\",\"reason\":\"申请复核\"}",
+      "valid": true
+    },
+    {
+      "name": "duplicate-key",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"10\",\"bound_quantity\":\"20\"}",
+      "valid": false
+    },
+    {
+      "name": "escaped-duplicate-key",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"10\",\"bound_\\u0071uantity\":\"20\"}",
+      "valid": false
+    },
+    {
+      "name": "case-alias",
+      "action": "conversion.preview",
+      "body": "{\"Bound_Quantity\":\"10\"}",
+      "valid": false
+    },
+    {
+      "name": "number-amount",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":10}",
+      "valid": false
+    },
+    {
+      "name": "null-amount",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":null}",
+      "valid": false
+    },
+    {
+      "name": "escaped-amount",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"\\u0031\\u0030\"}",
+      "valid": false
+    },
+    {
+      "name": "fractional-amount",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"10.0\"}",
+      "valid": false
+    },
+    {
+      "name": "exponent-amount",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"1e1\"}",
+      "valid": false
+    },
+    {
+      "name": "overflow-amount",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"9223372036854775808\"}",
+      "valid": false
+    },
+    {
+      "name": "leading-zero",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"010\"}",
+      "valid": false
+    },
+    {
+      "name": "zero-amount",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"0\"}",
+      "valid": false
+    },
+    {
+      "name": "conversion-remainder",
+      "action": "conversion.preview",
+      "body": "{\"bound_quantity\":\"23\"}",
+      "valid": false
+    },
+    {
+      "name": "recharge-noninteger-coin",
+      "action": "recharge.create",
+      "body": "{\"amount_fen\":\"101\",\"policy_version\":\"1\",\"agreement_version\":\"1\"}",
+      "valid": false
+    },
+    {
+      "name": "refund-noninteger-source",
+      "action": "refund.request",
+      "body": "{\"amount_fen\":\"1\",\"reason\":\"退款\",\"policy_version\":\"1\"}",
+      "valid": false
+    },
+    {
+      "name": "forged-recipient",
+      "action": "tip.preview",
+      "body": "{\"content_type\":\"book\",\"post_id\":\"1\",\"quantity\":\"10\",\"recipient_uid\":\"attacker\"}",
+      "valid": false
+    },
+    {
+      "name": "forged-approval-amount",
+      "action": "refund.review",
+      "body": "{\"decision\":\"approve\",\"expected_version\":\"2\",\"reason\":\"通过\",\"amount_fen\":\"9990\"}",
+      "valid": false
+    },
+    {
+      "name": "proof-in-body",
+      "action": "refund.review",
+      "body": "{\"decision\":\"approve\",\"expected_version\":\"2\",\"reason\":\"通过\",\"action_proof\":\"secret\"}",
+      "valid": false
+    },
+    {
+      "name": "bad-decision",
+      "action": "refund.review",
+      "body": "{\"decision\":\"APPROVE\",\"expected_version\":\"2\",\"reason\":\"通过\"}",
+      "valid": false
+    },
+    {
+      "name": "bad-case-decision",
+      "action": "case.review",
+      "body": "{\"decision\":\"restrict\",\"expected_version\":\"1\",\"reason\":\"越权资金操作\"}",
+      "valid": false
+    },
+    {
+      "name": "case-restrict-zero",
+      "action": "case.restrict",
+      "body": "{\"lot_id\":\"22345678-1234-4234-8234-123456789abc\",\"quantity\":\"0\",\"expected_version\":\"2\",\"reason\":\"限制\"}",
+      "valid": false
+    },
+    {
+      "name": "zero-version",
+      "action": "refund.review",
+      "body": "{\"decision\":\"approve\",\"expected_version\":\"0\",\"reason\":\"通过\"}",
+      "valid": false
+    },
+    {
+      "name": "blank-reason",
+      "action": "refund.cancel",
+      "body": "{\"expected_version\":\"1\",\"reason\":\"　 \"}",
+      "valid": false
+    },
+    {
+      "name": "control-reason",
+      "action": "refund.cancel",
+      "body": "{\"expected_version\":\"1\",\"reason\":\"a\\nb\"}",
+      "valid": false
+    },
+    {
+      "name": "unpaired-surrogate",
+      "action": "refund.cancel",
+      "body": "{\"expected_version\":\"1\",\"reason\":\"\\ud800\"}",
+      "valid": false
+    },
+    {
+      "name": "missing-field",
+      "action": "tip.preview",
+      "body": "{\"content_type\":\"blog\",\"quantity\":\"10\"}",
+      "valid": false
+    },
+    {
+      "name": "unknown-content-type",
+      "action": "tip.preview",
+      "body": "{\"content_type\":\"pdf\",\"post_id\":\"1\",\"quantity\":\"10\"}",
+      "valid": false
+    },
+    {
+      "name": "nil-preview-id",
+      "action": "tip.create",
+      "body": "{\"preview_id\":\"00000000-0000-0000-0000-000000000000\"}",
+      "valid": false
+    },
+    {
+      "name": "multiple-values",
+      "action": "recharge.payment_session",
+      "body": "{} {}",
+      "valid": false
+    },
+    {
+      "name": "null-body",
+      "action": "recharge.payment_session",
+      "body": "null",
+      "valid": false
+    },
+    {
+      "name": "array-body",
+      "action": "recharge.payment_session",
+      "body": "[]",
+      "valid": false
+    },
+    {
+      "name": "reconciliation-assign",
+      "action": "reconciliation.assign",
+      "body": "{\"expected_version\":\"1\",\"assignee_uid\":\"reviewer-2\",\"reason\":\"指派\"}",
+      "valid": true
+    },
+    {
+      "name": "reconciliation-resolve",
+      "action": "reconciliation.resolve",
+      "body": "{\"expected_version\":\"2\",\"resolution\":\"EVIDENCE_ACCEPTED\",\"evidence_reference\":\"controlled://evidence/1\",\"reason\":\"复核\"}",
+      "valid": true
+    },
+    {
+      "name": "reconciliation-unknown-resolution",
+      "action": "reconciliation.resolve",
+      "body": "{\"expected_version\":\"2\",\"resolution\":\"FORCE_BALANCE\",\"evidence_reference\":\"controlled://evidence/1\",\"reason\":\"复核\"}",
+      "valid": false
+    },
+    {
+      "name": "coverage-record",
+      "action": "coverage.record",
+      "body": "{\"evidence_as_of\":\"2026-09-20T08:00:00Z\",\"available_cash_fen\":\"900719925474100000000000\",\"approved_required_fen\":\"900719925474100000000001\",\"methodology_reference\":\"controlled://methodology/v1\",\"evidence_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"evidence_reference\":\"controlled://statement/2026-09-20\",\"reason\":\"日终核对\"}",
+      "valid": true
+    },
+    {
+      "name": "coverage-record-numeric-amount",
+      "action": "coverage.record",
+      "body": "{\"evidence_as_of\":\"2026-09-20T08:00:00Z\",\"available_cash_fen\":100,\"approved_required_fen\":\"100\",\"methodology_reference\":\"controlled://methodology/v1\",\"evidence_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"evidence_reference\":\"controlled://statement/2026-09-20\",\"reason\":\"日终核对\"}",
+      "valid": false
+    },
+    {
+      "name": "unknown-action",
+      "action": "withdrawal.create",
+      "body": "{}",
+      "valid": false
+    }
+  ]
+}

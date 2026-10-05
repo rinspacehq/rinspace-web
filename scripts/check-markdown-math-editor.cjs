@@ -2,6 +2,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const {
+  checkedFixtureOrigin,
+  installMarkdownMathBrowserFixture,
+} = require('./lib/markdown-math-browser-fixture.cjs');
 
 let chromium;
 try {
@@ -16,7 +20,7 @@ const targetUrl =
   process.env.MARKDOWN_MATH_URL || 'http://localhost:3000/write/markdown';
 const headless = process.env.HEADLESS !== 'false';
 const linearAttnPath =
-  process.env.LINEAR_ATTN_MD || path.resolve(__dirname, '../../../linear-attn.md');
+  process.env.LINEAR_ATTN_MD || path.resolve(__dirname, '../tests/fixtures/markdown-math/linear-attn.md');
 const tableAfterArticleSource = `# 这是一次测试
 
 $$
@@ -47,7 +51,7 @@ $$
 aaa
 $$
 
-![aaa](/rin/api/diagrams/0514bb74e347e22655c2e5e297d5db7c062a58ecf5e3ae9bd83275618ec5c732)
+![aaa](/__math-fixtures__/diagram.svg)
 
 |  |  |  |  |
 | :----- | :----- | :----- | :----- |
@@ -65,6 +69,9 @@ function assert(condition, message, details) {
 
 async function setupPage(browser) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const blockedRequests = process.argv.includes('--isolated')
+    ? await installMarkdownMathBrowserFixture(page, targetUrl)
+    : [];
   const unexpectedMessages = [];
   page.on('console', (msg) => {
     const text = msg.text();
@@ -84,7 +91,7 @@ async function setupPage(browser) {
   });
   await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForSelector('.ProseMirror', { timeout: 60000 });
-  return { page, unexpectedMessages };
+  return { page, unexpectedMessages, blockedRequests };
 }
 
 async function clearMilkdownAutosave(page) {
@@ -2053,48 +2060,71 @@ async function checkTableAfterArticleSourceKeepsFocus(page) {
   );
 }
 
-(async () => {
+async function main() {
+  if (process.argv.includes('--check-inputs')) {
+    const source = readLinearAttnMarkdown();
+    console.log(JSON.stringify({
+      kind: 'markdown-math-test-input',
+      input: path.relative(path.resolve(__dirname, '..'), linearAttnPath),
+      title: firstMarkdownHeadingText(source),
+      bytes: Buffer.byteLength(source),
+    }));
+    return;
+  }
+  if (process.argv.includes('--isolated')) checkedFixtureOrigin(targetUrl);
   const browser = await chromium.launch({
     headless,
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
   });
   try {
-    const { page, unexpectedMessages } = await setupPage(browser);
-    await checkMilkdownBlockMathShortcutCreatesLatex(page);
-    await checkEnterDisplayMathShortcutOpensLatex(page);
-    await checkTypedSingleLineDisplayMathCreatesLatex(page);
-    await checkTypedFourDollarDisplayMathOpensLatex(page);
-    await checkFourDollarAfterCompletedFormulaKeepsPreviousBlock(page);
-    await checkDeleteDeletesDisplayMathBlock(page);
-    await checkTypedDisplayMathThenBlankThenDisplayMath(page);
-    await checkBackspaceDeletesBlankParagraphAfterDisplayMath(page);
-    await checkLatexPanelStripsWrappedDisplayMath(page);
-    await checkConsecutiveTopBarFormulaBlocks(page);
-    await checkHeadingDollarFocus(page);
-    await checkHeadingEnterCreatesParagraph(page);
-    await checkTypedHeadingEnterCreatesParagraph(page);
-    await checkNonFirstH1DemotesToH2(page);
-    await checkRepeatedNonFirstH1DemotionIsFast(page);
-    await checkHeadingOneHiddenFromMenus(page);
-    await checkInlineFormulaEditing(page);
-    await checkTopBarFormulaSeparatedByHeading(page);
-    await checkTopBarFormulaAfterTypedHeadingWithoutEnter(page);
-    await checkTopBarFormulaAfterTypedHeadingWithEnter(page);
-    await checkLinearAttnPasteAndTopBarFormula(page);
-    await checkTableAfterArticleSourceKeepsFocus(page);
-    await checkLinearAttnManualTopBarFormulaInput(page);
-    await checkLinearAttnManualInput(page);
+    const { page, unexpectedMessages, blockedRequests } = await setupPage(browser);
+    const checks = [
+      checkMilkdownBlockMathShortcutCreatesLatex,
+      checkEnterDisplayMathShortcutOpensLatex,
+      checkTypedSingleLineDisplayMathCreatesLatex,
+      checkTypedFourDollarDisplayMathOpensLatex,
+      checkFourDollarAfterCompletedFormulaKeepsPreviousBlock,
+      checkDeleteDeletesDisplayMathBlock,
+      checkTypedDisplayMathThenBlankThenDisplayMath,
+      checkBackspaceDeletesBlankParagraphAfterDisplayMath,
+      checkLatexPanelStripsWrappedDisplayMath,
+      checkConsecutiveTopBarFormulaBlocks,
+      checkHeadingDollarFocus,
+      checkHeadingEnterCreatesParagraph,
+      checkTypedHeadingEnterCreatesParagraph,
+      checkNonFirstH1DemotesToH2,
+      checkRepeatedNonFirstH1DemotionIsFast,
+      checkHeadingOneHiddenFromMenus,
+      checkInlineFormulaEditing,
+      checkTopBarFormulaSeparatedByHeading,
+      checkTopBarFormulaAfterTypedHeadingWithoutEnter,
+      checkTopBarFormulaAfterTypedHeadingWithEnter,
+      checkLinearAttnPasteAndTopBarFormula,
+      checkTableAfterArticleSourceKeepsFocus,
+      checkLinearAttnManualTopBarFormulaInput,
+      checkLinearAttnManualInput,
+    ];
+    for (const check of checks) {
+      console.log(`Markdown math check: ${check.name}`);
+      await check(page);
+    }
 
     assert(
       unexpectedMessages.length === 0,
       'Unexpected browser console messages were emitted.',
       unexpectedMessages,
     );
+    assert(blockedRequests.length === 0, 'Unexpected requests escaped the editor fixture.', blockedRequests);
     console.log(`Markdown math editor checks passed: ${targetUrl}`);
   } finally {
     await browser.close();
   }
-})().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { linearAttnPath, readLinearAttnMarkdown, firstMarkdownHeadingText, tableAfterArticleSource };
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

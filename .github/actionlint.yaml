@@ -1,0 +1,4 @@
+self-hosted-runner:
+  labels:
+    - rinspace-release-build
+    - rinspace-public-frontend-isolated

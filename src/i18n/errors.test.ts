@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ServiceError } from '@/services/httpClient';
-import { CapabilityUnavailable } from '@/platform/runtime';
 
 import { localizedErrorMessage } from './errors';
 import { i18n } from './index';
@@ -46,20 +45,5 @@ describe('localizedErrorMessage', () => {
       code: 'directory.shard_unavailable',
       status: 503,
     }));
-  });
-
-  it('returns an actionable message for structured runtime capability failures', async () => {
-    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    await i18n.changeLanguage('en');
-
-    expect(localizedErrorMessage(new CapabilityUnavailable({
-      capability: 'workspace.remote',
-      mode: 'demo',
-      adapter: 'demo-workspace',
-      dependency: 'demo-workspace-simulation',
-    }))).toBe(
-      'The demo does not open production code workspaces. Use the local editor or configure a workspace service in an integration deployment.',
-    );
-    expect(errorLog).not.toHaveBeenCalled();
   });
 });

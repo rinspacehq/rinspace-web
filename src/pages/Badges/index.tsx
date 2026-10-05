@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Icon, type IconName, AnimateButton, useNoticeToasts } from 'components/ui';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
@@ -183,7 +183,7 @@ function BadgesPage() {
 
   return (
     <>
-      <Helmet title={t('badges.title')} />
+      <Helmet title={`${t('badges.title')} - ${t('navigation:brandName')}`} />
       <SiteTopbar />
 
       <main className="badge-shell">

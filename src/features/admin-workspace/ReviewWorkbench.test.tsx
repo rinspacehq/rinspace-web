@@ -84,7 +84,7 @@ function moderationDetail(id: number): ModerationCaseDetail {
       {
         key: 'violation',
         label: '违规',
-        actions: [{ operation: 'hide_post', label: '隐藏内容', tone: 'destructive', requiresNote: true, requiresDuration: false, impact: '博客将从公开访问中隐藏。' }],
+        actions: [{ operation: 'hide_post', label: '隐藏内容', tone: 'destructive', requiresNote: true, requiresDuration: false, impact: '文章将从公开访问中隐藏。' }],
       },
       {
         key: 'defer',
@@ -198,7 +198,7 @@ describe('ReviewWorkbench', () => {
     await user.type(screen.getByLabelText(/判断依据/), '确认违规内容');
     await user.click(screen.getByRole('button', { name: '提交决策' }));
     expect(await screen.findByRole('heading', { name: '确认审核决定' })).toBeTruthy();
-    expect(screen.getAllByText('博客将从公开访问中隐藏。')).toHaveLength(2);
+    expect(screen.getAllByText('文章将从公开访问中隐藏。')).toHaveLength(2);
     expect(api.reviewModerationCase).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: '确认提交' }));
     await waitFor(() => expect(api.reviewModerationCase).toHaveBeenCalledWith(expect.objectContaining({

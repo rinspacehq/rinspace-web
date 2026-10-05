@@ -1,0 +1,37 @@
+.wallet-tip-form { display: grid; gap: 1rem; min-width: 0; }
+.wallet-tip-form section, .wallet-tip-form form { display: grid; gap: .75rem; }
+.wallet-tip-form h2 { font-size: 1.1rem; margin: 0; }
+.wallet-tip-form p { margin: 0; line-height: 1.65; overflow-wrap: anywhere; }
+.wallet-tip-form code { display: block; overflow-wrap: anywhere; font-size: .8rem; }
+.wallet-tip-form label { display: grid; gap: .5rem; }
+.wallet-tip-form input { min-width: 0; width: 100%; padding: .65rem; border: 1px solid var(--rin-border); border-radius: var(--rin-radius-sm); background: var(--rin-surface); color: var(--rin-ink); }
+.wallet-tip-form strong { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.wallet-tip-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.wallet-tip-dialog { max-width: min(28rem, calc(100vw - 2rem)); }
+.wallet-tip-trigger { flex-shrink: 0; }
+.wallet-tip-trigger-placeholder {
+  align-items: center;
+  color: var(--rin-ink-muted);
+  display: inline-flex;
+  font-family: var(--rin-font-mono);
+  font-size: .76rem;
+  gap: .32rem;
+  justify-content: center;
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: .4rem .55rem;
+}
+.wallet-tip-count {
+  display: inline-block;
+  min-inline-size: 1.5rem;
+  text-align: end;
+}
+.wallet-tip-count[data-loading="true"],
+.wallet-tip-trigger-placeholder :is(.wallet-tip-count, .wallet-tip-label) {
+  visibility: hidden;
+}
+.wallet-tip-label {
+  display: inline-block;
+  min-inline-size: 2rem;
+  text-align: start;
+}

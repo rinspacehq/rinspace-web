@@ -1,7 +1,7 @@
 import { Icon } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
