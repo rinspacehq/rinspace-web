@@ -83,6 +83,10 @@ vMAJOR.MINOR.PATCH，且不能覆盖已有 tag/release。它没有写仓库、�
    bubblewrap；标签须同时包括 rinspace-release-build 和
    rinspace-public-frontend-isolated。不能把后一个标签贴到既有私仓/生产 runner。
    无 Docker socket、生产挂载、云管理身份、用户 npm 配置或私仓/生产缓存，完成后销毁。
+   注册必须加 --no-default-labels，只设置上述两个专用标签；候选 job 也仅匹配它们。
+   不保留通用 self-hosted/Linux/X64 标签，否则历史 PR 的通用排队任务也可选中它。
+   This is still a Linux x64 self-hosted runner; omitting default routing labels prevents
+   unrelated generic jobs from claiming the single-use candidate runner.
 4. 在受保护环境中明确设置 RINSPACE_FRONTEND_CANDIDATE_ENABLED、
    RINSPACE_FRONTEND_ISOLATED_RUNNER_APPROVED、RINSPACE_FRONTEND_DISTRIBUTION_APPROVED
    为 true；RINSPACE_FRONTEND_REVIEWED_SOURCE/REVIEWED_VERSION 为该次精确值。

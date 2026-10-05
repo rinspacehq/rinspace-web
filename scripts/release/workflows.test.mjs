@@ -28,6 +28,8 @@ test('fixed candidate is manual, read-only, separately approved and isolated', (
   assert.match(text, /workflow_dispatch:/);
   assert.match(text, /environment: frontend-candidate/);
   assert.match(text, /rinspace-release-build, rinspace-public-frontend-isolated/);
+  assert.match(text, /runs-on: \[rinspace-release-build, rinspace-public-frontend-isolated\]/);
+  assert.doesNotMatch(text, /runs-on:.*self-hosted/);
   assert.match(text, /RINSPACE_FRONTEND_DISTRIBUTION_APPROVED/);
   assert.match(text, /RINSPACE_FRONTEND_REVIEWED_SOURCE/);
   assert.match(text, /context_sha256/);
