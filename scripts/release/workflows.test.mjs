@@ -58,3 +58,20 @@ test('isolation mounts the pinned Node outside read-only system directories', ()
   assert.match(nested, /\.\.\.args, "\/tools\/node", \.\.\.command/);
   assert.doesNotMatch(nested, /\.\.\.args, "\/usr\/bin\/node"/);
 });
+
+test('both isolation layers provide only an empty ephemeral home, never a host profile', () => {
+  const outer = fs.readFileSync(path.join(import.meta.dirname, 'run-isolated-checks.mjs'), 'utf8');
+  const inner = fs.readFileSync(path.join(import.meta.dirname, '../check-source-independence.mjs'), 'utf8');
+  assert.match(outer, /'--tmpfs', '\/tmp'/);
+  assert.match(outer, /'--dir', '\/tmp\/rinspace-check-home', '--setenv', 'HOME', '\/tmp\/rinspace-check-home'/);
+  assert.match(inner, /"--tmpfs",\s*"\/tmp",\s*"--dir",\s*"\/tmp\/rinspace-check-home"/);
+  assert.match(inner, /"--setenv",\s*"HOME",\s*"\/tmp\/rinspace-check-home"/);
+  const browser = fs.readFileSync(path.join(import.meta.dirname, '../check-markdown-math-isolated.mjs'), 'utf8');
+  const inputs = fs.readFileSync(path.join(import.meta.dirname, '../lib/markdown-math-inputs.test.cjs'), 'utf8');
+  assert.match(browser, /HOME: "\/tmp\/rinspace-check-home"/);
+  assert.match(inputs, /HOME: temporaryHome/);
+  assert.match(inputs, /fs\.rmSync\(temporaryHome, \{ recursive: true, force: true \}\)/);
+  for (const text of [outer, inner]) {
+    assert.doesNotMatch(text, /--(?:ro-)?bind[^\n]*(?:os\.homedir\(|process\.env\.HOME|\/etc\/passwd|\/root)/);
+  }
+});

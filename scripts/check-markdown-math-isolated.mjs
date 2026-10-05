@@ -36,6 +36,7 @@ try {
         stdio: "inherit",
         env: {
           PATH: "/usr/bin:/bin",
+          HOME: "/tmp/rinspace-check-home",
           HEADLESS: "true",
           PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: executablePath,
           MARKDOWN_MATH_URL: "http://127.0.0.1:4187/rinspace/write/markdown",

@@ -41,6 +41,9 @@ try {
   // setup-node installs under a tool cache; /usr/bin/node may not exist, and
   // /usr is already read-only. Mount the pinned binary into our own directory.
   sandbox.push('--dir', '/tools', '--ro-bind', fs.realpathSync(process.execPath), '/tools/node', '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--dir', '/etc');
+  // os.homedir() needs a home for non-root runners with no passwd/profile mount.
+  // This empty directory exists only in the sandbox's disposable tmpfs.
+  sandbox.push('--dir', '/tmp/rinspace-check-home', '--setenv', 'HOME', '/tmp/rinspace-check-home');
   for (const name of ['/etc/hosts', '/etc/nsswitch.conf']) sandbox.push('--ro-bind', name, name);
   sandbox.push('--bind', project, '/app', '--ro-bind', dependencyRoot, '/app/node_modules');
   // Caches live only in the sandbox, never in a shared dependency installation.

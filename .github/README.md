@@ -2,12 +2,12 @@
 
 这些流程随当前前端源码公开，不复用历史 Demo/容器/发布流程。源码公开和公开
 main 的审查合入不等于官网切换；未调度正式构建、发行或部署。既有 1036 文件
-中只同步 README 的迁移状态和源码独立工具的固定 Node 挂载，其余 1034 文件
+中只同步 README 的迁移状态和三个隔离检查/回归工具的运行时布局，其余 1032 文件
 保持原字节；新增流程控制输入逐提交审查。
 
 These workflows accompany the published frontend, not historical demo releases. Public source
 and main integration do not activate production inputs or authorize builds, releases or deployment.
-Only migration-status documentation and the pinned-Node mount in the source-independence tool
+Only migration-status documentation and the isolated runtime layout in three check/test tools
 differ from the reviewed source baseline; control inputs require review of each new commit.
 
 ## PR 与 DCO
@@ -51,6 +51,21 @@ code and PR metadata only. External PR code never runs on a private or productio
 修复后的本地嵌套检查在不可用系统 Node 的布局中通过类型/路由/模板/翻译阶段；
 完整隔离入口另通过 135 文件 / 1082 UI 测试与 61 项本地/发行工具测试。
 完整入口复用既有冻结依赖，不冒充 hosted runner 的新安装或远端结果。
+
+第四次 run
+[37265749774](https://github.com/rinspacehq/rinspace-web/actions/runs/37265749774)
+已执行到入口测试：Playwright 读取用户目录时报告 `uv_os_homedir returned ENOENT`。
+空凭据环境不挂载 host passwd/profile，且 runner 不是 root；本地 UID 1001 沙箱
+复现同一错误。按 [Node 的用户目录约定](https://nodejs.org/api/os.html#oshomedir)，
+两个隔离入口显式使用沙箱 tmpfs 内新建的空 HOME；不继承宿主 HOME、不挂载
+宿主账号目录或凭据。内层改动仍先来自私仓干净来源，业务代码不变。
+本地非 root 检查发现输入回归的子进程另外清空环境，也丢弃了这个 HOME；
+回归保留全部原断言，为该子进程单独分配并清理空临时用户目录。可选浏览器检查
+的清空环境子进程也显式使用沙箱 HOME，避免同一问题再次落到另一入口。
+本地按同一 lock 新安装 902 个依赖（禁用生命周期/hooks，复用下载存储，不改 lock），
+在 UID 1001、无可用系统 Node、空临时 HOME、无账号/私仓输入的沙箱中完成全部
+135 文件 / 1082 UI 测试与 62 项本地/发行工具测试；私仓来源的类型/输入检查也通过。
+该结果仍不代替最终提交的 GitHub CI，不作正式构建或真实账号上线验收。
 
 ## 固定候选：默认关闭，构建不等于发布
 

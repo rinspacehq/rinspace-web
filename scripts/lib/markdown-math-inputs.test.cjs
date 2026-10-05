@@ -108,17 +108,24 @@ test("all 24 pre-existing browser checks remain in the same execution order", ()
 });
 
 test("input dry run does not launch a browser or need a private tree", () => {
-  const result = spawnSync(process.execPath, [script, "--check-inputs"], {
-    cwd: root,
-    env: { PATH: "/usr/bin:/bin" },
-    encoding: "utf8",
-    timeout: 15_000,
-  });
-  assert.equal(result.status, 0, result.stderr);
-  const report = JSON.parse(result.stdout);
-  assert.equal(report.kind, "markdown-math-test-input");
-  assert.equal(report.input, "tests/fixtures/markdown-math/linear-attn.md");
-  assert.equal(report.bytes, Buffer.byteLength(readLinearAttnMarkdown()));
+  const temporaryHome = fs.mkdtempSync(
+    path.join(require("node:os").tmpdir(), "rinspace-math-inputs-"),
+  );
+  try {
+    const result = spawnSync(process.execPath, [script, "--check-inputs"], {
+      cwd: root,
+      env: { PATH: "/usr/bin:/bin", HOME: temporaryHome },
+      encoding: "utf8",
+      timeout: 15_000,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.kind, "markdown-math-test-input");
+    assert.equal(report.input, "tests/fixtures/markdown-math/linear-attn.md");
+    assert.equal(report.bytes, Buffer.byteLength(readLinearAttnMarkdown()));
+  } finally {
+    fs.rmSync(temporaryHome, { recursive: true, force: true });
+  }
 });
 
 test("isolated checks accept only explicit HTTP loopback targets", () => {
