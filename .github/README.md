@@ -1,13 +1,14 @@
 # 新前端检查与候选产物流程 / Frontend checks and candidate artifacts
 
 这些流程随当前前端源码公开，不复用历史 Demo/容器/发布流程。源码公开和公开
-main 的审查合入不等于官网切换；未调度正式构建、发行或部署。除同步迁移状态的
-README 外，既有 1036 文件源码基线不变；新增流程控制输入逐提交审查。
+main 的审查合入不等于官网切换；未调度正式构建、发行或部署。既有 1036 文件
+中只同步 README 的迁移状态和源码独立工具的固定 Node 挂载，其余 1034 文件
+保持原字节；新增流程控制输入逐提交审查。
 
 These workflows accompany the published frontend, not historical demo releases. Public source
 and main integration do not activate production inputs or authorize builds, releases or deployment.
-Only migration-status documentation differs from the reviewed source baseline; control inputs
-continue to require review of each new commit.
+Only migration-status documentation and the pinned-Node mount in the source-independence tool
+differ from the reviewed source baseline; control inputs require review of each new commit.
 
 ## PR 与 DCO
 
@@ -41,6 +42,15 @@ code and PR metadata only. External PR code never runs on a private or productio
 没有 `/usr/bin/node` 挂载点而停止。隔离入口把同一固定 Node 二进制只读挂到自己
 的 `/tools/node`，PATH 只增加这个目录；不改系统目录、隔离边界或业务代码。
 该路径布局增加回归，并在本地以只读且无 Node 的 `/usr/bin` 实际验证。
+
+第三次 run
+[37264759383](https://github.com/rinspacehq/rinspace-web/actions/runs/37264759383)
+外层隔离探针已通过，源码独立入口的内层隔离仍调用系统 Node 而停止。
+两个入口现统一只读挂载当前固定运行时到 `/tools/node`；内层改动先落在私仓
+干净来源提交再同步，所有页面、业务请求和隔离检查阶段保持不变。
+修复后的本地嵌套检查在不可用系统 Node 的布局中通过类型/路由/模板/翻译阶段；
+完整隔离入口另通过 135 文件 / 1082 UI 测试与 61 项本地/发行工具测试。
+完整入口复用既有冻结依赖，不冒充 hosted runner 的新安装或远端结果。
 
 ## 固定候选：默认关闭，构建不等于发布
 

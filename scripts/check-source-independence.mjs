@@ -40,6 +40,11 @@ const args = [
   "--ro-bind",
   "/lib64",
   "/lib64",
+  "--dir",
+  "/tools",
+  "--ro-bind",
+  fs.realpathSync(process.execPath),
+  "/tools/node",
   "--proc",
   "/proc",
   "--dev",
@@ -58,7 +63,7 @@ const args = [
   "/etc/nsswitch.conf",
   "--setenv",
   "PATH",
-  "/usr/bin:/bin",
+  "/tools:/usr/bin:/bin",
   "--setenv",
   "CI",
   "true",
@@ -130,7 +135,7 @@ if (!process.argv.includes("--typecheck-only")) {
 }
 for (const [label, command] of phases) {
   console.log("Frontend-only check: " + label);
-  const result = spawnSync("bwrap", [...args, "/usr/bin/node", ...command], {
+  const result = spawnSync("bwrap", [...args, "/tools/node", ...command], {
     stdio: "inherit",
   });
   if (result.error)

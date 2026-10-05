@@ -52,4 +52,9 @@ test('isolation mounts the pinned Node outside read-only system directories', ()
   assert.match(text, /'PATH', '\/tools:\/usr\/bin:\/bin'/);
   assert.match(text, /\.\.\.sandbox, '\/tools\/node', \.\.\.command/);
   assert.doesNotMatch(text, /'--ro-bind', fs\.realpathSync\(process\.execPath\), '\/usr\/bin\/node'/);
+  const nested = fs.readFileSync(path.join(import.meta.dirname, '../check-source-independence.mjs'), 'utf8');
+  assert.match(nested, /"--dir",\s*"\/tools",\s*"--ro-bind",\s*fs\.realpathSync\(process\.execPath\),\s*"\/tools\/node"/);
+  assert.match(nested, /"\/tools:\/usr\/bin:\/bin"/);
+  assert.match(nested, /\.\.\.args, "\/tools\/node", \.\.\.command/);
+  assert.doesNotMatch(nested, /\.\.\.args, "\/usr\/bin\/node"/);
 });
