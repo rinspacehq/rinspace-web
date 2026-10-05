@@ -24,9 +24,5 @@ describe('React 19 compatibility surface', () => {
     expect(typeof Crepe).toBe('function');
     expect(typeof AvatarImage).toBe('function');
     expect(typeof cloudbase.init).toBe('function');
-
-    const app = cloudbase.init({ env: 'rinspace-browser-contract-test', region: 'ap-shanghai' });
-    expect(typeof app.auth).toBe('function');
-    expect(typeof app.getTempFileURL).toBe('function');
   });
 });

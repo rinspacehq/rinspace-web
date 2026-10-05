@@ -1,6 +1,6 @@
 import { Icon , useNoticeToasts } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import SiteTopbar from '@/components/SiteTopbarShell';
 

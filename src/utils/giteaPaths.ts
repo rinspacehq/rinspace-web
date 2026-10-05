@@ -32,17 +32,20 @@ export function normalizeGiteaBasePath(value: string | undefined | null) {
   return `/${segments[0]}/`;
 }
 
-export function getGiteaBasePath() {
-  return normalizeGiteaBasePath(publicEnv.giteaBasePath) || defaultGiteaBasePath;
-}
+export const giteaBasePath =
+  normalizeGiteaBasePath(publicEnv.giteaBasePath) ||
+  defaultGiteaBasePath;
 
 export function giteaPath(...segments: Array<string | number>) {
   const suffix = segments
     .map((segment) => encodeURIComponent(String(segment).trim()))
     .filter(Boolean)
     .join('/');
-  const basePath = getGiteaBasePath();
-  return suffix ? `${basePath}${suffix}` : basePath;
+  return suffix ? `${giteaBasePath}${suffix}` : giteaBasePath;
+}
+
+export function openGiteaPath(...segments: Array<string | number>) {
+  window.location.assign(giteaPath(...segments));
 }
 
 export function articleGiteaSourcePath(articleId: string | number) {
@@ -51,7 +54,7 @@ export function articleGiteaSourcePath(articleId: string | number) {
 
 export function canonicalGiteaPathname(
   pathname: string,
-  targetBasePath = getGiteaBasePath(),
+  targetBasePath = giteaBasePath,
 ) {
   const target = normalizeGiteaBasePath(targetBasePath);
   if (!target || hasUnsafePathEncoding(pathname)) return '';
@@ -65,7 +68,7 @@ export function canonicalGiteaPathname(
 
 export function safeGiteaRedirectPath(
   value: string | null | undefined,
-  fallback = `${getGiteaBasePath()}user/login`,
+  fallback = `${giteaBasePath}user/login`,
 ) {
   const raw = String(value || '').trim();
   if (

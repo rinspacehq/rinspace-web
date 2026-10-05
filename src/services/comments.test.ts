@@ -1,35 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { parseRuntimeConfig } from '@/app/config/runtime';
-import type { HttpTransport } from '@/platform/runtime';
-
 import { loadComments } from './feed';
-import {
-  installHttpClientRuntime,
-  resetHttpClientRuntimeForTests,
-} from './httpClient';
-
-const config = parseRuntimeConfig({
-  schemaVersion: 1,
-  mode: 'demo',
-  basePath: '/',
-  canonicalOrigin: 'https://rinspace.example',
-  site: {
-    name: 'Rinspace', shortName: 'Rin', description: 'Test', defaultLocale: 'zh-CN',
-    contactEmail: null, sourceUrl: null, legalEntity: null,
-    filings: { icp: null, publicSecurity: null },
-    brand: { logoPath: null, faviconPath: null, appleTouchIconPath: null, manifestIcons: [] },
-    verification: { baidu: null, qihoo360: null, sogou: null },
-  },
-  api: { baseUrl: '/api/', contractVersion: 'v1' },
-  auth: { provider: 'demo', endpoint: null, cloudbase: null },
-  integrations: {
-    gitea: { enabled: false, baseUrl: null }, renderer: { enabled: false, baseUrl: null }, workspace: { enabled: false, baseUrl: null },
-  },
-  features: { demoControls: false, creator: true, notifications: true, externalIntegrations: false },
-});
-
-const request = vi.fn<HttpTransport['request']>();
 
 const baseComment = {
   id: 41,
@@ -45,31 +16,32 @@ const baseComment = {
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
-  resetHttpClientRuntimeForTests();
-  request.mockReset();
-  installHttpClientRuntime(config, {
-    kind: 'official-http',
-    request,
-    requestRaw: vi.fn(),
-  });
 });
 
 afterEach(() => {
-  resetHttpClientRuntimeForTests();
+  vi.unstubAllGlobals();
 });
 
 describe('comment vote summaries', () => {
   it('parses public like and dislike counts with viewer state', async () => {
-    request.mockResolvedValue({
-      items: [
-        {
-          ...baseComment,
-          upVoteCount: 8,
-          downVoteCount: 5,
-          viewerVoteStatus: 'down',
-        },
-      ],
-    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                ...baseComment,
+                upVoteCount: 8,
+                downVoteCount: 5,
+                viewerVoteStatus: 'down',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
 
     const [comment] = await loadComments({ targetType: 'post', targetId: 7 });
     expect(comment).toMatchObject({
@@ -80,7 +52,15 @@ describe('comment vote summaries', () => {
   });
 
   it('keeps old comment responses readable during rollout', async () => {
-    request.mockResolvedValue({ items: [baseComment] });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify({ items: [baseComment] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
 
     const [comment] = await loadComments({ targetType: 'post', targetId: 7 });
     expect(comment).toMatchObject({
@@ -91,7 +71,13 @@ describe('comment vote summaries', () => {
   });
 
   it('requests root-thread pagination with an explicit supported order', async () => {
-    request.mockResolvedValue({ items: [baseComment] });
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL) =>
+      new Response(JSON.stringify({ items: [baseComment] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
 
     await loadComments({
       targetType: 'post',
@@ -102,16 +88,11 @@ describe('comment vote summaries', () => {
       page: 2,
     });
 
-    expect(request).toHaveBeenCalledTimes(1);
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({
-      path: 'comments',
-      auth: 'optional',
-      query: expect.objectContaining({
-        order: 'newest',
-        threaded: true,
-        limit: 12,
-        page: 2,
-      }),
-    }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [requestURL] = fetchMock.mock.calls[0] || [];
+    expect(String(requestURL)).toContain('order=newest');
+    expect(String(requestURL)).toContain('threaded=true');
+    expect(String(requestURL)).toContain('limit=12');
+    expect(String(requestURL)).toContain('page=2');
   });
 });

@@ -18,7 +18,7 @@ export type TagCreationInvocation = {
   source: 'picker' | 'directory' | 'topbar' | 'reference' | 'admin';
 };
 
-type CreationState = 'idle' | 'submitting' | 'pending' | 'active' | 'failed';
+type CreationState = 'idle' | 'submitting' | 'pending' | 'activating' | 'active' | 'failed';
 type CreationMessage =
   | ''
   | 'created'
@@ -50,15 +50,25 @@ export default function TagCreationFlow({
   const [operationId, setOperationId] = useState('');
   const [created, setCreated] = useState<CanonicalTag | null>(null);
   const [state, setState] = useState<CreationState>('idle');
+  const [retryable, setRetryable] = useState(false);
   const [message, setMessage] = useState<CreationMessage>('');
   const idempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
     if (open) {
       setName(invocation.initialName || '');
+      setScope('');
+      setParents([]);
+      setLabels({});
+      setCandidates([]);
+      setOperationId('');
+      setCreated(null);
+      setState('idle');
+      setRetryable(false);
       setMessage('');
+      idempotencyKey.current = crypto.randomUUID();
     }
-  }, [invocation.initialName, open]);
+  }, [invocation.initialName, invocation.source, open]);
 
   useEffect(() => {
     const query = name.trim();
@@ -75,24 +85,46 @@ export default function TagCreationFlow({
     return () => { active = false; window.clearTimeout(timer); };
   }, [name, open]);
 
+  // A retryable failure is not final: the durable delivery keeps retrying in
+  // the background, so polling has to survive both the failure and the
+  // `activating` step that the operation enters once the Control Plane has
+  // accepted the command.
+  const awaitingOutcome =
+    state === 'pending' || state === 'activating' || (state === 'failed' && retryable);
   useEffect(() => {
-    if (!open || !operationId || state !== 'pending') return undefined;
-    const timer = window.setInterval(() => {
+    if (!open || !operationId || !awaitingOutcome) return undefined;
+    let active = true;
+    let polling = false;
+    const poll = () => {
+      if (polling) return;
+      polling = true;
       void loadTagCreationOperation(operationId)
         .then((status) => {
+          if (!active) return;
           if (status.state === 'active') {
             setState('active');
+            setRetryable(false);
             setMessage('created');
             if (created) onCreated?.(created);
           } else if (status.state === 'failed' || status.state === 'reconciliation_required') {
+            setRetryable(status.retryable);
             setState('failed');
-            setMessage('incompleteRetryable');
+            setMessage(status.retryable ? 'incompleteRetryable' : 'failed');
+          } else {
+            setRetryable(status.retryable);
+            setState(status.state === 'activating' ? 'activating' : 'pending');
           }
         })
-        .catch(() => setMessage('progressUnavailable'));
-    }, 1200);
-    return () => window.clearInterval(timer);
-  }, [created, onCreated, open, operationId, state]);
+        .catch(() => { if (active) setMessage('progressUnavailable'); })
+        .finally(() => { polling = false; });
+    };
+    poll();
+    const timer = window.setInterval(poll, 1200);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [awaitingOutcome, created, onCreated, open, operationId]);
 
   const parentIds = useMemo(
     () => parents.map(Number).filter((id) => Number.isInteger(id) && id > 0),
@@ -111,13 +143,38 @@ export default function TagCreationFlow({
       });
       setCreated(result.tag);
       setOperationId(result.operationId);
+      setRetryable(false);
       setState(result.state === 'active' ? 'active' : 'pending');
       setMessage(result.state === 'active' ? 'created' : 'pending');
       if (result.state === 'active') onCreated?.(result.tag);
     } catch (error) {
       setState('failed');
+      setRetryable(false);
       console.error('Tag creation failed', error);
       setMessage('failed');
+    }
+  };
+
+  const retry = async () => {
+    if (!operationId) return;
+    setMessage('retrying');
+    try {
+      const status = await retryTagCreationOperation(operationId);
+      if (status.state === 'active') {
+        setState('active');
+        setRetryable(false);
+        setMessage('created');
+        if (created) onCreated?.(created);
+        return;
+      }
+      setRetryable(status.retryable);
+      setState(status.state === 'activating' ? 'activating' : 'pending');
+      setMessage('pending');
+    } catch (error) {
+      console.error('Tag creation retry failed', error);
+      setState('failed');
+      setRetryable(true);
+      setMessage('incompleteRetryable');
     }
   };
 
@@ -143,8 +200,8 @@ export default function TagCreationFlow({
           <div className="tag-creation-flow__status" role="status" aria-live="polite">{message ? t(`tagCreation.status.${message}`) : ''}</div>
         </div>
         <footer>
-          <AnimateButton unstyled type="button" onClick={() => void submit()} disabled={!name.trim() || !scope.trim() || state === 'submitting' || state === 'pending'}><Icon name="plus-circle" />{state === 'submitting' ? t('tagCreation.creatingAction') : t('tagCreation.createAction')}</AnimateButton>
-          {state === 'failed' && operationId ? <AnimateButton unstyled type="button" onClick={() => void retryTagCreationOperation(operationId).then(() => { setState('pending'); setMessage('retrying'); })}><Icon name="arrow-clockwise" />{t('tagCreation.retry')}</AnimateButton> : null}
+          <AnimateButton unstyled type="button" onClick={() => void submit()} disabled={!name.trim() || !scope.trim() || state === 'submitting' || state === 'pending' || state === 'activating' || (state === 'failed' && retryable && Boolean(operationId))}><Icon name="plus-circle" />{state === 'submitting' ? t('tagCreation.creatingAction') : t('tagCreation.createAction')}</AnimateButton>
+          {state === 'failed' && operationId ? <AnimateButton unstyled type="button" onClick={() => void retry()}><Icon name="arrow-clockwise" />{t('tagCreation.retry')}</AnimateButton> : null}
         </footer>
       </DialogContent>
     </Dialog>

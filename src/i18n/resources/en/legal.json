@@ -6,8 +6,6 @@
   "contact": "Contact",
   "navigation": "Legal pages",
   "operator": "Operator",
-  "source": "Source code",
-  "notPublished": "Not published for this deployment",
   "nav": {
     "about": "About",
     "legal": "Legal",
@@ -18,18 +16,18 @@
   },
   "pages": {
     "about": {
-      "title": "About {{siteName}}",
+      "title": "About Rinspace",
       "label": "About",
-      "description": "{{siteName}} is a long-form knowledge community organized by tags, with Markdown and LaTeX writing backed by Git version control.",
+      "description": "Rinspace is a long-form knowledge community organized by tags, with Markdown and LaTeX writing backed by Git version control.",
       "sections": {
         "position": {
           "title": "What Rinspace is for",
-          "line1": "{{siteName}} supports long-term knowledge organization, blogging, book notes, tag Wikis, questions, and discussions.",
+          "line1": "Rinspace supports long-term knowledge organization, article writing, book notes, tag Wikis, questions, and discussions.",
           "line2": "Tags form the core of its knowledge structure so that content, citations, and version changes remain traceable."
         },
         "operator": {
           "title": "Operator",
-          "line1": "Operator for {{siteName}}: {{company}}.",
+          "line1": "Rinspace is operated by {{company}}.",
           "line2": "The public contact email is {{email}}."
         }
       }
@@ -37,18 +35,18 @@
     "legal": {
       "title": "Legal information",
       "label": "Legal",
-      "description": "{{siteName}} operator details, regulatory records, and public contact information.",
+      "description": "Rinspace operator details, regulatory records, and public contact information.",
       "sections": {
         "identity": {
           "title": "Operator details",
-          "line1": "Website: {{siteName}}",
+          "line1": "Website: Rinspace",
           "line2": "Operator: {{company}}",
           "line3": "Contact: {{email}}"
         },
         "records": {
           "title": "Regulatory records",
-          "line1": "ICP filing: {{icp}}",
-          "line2": "Public security filing: {{publicSecurity}}"
+          "line1": "ICP filing: 沪ICP备2025152146号-2",
+          "line2": "Public security filing: 沪公网安备31012102000206号"
         },
         "links": {
           "title": "Related pages",
@@ -60,7 +58,7 @@
     "terms": {
       "title": "Terms of Service",
       "label": "Terms",
-      "description": "Basic rules for publishing, editing, citing, and interacting with content on {{siteName}}.",
+      "description": "Basic rules for publishing, editing, citing, and interacting with content on Rinspace.",
       "sections": {
         "account": {
           "title": "Accounts and content",
@@ -69,7 +67,7 @@
         },
         "knowledge": {
           "title": "Knowledge and citations",
-          "line1": "{{siteName}} supports Markdown, LaTeX, tag Wikis, and Git versioning; users must respect attribution and citation standards.",
+          "line1": "Rinspace supports Markdown, LaTeX, tag Wikis, and Git versioning; users must respect attribution and citation standards.",
           "line2": "The platform may process public content as needed for display, indexing, backup, moderation, and security."
         },
         "enforcement": {
@@ -82,17 +80,17 @@
     "privacy": {
       "title": "Privacy Policy",
       "label": "Privacy",
-      "description": "How {{siteName}} handles basic account, content, log, and contact information.",
+      "description": "How Rinspace handles basic account, content, log, and contact information.",
       "sections": {
         "collection": {
           "title": "Information collected",
-          "line1": "{{siteName}} processes the account data, content data, and activity logs needed for sign-in, publishing, editing, comments, notifications, security audits, and abuse prevention.",
+          "line1": "Rinspace processes the account data, content data, and activity logs needed for sign-in, publishing, editing, comments, notifications, security audits, and abuse prevention.",
           "line2": "Email addresses, avatars, profiles, posts, comments, tag edits, and uploaded files are displayed or stored according to the visibility selected by the user."
         },
         "purpose": {
           "title": "How information is used",
           "line1": "Information is used to provide the service, preserve content versions, handle reports, protect security, improve the product, and meet legal obligations.",
-          "line2": "Personal information is not used for purposes unrelated to {{siteName}} unless required by law, authorized by the user, or necessary for security."
+          "line2": "Personal information is not used for unrelated purposes unless required by law, authorized by the user, or necessary for security."
         },
         "rights": {
           "title": "Access and correction",
@@ -103,16 +101,16 @@
     "copyright": {
       "title": "Copyright and infringement reports",
       "label": "Copyright",
-      "description": "{{siteName}} copyright principles and the channel for reporting infringement.",
+      "description": "Rinspace copyright principles and the channel for reporting infringement.",
       "sections": {
         "principles": {
           "title": "Copyright principles",
-          "line1": "{{siteName}} respects original work, academic citation, open-source licenses, and lawful republication.",
+          "line1": "Rinspace respects original work, academic citation, open-source licenses, and lawful republication.",
           "line2": "Before publishing, users must hold the relevant rights, have permission, or rely on another lawful basis such as fair use, citation, or an open-source license."
         },
         "materials": {
           "title": "What to include in a report",
-          "line1": "If content on {{siteName}} infringes your rights, provide the URL, proof of rights, an explanation of the infringement, and a contact email.",
+          "line1": "If content on Rinspace infringes your rights, provide the URL, proof of rights, an explanation of the infringement, and a contact email.",
           "line2": "Report to: {{email}}"
         },
         "handling": {
@@ -124,7 +122,7 @@
     "contact": {
       "title": "Contact",
       "label": "Contact",
-      "description": "{{siteName}} public email address and common reasons to contact us.",
+      "description": "Rinspace public email address and common reasons to contact us.",
       "sections": {
         "email": {
           "title": "Public email",

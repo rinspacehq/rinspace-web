@@ -1,5 +1,10 @@
 # Licensing Scope
 
+> **Migration preparation:** This private frontend candidate carries the existing Rinspace Web
+> licensing terms below for the proposed migration into `rinspacehq/rinspace-web`. The public
+> source and private consumer have not switched. The versioned approval below records the existing
+> terms, not approval of this candidate's file list, clean commit or publication.
+
 > Version 1.0, dated 2026-09-04. The rights holder has approved the licensing scope and bound the release legal documents to reviewed SHA-256 digests. This approval is based on a disclosed non-lawyer PRC-law review and does not by itself authorize a public release.
 
 Rinspace Web is a combined application containing Rinspace-owned code, third-party software, and separately licensed content and brand assets. A repository-wide license label does not replace those file-specific terms.

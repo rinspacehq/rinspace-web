@@ -314,7 +314,7 @@
 .content-comment-reply-action {
   align-items: center;
   border: 0;
-  color: var(--rin-ink, #2c3e50);
+  color: var(--rin-ink-muted, #718096);
   display: inline-flex;
   gap: 0.3rem;
   padding: 0.2rem 0;

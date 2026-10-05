@@ -16,37 +16,32 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import TagPicker from '@/components/TagPicker';
 import { formatNumber } from '@/i18n/format';
 import { resolveLocale } from '@/i18n/resolveLocale';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { createContent, isContentModerationSubmission } from '@/services/domains/article';
-import {
-  openArticleCodeWorkspace,
-  uploadAnswerFile,
-} from '@/services/domains/publication';
+import { uploadAnswerFile } from '@/services/domains/publication';
 import { messageFromError } from '@/services/errors';
 import type { BookTOCItem } from '@/services/feed';
-import type { CloudUser } from '@/services/phoneAuth';
+import type { RinspaceUser } from '@/services/phoneAuth';
 import { uploadCoverFile } from '@/services/profile';
+import { openGiteaPath } from '@/utils/giteaPaths';
 import { bookWorkspacePath, contentPath } from '@/utils/routes';
-import {
-  addMarkdownBookFile,
-  bodyFromMarkdownBookProject,
-  markdownBookProjectFromBody,
-} from '@/utils/markdownBook';
 import { extractPDFTOC, renderPDFCover } from '@/utils/pdfToc';
+
+import { latexArticleInitialSource } from './latexArticleTemplate';
+import { typstCreationEnabled } from './typstFeature';
 
 import './publish-dialog.css';
 
-export type PublishDialogMode = 'blog' | 'latex-book' | 'markdown-book' | 'pdf-book';
+export type PublishDialogMode = 'blog' | 'typst-blog' | 'latex-book' | 'typst-book' | 'markdown-book' | 'pdf-book';
 
 type PublishCreateDialogProps = {
   open: boolean;
   mode: PublishDialogMode;
-  user: CloudUser | null;
+  user: RinspaceUser | null;
   onClose(): void;
 };
 
@@ -60,38 +55,21 @@ const DIALOG_META: Record<
   { aspect: number; outputWidth: number; outputHeight: number; ratioLabel: string }
 > = {
   blog: { aspect: 16 / 9, outputWidth: 1600, outputHeight: 900, ratioLabel: '16:9' },
+  'typst-blog': { aspect: 16 / 9, outputWidth: 1600, outputHeight: 900, ratioLabel: '16:9' },
   'latex-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
+  'typst-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
   'markdown-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
   'pdf-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
 };
 
-const MODE_TRANSLATION_KEYS: Record<PublishDialogMode, 'blog' | 'latexBook' | 'markdownBook' | 'pdfBook'> = {
+const MODE_TRANSLATION_KEYS: Record<PublishDialogMode, 'blog' | 'typstBlog' | 'latexBook' | 'typstBook' | 'markdownBook' | 'pdfBook'> = {
   blog: 'blog',
+  'typst-blog': 'typstBlog',
   'latex-book': 'latexBook',
+  'typst-book': 'typstBook',
   'markdown-book': 'markdownBook',
   'pdf-book': 'pdfBook',
 };
-
-const latexArticleInitialSource = [
-  '\\documentclass[11pt]{article}',
-  '\\usepackage[margin=1in]{geometry}',
-  '\\usepackage{amsmath,amssymb,amsthm}',
-  '\\usepackage{hyperref}',
-  '',
-  '\\title{}',
-  '\\author{}',
-  '\\date{\\today}',
-  '',
-  '\\begin{document}',
-  '\\maketitle',
-  '',
-  '\\input{sections/intro}',
-  '',
-  '\\bibliographystyle{plain}',
-  '\\bibliography{refs}',
-  '',
-  '\\end{document}',
-].join('\n');
 
 function latexArticleInitialBody() {
   return [
@@ -106,42 +84,14 @@ function latexArticleInitialBody() {
   ].join('\n');
 }
 
-function latexBookInitialBody() {
-  return [
-    '[[RIN_WRITER]]',
-    '<h2 id="introduction">Introduction</h2>',
-    '<p>Start writing the book here.</p>',
-    '[[/RIN_WRITER]]',
-    '',
-    '[[RIN_SOURCE]]',
-    '\\documentclass[11pt]{book}',
-    '\\usepackage[margin=1in]{geometry}',
-    '\\usepackage{amsmath,amssymb,amsthm}',
-    '\\usepackage{hyperref}',
-    '',
-    '\\title{}',
-    '\\author{}',
-    '\\date{\\today}',
-    '',
-    '\\begin{document}',
-    '\\maketitle',
-    '\\chapter{Introduction}',
-    'Start writing the book here.',
-    '\\end{document}',
-    '[[/RIN_SOURCE]]',
-  ].join('\n');
-}
-
 export default function PublishCreateDialog({ open, mode, user, onClose }: PublishCreateDialogProps) {
   const navigate = useNavigate();
-  const bootstrap = useOptionalBootstrap();
   const { t, i18n } = useFeatureTranslation('creation');
   const locale = resolveLocale(i18n.resolvedLanguage || i18n.language, []);
   const meta = DIALOG_META[mode];
   const modeTranslationKey = MODE_TRANSLATION_KEYS[mode];
-  const isBook = mode !== 'blog';
+  const isBook = mode !== 'blog' && mode !== 'typst-blog';
   const isPdf = mode === 'pdf-book';
-  const demoMode = bootstrap?.config.mode === 'demo';
 
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
@@ -219,15 +169,18 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
   };
 
   const uploadCroppedCover = async (file: File) => {
-    if (!user || !pendingCoverCrop) return;
+    if (!pendingCoverCrop) return;
+    if (!user) {
+      setError(t('publishPage.validation.signInToUploadCover'));
+      setNotice('');
+      return;
+    }
     setCoverUploading(true);
     setError('');
     setNotice(t('publishDialog.cover.uploading'));
     try {
-      const uploaded = demoMode && bootstrap
-        ? await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })
-        : await uploadCoverFile(user, file);
-      setCoverUrl('fileID' in uploaded ? uploaded.fileID : uploaded.url);
+      const uploaded = await uploadCoverFile(user, file);
+      setCoverUrl(uploaded.fileID);
       setNotice(t('publishDialog.cover.uploaded'));
       URL.revokeObjectURL(pendingCoverCrop.imageUrl);
       setPendingCoverCrop(null);
@@ -243,12 +196,6 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
     if (!file) return;
-    if (demoMode) {
-      setError(t('publishDialog.capabilities.pdfUnavailable'));
-      setPdfTocStatus('');
-      setPdfCoverStatus('');
-      return;
-    }
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       setError(t('publishDialog.pdf.fileOnly'));
       return;
@@ -307,6 +254,7 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user || creating) return;
+    if ((mode === 'typst-blog' || mode === 'typst-book') && !typstCreationEnabled) return;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setError(t('publishDialog.create.titleRequired'));
@@ -324,7 +272,7 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
     setError('');
     setNotice(t(`publishDialog.create.creating.${modeTranslationKey}`));
     try {
-      if (mode === 'blog') {
+      if (mode === 'blog' || mode === 'typst-blog') {
         const saved = await createContent({
           type: 'blog',
           status: 'draft',
@@ -334,54 +282,27 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
           excerpt: excerpt.trim(),
           tags: tags.slice(0, 6),
           coverUrl,
-          editor: 'rin',
-          body: latexArticleInitialBody(),
+          editor: mode === 'typst-blog' ? 'typst' : 'rin',
+          body: mode === 'typst-blog' ? '' : latexArticleInitialBody(),
         });
         if (isContentModerationSubmission(saved)) {
           setNotice(t(`publishDialog.create.moderation.${saved.state === 'rejected' ? 'rejected' : saved.state === 'published' ? 'published' : 'pending'}`));
           setCreating(false);
           return;
         }
-		if (demoMode) {
-		  onClose();
-		  navigate(`/write?edit=${encodeURIComponent(saved.slug || saved.id)}`);
-		  return;
-		}
-		if (saved.publicationPending) {
-		  setNotice(t('publishDialog.create.activationPending'));
-		  setCreating(false);
-		  return;
-		}
         setNotice(t('publishDialog.create.openingRepository'));
-        const workspace = await openArticleCodeWorkspace(saved.slug || saved.id);
-        window.location.assign(workspace.repositoryUrl || workspace.url);
+        openGiteaPath('a', saved.id);
         return;
       }
-      if (demoMode && isPdf) {
-        setError(t('publishDialog.capabilities.pdfUnavailable'));
-        setNotice('');
-        setCreating(false);
-        return;
-      }
-      const markdownProject = mode === 'markdown-book'
-        ? addMarkdownBookFile(
-          markdownBookProjectFromBody('', trimmedTitle),
-          t('publishDialog.create.initialChapter'),
-        )
-        : null;
       const saved = await createContent({
         type: 'book',
         title: trimmedTitle,
-        body: demoMode
-          ? markdownProject
-            ? bodyFromMarkdownBookProject(markdownProject)
-            : latexBookInitialBody()
-          : '',
+        body: '',
         excerpt: excerpt.trim(),
         tags: tags.slice(0, 6),
         coverUrl,
         book: {
-          kind: mode === 'markdown-book' ? 'markdown' : 'original',
+          kind: mode === 'markdown-book' ? 'markdown' : mode === 'typst-book' ? 'typst' : 'original',
           bookTitle: trimmedTitle,
           authors: [],
           pdfUrl: pdfUrl || undefined,
@@ -394,11 +315,8 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
         setCreating(false);
         return;
       }
-	  if (saved.publicationPending) {
-		setNotice(t('publishDialog.create.activationPending'));
-		setCreating(false);
-		return;
-	  }
+      setCreating(false);
+      onClose();
       navigate(isPdf ? contentPath('book', saved.id, saved.title) : bookWorkspacePath(saved.id));
     } catch (submitError) {
       setError(messageFromError(submitError, 'creation.contentCreateFailed'));
@@ -431,11 +349,6 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
             </DialogClose>
           </div>
           <form className="auth-dialog-form latex-blog-dialog-form" onSubmit={submit}>
-            {demoMode ? (
-              <div className="state-strip" data-rin-demo-publish-boundary="true">
-                {t('publishDialog.capabilities.demoBoundary')}
-              </div>
-            ) : null}
             <label>
               <span>{t('publishDialog.fields.title')}</span>
               <input
@@ -467,7 +380,7 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
                 onChange={setTags}
               />
             </div>
-            {mode === 'blog' ? (
+            {!isBook ? (
               <div
                 className="latex-blog-visibility"
                 role="group"
@@ -580,6 +493,7 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
           outputHeight={meta.outputHeight}
           outputFileName={pendingCoverCrop.fileName}
           busy={coverUploading}
+          error={error}
           onCancel={closeCoverCrop}
           onConfirm={uploadCroppedCover}
         />

@@ -1,0 +1,112 @@
+/*
+ * Product-family styles are loaded lazily and still contain legacy font
+ * declarations. The v2 frame owns the font contract so those declarations
+ * cannot change text metrics after a route is mounted.
+ *
+ * Normal descendants inherit from their nearest semantic root. Dedicated
+ * renderers stay outside this rule because they own their own font metrics.
+ */
+[data-rin-ui="v2"] .rin-app-frame:not([data-rin-ui-boundary="frozen"]) {
+  font-family: var(--rin-font-interface) !important;
+}
+
+[data-rin-ui="v2"] .rin-app-frame:not([data-rin-ui-boundary="frozen"])
+  :where(*):not(
+    .katex,
+    .katex *,
+    mjx-container,
+    mjx-container *,
+    .cm-editor,
+    .cm-editor *,
+    .rin-editor-host,
+    .rin-editor-host *,
+    .rin-milkdown-editor-host,
+    .rin-milkdown-editor-host *
+  ) {
+  font-family: inherit !important;
+}
+
+[data-rin-ui="v2"] .rin-app-frame:not([data-rin-ui-boundary="frozen"])
+  :where(button, input, option, select, textarea, [role="button"]):not(
+    .katex *,
+    mjx-container *,
+    .cm-editor *,
+    .rin-editor-host *,
+    .rin-milkdown-editor-host *
+  ) {
+  font-family: var(--rin-font-interface) !important;
+}
+
+[data-rin-ui="v2"] .rin-app-frame:not([data-rin-ui-boundary="frozen"])
+  :where(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .rin-editorial-title,
+    .rin-rich-content,
+    .rin-reading-axis,
+    .rin-writer-html,
+    .content-comment-markdown,
+    .math-text
+  ):not(
+    .katex,
+    .katex *,
+    mjx-container,
+    mjx-container *,
+    .cm-editor,
+    .cm-editor *,
+    .rin-editor-host,
+    .rin-editor-host *,
+    .rin-milkdown-editor-host,
+    .rin-milkdown-editor-host *
+  ) {
+  font-family: var(--rin-font-editorial) !important;
+}
+
+[data-rin-ui="v2"] .rin-app-frame:not([data-rin-ui-boundary="frozen"])
+  :where(
+    code,
+    kbd,
+    pre,
+    samp,
+    time,
+    .rin-metadata,
+    .stream-meta,
+    .detail-meta-row,
+    .comment-meta,
+    .panel-heading,
+    .section-label,
+    .rin-eyebrow,
+    .tag-row,
+    .meta-category,
+    .cultivation-badge,
+    .home-card-exact-time
+  ):not(
+    .katex,
+    .katex *,
+    mjx-container,
+    mjx-container *,
+    .cm-editor,
+    .cm-editor *,
+    .rin-editor-host,
+    .rin-editor-host *,
+    .rin-milkdown-editor-host,
+    .rin-milkdown-editor-host *
+  ) {
+  font-family: var(--rin-font-mono) !important;
+}
+
+[data-rin-ui="v2"] .rin-app-frame:not([data-rin-ui-boundary="frozen"])
+  .rin-community-action-icon {
+  font-family: "Rin Community Actions" !important;
+}
+
+[data-rin-ui="v2"] .rin-app-frame:not([data-rin-ui-boundary="frozen"])
+  .detail-action-count {
+  font-family: var(--rin-font-mono) !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}

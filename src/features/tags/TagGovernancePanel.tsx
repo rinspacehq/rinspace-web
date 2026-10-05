@@ -1,4 +1,4 @@
-import { AnimateKanban, AnimatePaintbrush, AnimatePlus, AnimateSettings, Button, DialogDescription, Field, Input, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Tooltip } from 'components/ui';
+import { AnimateKanban, AnimatePaintbrush, AnimatePlus, Button, DialogDescription, Field, Icon, Input, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Tooltip } from 'components/ui';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import TagPicker from '@/components/TagPicker';
@@ -113,7 +113,7 @@ export default function TagGovernancePanel({ tagId, displayName, version, parent
   return (
     <>
       <Tooltip content={t('tagGovernance.maintain')}>
-        <Button className="tag-knowledge-icon-action" type="button" variant="primary" aria-label={t('tagGovernance.maintain')} onClick={() => setOpen(true)}><AnimateSettings animateOnHover size={17} /></Button>
+        <Button className="tag-knowledge-icon-action" type="button" variant="ghost" aria-label={t('tagGovernance.maintain')} onClick={() => setOpen(true)}><Icon data-tag-knowledge-icon="maintain" name="pencil-square" size={18} /></Button>
       </Tooltip>
       <Modal show={open} onHide={() => setOpen(false)} dialogClassName="tag-governance-dialog">
         <Modal.Header closeButton={!busy}>

@@ -22,7 +22,7 @@ import {
 } from 'react';
 import katex from 'katex';
 import { Button, Form } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SiteTopbar from '@/components/SiteTopbarShell';
 import LoadingState from '@/components/LoadingState';
@@ -32,7 +32,10 @@ import CultivationBadge from '@/components/CultivationBadge';
 import CodeMirrorEditor from '@/components/CodeMirrorEditor';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import MathText, { MathInline } from '@/components/MathText';
+import { TweetComposerError } from '@/components/shared/RinspaceTweetComposer';
 import { type IdentityTranslation } from '@/features/identity/labels';
+import { typstCreationEnabled } from '@/features/publish/typstFeature';
+import TweetStatusList, { mastodonStatusPlainText } from '@/features/tweets/TweetStatusList';
 import { localizedErrorMessage } from '@/i18n/errors';
 import { formatDate, formatList, formatNumber } from '@/i18n/format';
 import type { LocaleId } from '@/i18n/types';
@@ -43,6 +46,7 @@ import { loadContentFeed } from '@/services/domains/article';
 import { followTarget, switchCollection } from '@/services/domains/discussion';
 import { createCollectionFolder, deleteCollectionFolder, loadCollectionFolderPage, loadUserBadgeAwards, loadPersonalAnswerPage, loadPersonalCommentPage, loadPersonalCollectionPage, loadPersonalQATop, loadPersonalQuestionPage, loadPersonalUserInfo, loadCurrentUserInfo, loadUserRelations, moveCollectionItem, moveWorkItem, updateCollectionFolder, updateCurrentUserInfo } from '@/services/domains/identity';
 import type { AnswerUserInfo, BadgeListItem, CollectionFolder, CollectionFolderItem, CollectionFolderPage, CollectionFolderTreeNode, CurrentUserInfo, FeedItem, KnowledgeGraphEdge, KnowledgeGraphNode, KnowledgeGraphResponse, PersonalAnswerSummary, PersonalCommentSummary, PersonalQATopResponse, PersonalQuestionSummary, UserRelationItem, UserRelationKind, UserRelationListResult } from '@/services/contracts';
+import { loadMastodonAccountStatuses, tweetPublishedEvent, type MastodonStatusSummary } from '@/services/mastodonSocial';
 import {
   getCurrentUser,
   loadProfile,
@@ -50,9 +54,8 @@ import {
   uploadAvatarFile,
   uploadCoverFile,
 } from '@/services/profile';
-import { type CloudUser } from '@/services/phoneAuth';
-import { useAuthAdapter, useAuthSnapshot } from '@/platform/auth/context';
-import { useBootstrap } from '@/app/bootstrap/context';
+import { type RinspaceUser } from '@/services/phoneAuth';
+import { contentTypeMetaChar } from '@/utils/contentTypeMeta';
 import {
   cleanUserId,
   contentPath,
@@ -90,9 +93,9 @@ type ProfileDraft = {
   aboutHtml: string;
 };
 
-type ProfileTab = 'about' | 'overview' | 'blog' | 'book' | 'qa' | 'discussion' | 'dynamic' | 'collection' | 'graph';
+type ProfileTab = 'about' | 'overview' | 'blog' | 'book' | 'tweet' | 'collection' | 'graph';
 
-type ProfileTimelineType = 'blog' | 'book' | 'question' | 'answer' | 'comment' | 'discussion' | 'dynamic';
+type ProfileTimelineType = 'blog' | 'book' | 'question' | 'answer' | 'comment' | 'discussion' | 'dynamic' | 'tweet';
 
 const collectionWorksFolderID = '__rinspace_works';
 const collectionWorksPrivateFolderID = '__rinspace_works_private';
@@ -114,8 +117,10 @@ type ProfileTimelineItem = {
   meta: string;
 };
 
+type TweetProjectionState = 'idle' | 'loading' | 'ready' | 'unbound' | 'error';
+
 function isOriginalStyleBook(item: FeedItem) {
-  return item.book?.kind === 'original' || item.book?.kind === 'markdown';
+  return item.book?.kind === 'original' || item.book?.kind === 'markdown' || item.book?.kind === 'typst';
 }
 
 type PendingImageCrop = {
@@ -129,13 +134,14 @@ type RelationDialogState = {
   page: number;
 };
 
-const profileTabs: ProfileTab[] = ['about', 'overview', 'blog', 'book', 'qa', 'discussion', 'dynamic', 'collection', 'graph'];
+const profileTabs: ProfileTab[] = ['about', 'overview', 'blog', 'book', 'tweet', 'collection', 'graph'];
 
 function profileTabLabel(t: IdentityTranslation, tab: ProfileTab) {
   return t(`profile.tabs.${tab}`);
 }
 
 function normalizeProfileTab(value: string | null): ProfileTab {
+  if (value === 'dynamic') return 'tweet';
   return profileTabs.includes(value as ProfileTab) ? (value as ProfileTab) : 'about';
 }
 
@@ -169,11 +175,25 @@ function profileAboutSrcDoc(source: string, dark: boolean, emptyText: string) {
   const html = source.trim() || defaultAboutHTML(dark, emptyText);
   const csp = `<meta http-equiv="Content-Security-Policy" content="${aboutFrameCSP.replace(/"/g, '&quot;')}">`;
   const base = '<base target="_blank">';
-  const theme = dark
-    ? '<style>html{background:#0b1218;color:#d7e1ea;color-scheme:dark}body{min-height:100vh;margin:0;padding:1rem;background:inherit;color:inherit;font:16px/1.7 system-ui}a{color:#8cc9f0}</style>'
-    : '<style>html{background:#fff;color:#1f2937;color-scheme:light}body{min-height:100vh;margin:0;padding:1rem;background:inherit;color:inherit;font:16px/1.7 system-ui}a{color:#245d82}</style>';
-  if (/<head(\s[^>]*)?>/i.test(html)) {
-    return html.replace(/<head(\s[^>]*)?>/i, (match) => `${match}${csp}${base}${theme}`);
+  const themeName = dark ? 'dark' : 'light';
+  const background = dark ? '#0b1218' : '#fff';
+  const color = dark ? '#d7e1ea' : '#1f2937';
+  const linkColor = dark ? '#8cc9f0' : '#245d82';
+  const theme = [
+    `<style data-rin-profile-theme="${themeName}">`,
+    `:root{color-scheme:${themeName}}`,
+    `html,body{min-height:100%;background:${background}!important;color:${color}!important}`,
+    'body{margin:0;padding:1rem;font:16px/1.7 system-ui}',
+    `a{color:${linkColor}}`,
+    '</style>',
+  ].join('');
+  const headPattern = /<head(\s[^>]*)?>/i;
+  if (headPattern.test(html)) {
+    const secured = html.replace(headPattern, (match) => `${match}${csp}${base}`);
+    if (/<\/head>/i.test(secured)) {
+      return secured.replace(/<\/head>/i, `${theme}</head>`);
+    }
+    return secured.replace(headPattern, (match) => `${match}${theme}`);
   }
   if (/<html(\s[^>]*)?>/i.test(html)) {
     return html.replace(/<html(\s[^>]*)?>/i, (match) => `${match}<head>${csp}${base}${theme}</head>`);
@@ -200,28 +220,8 @@ function feedItemTime(item: FeedItem) {
 function timelineMetaTypeClass(type: ProfileTimelineType) {
   if (type === 'answer') return 'question';
   if (type === 'comment') return 'discussion';
+  if (type === 'tweet') return 'dynamic';
   return type;
-}
-
-function timelineMetaChar(type: ProfileTimelineType) {
-  switch (type) {
-    case 'blog':
-      return 'b';
-    case 'book':
-      return 'k';
-    case 'question':
-      return 'q';
-    case 'answer':
-      return 'a';
-    case 'comment':
-      return 'c';
-    case 'discussion':
-      return 'd';
-    case 'dynamic':
-      return 's';
-    default:
-      return 'c';
-  }
 }
 
 function TimelineMetaCategory({
@@ -238,7 +238,9 @@ function TimelineMetaCategory({
       title={label}
     >
       <span className="profile-timeline-category-token">
-        <span className="char" aria-hidden="true">{timelineMetaChar(type)}</span>
+        <span className="char" aria-hidden="true">
+          {contentTypeMetaChar(type, 'c')}
+        </span>
         <span className="label">{label}</span>
       </span>
     </span>
@@ -362,18 +364,22 @@ function defaultCoverUrl() {
   return `${publicEnv.publicBasePath || ''}/profile-cover.svg`;
 }
 
-function websiteDetails(value: string) {
+function profileWebsiteDetails(value: string) {
   try {
-    const url = new URL(value);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
-    return { href: url.href, host: url.host };
+    const url = new URL(value.trim());
+    if (
+      !['http:', 'https:'].includes(url.protocol)
+      || url.username
+      || url.password
+    ) return null;
+    return { href: url.href, label: url.host };
   } catch {
     return null;
   }
 }
 
 function ProfileWebsiteLink({ value }: { value: string }) {
-  const website = websiteDetails(value);
+  const website = profileWebsiteDetails(value);
   if (!website) return null;
 
   return (
@@ -381,11 +387,10 @@ function ProfileWebsiteLink({ value }: { value: string }) {
       className="profile-website-link"
       href={website.href}
       target="_blank"
-      rel="noreferrer"
-      aria-label={website.host}
+      rel="noopener noreferrer nofollow ugc"
+      title={website.href}
     >
-      <span>{website.host}</span>
-      <Icon name="box-arrow-up-right" aria-hidden="true" />
+      {website.label}
     </a>
   );
 }
@@ -429,50 +434,6 @@ async function loadAllPersonalAnswerItems(username: string) {
     page += 1;
   }
   return items;
-}
-
-function QuestionList({ items }: { items: PersonalQuestionSummary[] }) {
-  const { t } = useFeatureTranslation('identity');
-  const locale = useResolvedLocale();
-  if (!items.length) return <div className="state-strip">{t('profile.empty.questions')}</div>;
-  return (
-    <div className="profile-item-list">
-      {items.map((item) => (
-        <Link to={questionPath(item)} key={item.id || item.question_id}>
-          <ProfileItemMeta
-            type="question"
-            label={profileTimelineLabel(t, 'question')}
-            timestamp={item.created_at * 1000}
-            detail={`${profileCountLabel(t, locale, 'answers', item.answer_count)} · ${profileCountLabel(t, locale, 'votes', item.vote_count)}`}
-          />
-          <strong><MathInline text={item.title} /></strong>
-          {item.description ? <p><MathInline text={item.description} /></p> : null}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function AnswerList({ items }: { items: PersonalAnswerSummary[] }) {
-  const { t } = useFeatureTranslation('identity');
-  const locale = useResolvedLocale();
-  if (!items.length) return <div className="state-strip">{t('profile.empty.answers')}</div>;
-  return (
-    <div className="profile-item-list">
-      {items.map((item) => (
-        <Link to={answerQuestionPath(item)} key={item.answer_id}>
-          <ProfileItemMeta
-            type="answer"
-            label={profileTimelineLabel(t, 'answer')}
-            timestamp={item.create_time * 1000}
-            detail={`${profileCountLabel(t, locale, 'votes', item.vote_count)}${item.accepted === 2 ? ` · ${t('profile.accepted')}` : ''}`}
-          />
-          <strong><MathInline text={item.question_info.title} /></strong>
-          <p>{formatList(locale, item.question_info.tags.map((tag) => tag.displayName || tag.name).filter(Boolean)) || t('profile.tabs.qa')}</p>
-        </Link>
-      ))}
-    </div>
-  );
 }
 
 function CommentList({ items }: { items: PersonalCommentSummary[] }) {
@@ -554,16 +515,6 @@ function BlogList({ items }: { items: FeedItem[] }) {
 function BookList({ items }: { items: FeedItem[] }) {
   const { t } = useFeatureTranslation('identity');
   return <ContentList items={items} emptyText={t('profile.empty.books')} />;
-}
-
-function DiscussionList({ items }: { items: FeedItem[] }) {
-  const { t } = useFeatureTranslation('identity');
-  return <ContentList items={items} emptyText={t('profile.empty.discussions')} />;
-}
-
-function DynamicList({ items }: { items: FeedItem[] }) {
-  const { t } = useFeatureTranslation('identity');
-  return <ContentList items={items} emptyText={t('profile.empty.dynamics')} />;
 }
 
 function CollectionList({ items }: { items: FeedItem[] }) {
@@ -1638,13 +1589,19 @@ function CollectionFolderManager({
       const folderIsWorks = isWorksCollectionFolder(folder);
       const canCreateChildFolder = !folderIsSystem || folderIsWorks;
       const canDeleteFolder = !folderIsSystem && !folder.isDefault && folder.itemCount === 0 && folder.childCount === 0;
-      const blogCreateLinks = [
+      const blogCreateLinks: Array<{ to: string; icon: IconName | ''; label: string; latex?: boolean; typst?: boolean }> = [
         { to: workCreateLink('/write', folder), icon: '', label: 'LaTeX', latex: true },
+        ...(typstCreationEnabled
+          ? [{ to: workCreateLink('/write?kind=typst', folder), icon: '' as const, label: 'Typst', typst: true }]
+          : []),
         { to: workCreateLink('/write/markdown', folder), icon: 'markdown' as IconName, label: 'Markdown' },
       ];
-      const bookCreateLinks = [
+      const bookCreateLinks: Array<{ to: string; icon: IconName | ''; label: string; latex?: boolean; typst?: boolean }> = [
         { to: workCreateLink('/books/new?kind=pdf', folder), icon: 'filetype-pdf' as IconName, label: 'PDF' },
         { to: workCreateLink('/books/new?kind=latex', folder), icon: '', label: 'LaTeX', latex: true },
+        ...(typstCreationEnabled
+          ? [{ to: workCreateLink('/books/new?kind=typst', folder), icon: '' as const, label: 'Typst', typst: true }]
+          : []),
         { to: workCreateLink('/books/new?kind=markdown', folder), icon: 'markdown' as IconName, label: 'Markdown' },
       ];
       const workCreateLinks = [
@@ -1700,6 +1657,8 @@ function CollectionFolderManager({
                             aria-hidden="true"
                             dangerouslySetInnerHTML={{ __html: texLogoHtml }}
                           />
+                        ) : link.typst ? (
+                          <span className="typst-menu-mark" aria-hidden="true">T</span>
                         ) : (
                           <Icon name={link.icon as IconName} />
                         )}
@@ -1737,6 +1696,8 @@ function CollectionFolderManager({
                             aria-hidden="true"
                             dangerouslySetInnerHTML={{ __html: texLogoHtml }}
                           />
+                        ) : link.typst ? (
+                          <span className="typst-menu-mark" aria-hidden="true">T</span>
                         ) : (
                           <Icon name={link.icon as IconName} />
                         )}
@@ -3551,36 +3512,38 @@ function RelationDialog({
         {!loading && !error && result && !result.items.length ? (
           <div className="state-strip">{t(`profile.empty.${relation}`)}</div>
         ) : null}
-        <div className="profile-relation-list">
-          {result?.items.map((item) => {
-            const isSelf = currentUserID && item.id === currentUserID;
-            return (
-              <article className="profile-relation-item" key={item.id}>
-                <Link to={routeProfilePath(item.username || item.id)} onClick={onClose}>
-                  <span className="profile-relation-avatar">
-                    <AvatarImage src={item.avatar} fallback={<span>{initialsFor(item.displayName || item.username)}</span>} />
-                  </span>
-                  <span className="profile-relation-copy">
-                    <strong>{item.displayName || item.username}</strong>
-                    <small>@{item.username}</small>
-                    {item.bio ? <p><MathInline text={item.bio} /></p> : null}
-                  </span>
-                  <CultivationBadge rank={item.rank} />
-                </Link>
-                {!isSelf ? (
-                  <AnimateButton unstyled
-                    type="button"
-                    className={item.isFollowing ? 'secondary-button' : 'primary-button'}
-                    disabled={busyID === item.id}
-                    onClick={() => onToggleFollow(item)}
-                  >
-                    {busyID === item.id ? t('shared.processing') : item.isFollowing ? t('profile.relations.unfollow') : t('profile.relations.follow')}
-                  </AnimateButton>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
+        {!loading && result?.items.length ? (
+          <div className="profile-relation-list">
+            {result.items.map((item) => {
+              const isSelf = currentUserID && item.id === currentUserID;
+              return (
+                <article className="profile-relation-item" key={item.id}>
+                  <Link to={routeProfilePath(item.username || item.id)} onClick={onClose}>
+                    <span className="profile-relation-avatar">
+                      <AvatarImage src={item.avatar} fallback={<span>{initialsFor(item.displayName || item.username)}</span>} />
+                    </span>
+                    <span className="profile-relation-copy">
+                      <strong>{item.displayName || item.username}</strong>
+                      <small>@{item.username}</small>
+                      {item.bio ? <p><MathInline text={item.bio} /></p> : null}
+                    </span>
+                    <CultivationBadge rank={item.rank} />
+                  </Link>
+                  {!isSelf ? (
+                    <AnimateButton unstyled
+                      type="button"
+                      className={item.isFollowing ? 'secondary-button' : 'primary-button'}
+                      disabled={busyID === item.id}
+                      onClick={() => onToggleFollow(item)}
+                    >
+                      {busyID === item.id ? t('shared.processing') : item.isFollowing ? t('profile.relations.unfollow') : t('profile.relations.follow')}
+                    </AnimateButton>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        ) : null}
         {result && pageCount > 1 ? (
           <div className="profile-relation-pagination">
             <Button className="secondary-button" type="button" disabled={loading || page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
@@ -3601,9 +3564,6 @@ function ProfilePage() {
   const { t } = useFeatureTranslation('identity');
   const locale = useResolvedLocale();
   const { resolved: resolvedTheme } = useTheme();
-  const bootstrap = useBootstrap();
-  const authAdapter = useAuthAdapter();
-  const authSnapshot = useAuthSnapshot();
   const params = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -3613,15 +3573,17 @@ function ProfilePage() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [blogs, setBlogs] = useState<FeedItem[]>([]);
   const [books, setBooks] = useState<FeedItem[]>([]);
-  const [dynamics, setDynamics] = useState<FeedItem[]>([]);
   const [discussions, setDiscussions] = useState<FeedItem[]>([]);
+  const [tweets, setTweets] = useState<MastodonStatusSummary[]>([]);
+  const [tweetNextMaxId, setTweetNextMaxId] = useState<string | null>(null);
+  const [tweetProjectionState, setTweetProjectionState] = useState<TweetProjectionState>('idle');
   const [collections, setCollections] = useState<FeedItem[]>([]);
   const [profileGraph, setProfileGraph] = useState<KnowledgeGraphResponse | null>(null);
   const [profileGraphLoading, setProfileGraphLoading] = useState(false);
   const [profileGraphError, setProfileGraphError] = useState('');
   const [selectedGraphNode, setSelectedGraphNode] = useState<KnowledgeGraphNode | null>(null);
   const [profileGraphInspectorCollapsed, setProfileGraphInspectorCollapsed] = useState(true);
-  const [authUser, setAuthUser] = useState<CloudUser | null>(null);
+  const [authUser, setAuthUser] = useState<RinspaceUser | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUserInfo | null>(null);
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>({
     userId: '',
@@ -3663,18 +3625,6 @@ function ProfilePage() {
   useNoticeToasts({
     editError, editNotice, error, followError, relationError,
   });
-  const runtimeAuthUser = useMemo<CloudUser | null>(() => (
-    authSnapshot.status === 'authenticated' && authSnapshot.user
-      ? {
-          id: authSnapshot.user.id,
-          username: authSnapshot.user.username,
-          user_metadata: {
-            nickname: authSnapshot.user.displayName,
-            avatarUrl: authSnapshot.user.avatarUrl || '',
-          },
-        }
-      : null
-  ), [authSnapshot.status, authSnapshot.user]);
 
   const isOwnProfile = Boolean(
     data &&
@@ -3712,6 +3662,7 @@ function ProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
+    const socialController = new AbortController();
     if (!username) {
       setError(localizedErrorMessage(null, 'identity.profileMissingUsername'));
       setLoading(false);
@@ -3735,11 +3686,10 @@ function ProfilePage() {
       loadUserBadgeAwards(username),
       loadAllContentFeedItems('blog', username),
       loadAllContentFeedItems('book', username),
-      loadAllContentFeedItems('status', username),
       loadAllContentFeedItems('forum', username),
       loadPersonalCollectionPage({ username, page: 1, pageSize: 6 }),
     ])
-      .then(async ([user, qaTop, questionItems, answerItems, commentPage, badgePage, blogItems, bookFeedItems, dynamicItems, discussionItems, collectionPage]) => {
+      .then(async ([user, qaTop, questionItems, answerItems, commentPage, badgePage, blogItems, bookFeedItems, discussionItems, collectionPage]) => {
         if (cancelled) return;
         setData({
           user,
@@ -3752,18 +3702,33 @@ function ProfilePage() {
         });
         setBlogs(blogItems);
         setBooks(bookFeedItems);
-        setDynamics(dynamicItems);
         setDiscussions(discussionItems);
         setCollections(collectionPage.items);
         setFollowingProfile(user.is_follower);
         setProfileFollowCount(user.follow_count);
         setProfileFollowingCount(user.following_count);
         setFollowError('');
+        setTweets([]);
+        setTweetNextMaxId(null);
+        setTweetProjectionState('loading');
+        void loadMastodonAccountStatuses(user.id, undefined, socialController.signal)
+          .then((page) => {
+            if (cancelled) return;
+            setTweets(page.items);
+            setTweetNextMaxId(page.nextMaxId);
+            setTweetProjectionState('ready');
+          })
+          .catch((tweetError: unknown) => {
+            if (cancelled || socialController.signal.aborted) return;
+            setTweetProjectionState(
+              tweetError instanceof TweetComposerError && tweetError.code === 'social.identity_unbound'
+                ? 'unbound'
+                : 'error',
+            );
+          });
 
         const [nextAuthUser, nextCurrentUser] = await Promise.all([
-          bootstrap.config.mode === 'demo'
-            ? Promise.resolve(runtimeAuthUser)
-            : getCurrentUser().catch(() => null),
+          getCurrentUser().catch(() => null),
           loadCurrentUserInfo().catch(() => null),
         ]);
         if (cancelled) return;
@@ -3811,8 +3776,38 @@ function ProfilePage() {
 
     return () => {
       cancelled = true;
-      };
-  }, [bootstrap.config.mode, runtimeAuthUser, username]);
+      socialController.abort();
+    };
+  }, [username]);
+
+  useEffect(() => {
+    if (!data?.user.id) return undefined;
+    let controller: AbortController | null = null;
+    const reloadTweets = () => {
+      controller?.abort();
+      controller = new AbortController();
+      setTweetProjectionState('loading');
+      void loadMastodonAccountStatuses(data.user.id, undefined, controller.signal)
+        .then((page) => {
+          setTweets(page.items);
+          setTweetNextMaxId(page.nextMaxId);
+          setTweetProjectionState('ready');
+        })
+        .catch((tweetError: unknown) => {
+          if (controller?.signal.aborted) return;
+          setTweetProjectionState(
+            tweetError instanceof TweetComposerError && tweetError.code === 'social.identity_unbound'
+              ? 'unbound'
+              : 'error',
+          );
+        });
+    };
+    window.addEventListener(tweetPublishedEvent, reloadTweets);
+    return () => {
+      controller?.abort();
+      window.removeEventListener(tweetPublishedEvent, reloadTweets);
+    };
+  }, [data?.user.id]);
 
   useEffect(() => {
     if (activeTab !== 'graph' || !username || profileGraph) {
@@ -3910,21 +3905,20 @@ function ProfilePage() {
   };
 
   const uploadCroppedImage = async (file: File) => {
-    if (!authUser || !pendingImageCrop) return;
+    if (!pendingImageCrop) return;
+    if (!authUser) {
+      setEditError(t('me.authRequired'));
+      setEditNotice('');
+      return;
+    }
     const cropKind = pendingImageCrop.kind;
     setCropUploading(true);
     setEditError('');
     setEditNotice(cropKind === 'avatar' ? t('profile.notices.uploadingAvatar') : t('profile.notices.uploadingCover'));
     try {
       const uploaded = cropKind === 'avatar'
-        ? bootstrap.config.mode === 'demo'
-          ? await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })
-              .then(({ url }) => ({ fileID: url }))
-          : await uploadAvatarFile(authUser, file)
-        : bootstrap.config.mode === 'demo'
-          ? await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })
-              .then(({ url }) => ({ fileID: url }))
-          : await uploadCoverFile(authUser, file);
+        ? await uploadAvatarFile(authUser, file)
+        : await uploadCoverFile(authUser, file);
       changeDraft(cropKind === 'avatar' ? 'avatar' : 'coverUrl', uploaded.fileID);
       setEditNotice(cropKind === 'avatar' ? t('profile.notices.avatarUploaded') : t('profile.notices.coverUploaded'));
       if (pendingImageCrop) URL.revokeObjectURL(pendingImageCrop.imageUrl);
@@ -3971,7 +3965,7 @@ function ProfilePage() {
         website: profileDraft.website,
         location: profileDraft.location,
         aboutHtml: profileDraft.aboutHtml,
-      }, { syncCloudBase: bootstrap.config.mode !== 'demo' });
+      });
       const nextUser = await updateCurrentUserInfo({
         displayName: nickname,
         username: profileDraft.userId,
@@ -3983,12 +3977,6 @@ function ProfilePage() {
         aboutHtml: profileDraft.aboutHtml,
       });
       setCurrentUser(nextUser);
-      authAdapter.updateProfile?.({
-        username: nextUser.username,
-        publicUserId: nextUser.username,
-        displayName: nextUser.display_name,
-        avatarUrl: nextUser.avatar.custom || nextUser.avatar.gravatar || null,
-      });
       setProfileDraft((current) => ({ ...current, userId: nextUser.username }));
       setData((current) => current ? {
         ...current,
@@ -4178,6 +4166,26 @@ function ProfilePage() {
     }
   };
 
+  const loadMoreTweets = async () => {
+    if (!data?.user.id || !tweetNextMaxId || tweetProjectionState === 'loading') return;
+    setTweetProjectionState('loading');
+    try {
+      const page = await loadMastodonAccountStatuses(data.user.id, tweetNextMaxId);
+      setTweets((current) => {
+        const ids = new Set(current.map((item) => item.id));
+        return [...current, ...page.items.filter((item) => !ids.has(item.id))];
+      });
+      setTweetNextMaxId(page.nextMaxId);
+      setTweetProjectionState('ready');
+    } catch (tweetError) {
+      setTweetProjectionState(
+        tweetError instanceof TweetComposerError && tweetError.code === 'social.identity_unbound'
+          ? 'unbound'
+          : 'error',
+      );
+    }
+  };
+
   const title = useMemo(() => {
     if (data?.user.display_name) return t('profile.documentTitleNamed', { name: data.user.display_name });
     return t('profile.documentTitle');
@@ -4192,7 +4200,6 @@ function ProfilePage() {
 
   const blogItems = useMemo(() => blogs.filter((item) => item.type === 'blog'), [blogs]);
   const bookItems = useMemo(() => books.filter((item) => item.type === 'book' && isOriginalStyleBook(item)), [books]);
-  const dynamicItems = useMemo(() => dynamics.filter((item) => item.type === 'dynamic' || item.type === 'status'), [dynamics]);
   const discussionItems = useMemo(() => discussions.filter((item) => item.type === 'discussion' || item.type === 'forum'), [discussions]);
   const collectionItems = useMemo(() => collections, [collections]);
   const qaItems = useMemo(() => ({
@@ -4201,7 +4208,7 @@ function ProfilePage() {
     comments: data?.comments || [],
   }), [data?.answers, data?.comments, data?.questions]);
   const timelineItems = useMemo<ProfileTimelineItem[]>(() => {
-    const contentItems = [...blogItems, ...discussionItems, ...dynamicItems].map((item) => {
+    const contentItems = [...blogItems, ...discussionItems].map((item) => {
       const type = profileTimelineType(item);
       return {
         key: `${item.type}-${item.id}`,
@@ -4234,10 +4241,20 @@ function ProfilePage() {
       timestamp: item.create_time * 1000,
       meta: `${profileCountLabel(t, locale, 'votes', item.vote_count)}${item.accepted === 2 ? ` · ${t('profile.accepted')}` : ''}`,
     }));
-    return [...contentItems, ...questionItems, ...answerItems].sort(
+    const tweetItems = tweets.map((item) => ({
+      key: `tweet-${item.id}`,
+      type: 'tweet' as const,
+      label: profileTimelineLabel(t, 'tweet'),
+      title: mastodonStatusPlainText(item.content) || item.spoilerText || t('profile.tabs.tweet'),
+      excerpt: item.spoilerText,
+      path: `/p/${encodeURIComponent(item.id)}`,
+      timestamp: Date.parse(item.createdAt) || 0,
+      meta: `${profileCountLabel(t, locale, 'replies', item.repliesCount)} · ${profileCountLabel(t, locale, 'likes', item.favouritesCount)}`,
+    }));
+    return [...contentItems, ...tweetItems, ...questionItems, ...answerItems].sort(
       (left, right) => right.timestamp - left.timestamp,
     );
-  }, [blogItems, discussionItems, dynamicItems, locale, qaItems.answers, qaItems.questions, t]);
+  }, [blogItems, discussionItems, locale, qaItems.answers, qaItems.questions, t, tweets]);
   const aboutPreviewHTML = editingAbout ? aboutDraft : data?.user.about_html || '';
 
   return (
@@ -4330,31 +4347,30 @@ function ProfilePage() {
                       </div>
                     ) : (
                       <>
-                        <div className="profile-title-row">
-                          <h1>{data.user.display_name}</h1>
-                          <Link
-                            className="profile-cultivation-link"
-                            to={profileRankPath(data.user.username)}
-                            aria-label={t('profile.viewCultivation')}
-                            title={t('profile.viewCultivation')}
-                          >
-                            <CultivationBadge rank={data.user.rank} />
-                          </Link>
+                        <div className="profile-primary-identity">
+                          <div className="profile-title-row">
+                            <h1>{data.user.display_name}</h1>
+                            <Link
+                              className="profile-cultivation-link"
+                              to={profileRankPath(data.user.username)}
+                              aria-label={t('profile.viewCultivation')}
+                              title={t('profile.viewCultivation')}
+                            >
+                              <CultivationBadge rank={data.user.rank} />
+                            </Link>
+                          </div>
+                          <p>@{data.user.username}</p>
                         </div>
-                        <p>@{data.user.username}</p>
-                        {data.user.bio ? (
-                          <MathText text={data.user.bio} />
-                        ) : (
-                          <p>{t('profile.empty.bio')}</p>
-                        )}
-                        <div className="profile-meta-row">
-                          {data.user.location ? <span>{data.user.location}</span> : null}
-                          {data.user.website ? (
-                            <ProfileWebsiteLink
-                              key={data.user.website}
-                              value={data.user.website}
-                            />
-                          ) : null}
+                        <div className="profile-biography">
+                          {data.user.bio ? (
+                            <MathText text={data.user.bio} />
+                          ) : (
+                            <p>{t('profile.empty.bio')}</p>
+                          )}
+                          <div className="profile-meta-row">
+                            {data.user.location ? <span>{data.user.location}</span> : null}
+                            {data.user.website ? <ProfileWebsiteLink value={data.user.website} /> : null}
+                          </div>
                         </div>
                       </>
                     )}
@@ -4430,6 +4446,7 @@ function ProfilePage() {
                 outputHeight={pendingImageCrop.kind === 'avatar' ? 512 : 500}
                 outputFileName={pendingImageCrop.fileName}
                 busy={cropUploading}
+                error={editError}
                 onCancel={closeImageCrop}
                 onConfirm={uploadCroppedImage}
               />
@@ -4509,12 +4526,8 @@ function ProfilePage() {
                             ? blogItems.length
                             : tab === 'book'
                               ? bookItems.length
-                            : tab === 'qa'
-                              ? qaItems.questions.length + qaItems.answers.length
-                              : tab === 'discussion'
-                                ? discussionItems.length
-                                : tab === 'dynamic'
-                                  ? dynamicItems.length
+                            : tab === 'tweet'
+                              ? tweets.length
                             : tab === 'collection'
                                     ? data.collectionCount
                                     : profileGraph?.nodes.length || 0}
@@ -4578,42 +4591,31 @@ function ProfilePage() {
                     </>
                   ) : null}
 
-                  {activeTab === 'qa' ? (
+                  {activeTab === 'tweet' ? (
                     <>
                       <div className="panel-heading">
-                        <span>{t('profile.tabs.qa')}</span>
-                        <strong>{qaItems.questions.length + qaItems.answers.length}</strong>
+                        <span>{t('profile.tabs.tweet')}</span>
+                        <strong>{tweets.length}</strong>
                       </div>
-                      <div className="profile-qa-grid">
-                        <article>
-                          <div className="profile-subheading">{t('profile.timeline.types.question')}</div>
-                          <QuestionList items={qaItems.questions} />
-                        </article>
-                        <article>
-                          <div className="profile-subheading">{t('profile.timeline.types.answer')}</div>
-                          <AnswerList items={qaItems.answers} />
-                        </article>
-                      </div>
-                    </>
-                  ) : null}
-
-                  {activeTab === 'discussion' ? (
-                    <>
-                      <div className="panel-heading">
-                        <span>{t('profile.tabs.discussion')}</span>
-                        <strong>{discussionItems.length}</strong>
-                      </div>
-                      <DiscussionList items={discussionItems} />
-                    </>
-                  ) : null}
-
-                  {activeTab === 'dynamic' ? (
-                    <>
-                      <div className="panel-heading">
-                        <span>{t('profile.tabs.dynamic')}</span>
-                        <strong>{dynamicItems.length}</strong>
-                      </div>
-                      <DynamicList items={dynamicItems} />
+                      {tweetProjectionState === 'loading' && !tweets.length ? <LoadingState variant="panel" /> : null}
+                      {tweetProjectionState === 'unbound' ? <div className="state-strip">{t('profile.tweets.unbound')}</div> : null}
+                      {tweetProjectionState === 'error' ? <div className="state-strip">{t('profile.tweets.unavailable')}</div> : null}
+                      {(tweetProjectionState === 'ready' || tweets.length > 0) ? (
+                        <TweetStatusList
+                          items={tweets}
+                          locale={locale}
+                          emptyText={t('profile.empty.tweets')}
+                          contentWarningLabel={t('profile.tweets.contentWarning')}
+                          repliesLabel={t('profile.tweets.replies')}
+                          repostsLabel={t('profile.tweets.reposts')}
+                          likesLabel={t('profile.tweets.likes')}
+                        />
+                      ) : null}
+                      {tweetNextMaxId ? (
+                        <Button className="secondary-button" type="button" disabled={tweetProjectionState === 'loading'} onClick={() => { void loadMoreTweets(); }}>
+                          {tweetProjectionState === 'loading' ? t('profile.tweets.loading') : t('profile.tweets.loadMore')}
+                        </Button>
+                      ) : null}
                     </>
                   ) : null}
 

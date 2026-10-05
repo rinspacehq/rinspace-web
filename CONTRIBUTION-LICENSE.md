@@ -1,5 +1,10 @@
 # Rinspace Web Contribution Terms / 贡献条款
 
+> **Migration preparation / 迁移准备：** This frontend candidate carries the existing contribution
+> terms for the proposed migration into `rinspacehq/rinspace-web`. Public source cutover and release
+> approval remain pending. This status note does not revoke or retroactively change rights already
+> granted. / 本候选保留既有贡献规则，公开源码切换与发行仍待批准，不撤销或追溯改变既有权利。
+
 > Version 1.0, dated 2026-09-04. 中文与英文旨在表达同一规则；如有不一致，以中文条款为准。These terms are not a copyright assignment and do not require an external CLA account or form.
 
 ## 中文

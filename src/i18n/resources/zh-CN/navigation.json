@@ -1,10 +1,11 @@
 {
   "landmark": "频道与账户",
   "brandName": "芥子环",
-  "brandHome": "{{brandName}}首页",
-  "brandCurrentHome": "返回当前世界首页",
-  "brandFlipToInner": "翻到里世界",
-  "brandFlipToOuter": "翻到表世界",
+  "brandHome": "芥子环首页",
+  "flipToInner": "翻到里世界",
+  "more": {
+    "label": "更多"
+  },
   "search": {
     "label": "搜索",
     "placeholder": "搜索",
@@ -24,6 +25,7 @@
   "account": {
     "signInOrRegister": "登录 / 注册",
     "profile": "个人主页",
+    "wallet": "钱包",
     "settings": "设置",
     "notifications": "通知",
     "creator": "创作中心",
@@ -36,11 +38,12 @@
   },
   "publish": {
     "label": "创作",
-    "blog": "博客",
+    "blog": "文章",
     "book": "书籍",
     "question": "问题",
     "discussion": "讨论",
     "dynamic": "动态",
+    "tweet": "推文",
     "tag": "标签",
     "announcement": "公告"
   },
@@ -51,7 +54,7 @@
   "contentTypes": {
     "answer": "回答",
     "announcement": "公告",
-    "blog": "博客",
+    "blog": "文章",
     "book": "书籍",
     "discussion": "讨论",
     "dynamic": "动态",

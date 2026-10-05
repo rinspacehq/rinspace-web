@@ -17,7 +17,7 @@ node scripts/download-font-library.mjs
 ```
 
 The generated CSS exposes the original family names used across the site and
-Rinspace aliases used by blog detail typography:
+Rinspace aliases used by article detail typography:
 
 - `IBM Plex Sans`
 - `IBM Plex Mono`

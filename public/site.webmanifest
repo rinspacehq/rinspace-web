@@ -1,0 +1,26 @@
+{
+  "name": "芥子环",
+  "short_name": "芥子环",
+  "id": "/home",
+  "description": "以 Tag 为核心的长文知识社区",
+  "lang": "zh-CN",
+  "start_url": "/explore?world=inner",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f8fafc",
+  "icons": [
+    {
+      "src": "/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

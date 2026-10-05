@@ -5,7 +5,7 @@ import type { FeedItem, PostDetail, SourceFileInfo } from '@/services/contracts'
 import { canonicalGiteaPathname } from './giteaPaths';
 import { rinStickerSrc, rinStickers } from './rinStickers';
 
-export type BlogEditorKind = 'rin' | 'markdown';
+export type BlogEditorKind = 'rin' | 'markdown' | 'typst';
 
 const markdownHtmlMarker = 'RIN_MARKDOWN';
 const markdownSourceMarker = 'RIN_MARKDOWN_SOURCE';
@@ -369,6 +369,20 @@ export function rinWriterSourceFile(body: string): SourceFileInfo | null {
   return markedSourceFileInfo(body, rinSourceFileMarker);
 }
 
+/** Typst repositories keep their entry file at a fixed path. */
+export const typstEntryFilename = 'main.typ';
+
+/**
+ * Typst articles and books keep their source only in the repository, so the reader
+ * derives the entry file from the editor kind instead of an embedded source marker.
+ */
+export function typstSourceFile(
+  post: Pick<FeedItem, 'editor'> & { body?: string },
+): SourceFileInfo | null {
+  if (blogEditorKind(post) !== 'typst') return null;
+  return { filename: typstEntryFilename, mime: 'text/plain', url: '' };
+}
+
 /** Fallback metadata when the rin writer source section exists without a RIN_SOURCE_FILE marker. */
 export function rinWriterSourceFallbackFile(body: string): SourceFileInfo | null {
   const section = extractMarkedSection(body, 'RIN_SOURCE');
@@ -383,6 +397,7 @@ export function rinWriterSourceFallbackFile(body: string): SourceFileInfo | null
 export function blogEditorKind(post: Pick<FeedItem, 'editor'> & { body?: string }): BlogEditorKind {
   const editor = (post.editor || '').trim().toLowerCase();
   if (editor === 'markdown' || editor === 'md') return 'markdown';
+  if (editor === 'typst') return 'typst';
   if (editor === 'rin' || editor === 'latex' || editor === 'tex') return 'rin';
   if (post.body && markdownBlogHtml(post.body)) return 'markdown';
   return 'rin';
@@ -1862,7 +1877,12 @@ export function commentMarkdownToHtml(markdown: string) {
 }
 
 export function markdownSourceFile(post: PostDetail) {
-  return post.markdownSource || markdownBlogSourceFile(post.body);
+  const legacySource = post.markdownSource || markdownBlogSourceFile(post.body);
+  if (legacySource) return legacySource;
+  const repositorySource = post.repositorySource;
+  if (!repositorySource?.entrypoint || !repositorySource.url) return null;
+  const filename = repositorySource.entrypoint.split('/').at(-1) || 'content.md';
+  return { filename, mime: 'text/markdown', url: repositorySource.url };
 }
 
 export function giteaSourceFilePageUrl(sourceUrl: string) {

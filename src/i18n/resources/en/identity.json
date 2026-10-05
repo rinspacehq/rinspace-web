@@ -35,7 +35,7 @@
     "tag": "Tag",
     "post": "Content",
     "content": "Content",
-    "blog": "Blog",
+    "blog": "Article",
     "book": "Book",
     "discussion": "Discussion",
     "dynamic": "Update",
@@ -101,8 +101,8 @@
     "label": "{{realm}} · {{rank}} reputation"
   },
   "profile": {
-    "documentTitle": "Profile",
-    "documentTitleNamed": "{{name}}",
+    "documentTitle": "Profile · Rinspace",
+    "documentTitleNamed": "{{name}} · Rinspace",
     "memberFallback": "Member",
     "avatarLabel": "{{name}}'s avatar",
     "viewCultivation": "View cultivation and reputation",
@@ -112,23 +112,25 @@
     "tabs": {
       "about": "About",
       "overview": "Overview",
-      "blog": "Blogs",
+      "blog": "Articles",
       "book": "Books",
       "qa": "Q&A",
       "discussion": "Discussions",
       "dynamic": "Updates",
+      "tweet": "Tweets",
       "collection": "Bookmarks",
       "graph": "Graph"
     },
     "timeline": {
       "types": {
-        "blog": "Blog",
+        "blog": "Article",
         "book": "Book",
         "question": "Question",
         "answer": "Answer",
         "comment": "Comment",
         "discussion": "Discussion",
-        "dynamic": "Update"
+        "dynamic": "Update",
+        "tweet": "Tweet"
       }
     },
     "counts": {
@@ -158,16 +160,27 @@
       "answers": "No public answers yet.",
       "comments": "No public comments yet.",
       "content": "No public content yet.",
-      "blogs": "No public blogs yet.",
+      "blogs": "No public articles yet.",
       "books": "No public original books yet.",
       "discussions": "No public discussions yet.",
       "dynamics": "No public updates yet.",
+      "tweets": "No public tweets yet.",
       "collections": "No public bookmarks yet.",
       "graph": "No graph data yet.",
       "following": "Not following anyone yet.",
       "followers": "No followers yet."
     },
-    "namedBlogs": "{{name}}'s blogs",
+    "tweets": {
+      "unbound": "This account has not completed its inner-world identity binding.",
+      "unavailable": "Inner-world tweets are temporarily unavailable. Try again later.",
+      "contentWarning": "Content warning",
+      "replies": "Replies",
+      "reposts": "Reposts",
+      "likes": "Likes",
+      "loadMore": "Load more tweets",
+      "loading": "Loading"
+    },
+    "namedBlogs": "{{name}}'s articles",
     "namedBooks": "{{name}}'s books",
     "aboutFrameTitle": "{{name}}'s about page",
     "collectionManage": "Manage bookmarks",
@@ -322,7 +335,7 @@
       "createQuestion": "New question",
       "createDiscussion": "New discussion",
       "createDynamic": "New update",
-      "createBlog": "New blog",
+      "createBlog": "New article",
       "createBook": "New book",
       "rename": "Rename",
       "confirmDelete": "Confirm delete",
@@ -474,14 +487,15 @@
     "sectionLabel": "Notification type",
     "sections": {
       "inbox": "Inbox",
-      "achievement": "Achievements"
+      "system": "System notifications"
     },
     "filtersLabel": "Inbox filters",
     "filters": {
       "all": "All",
       "posts": "Content",
-      "invites": "Follows / invites",
-      "votes": "Upvotes"
+      "follows": "Follows",
+      "likes": "Likes",
+      "collections": "Saves"
     },
     "markAll": "Mark all read",
     "markedAll": "All {{section}} notifications marked as read.",
@@ -492,6 +506,7 @@
     "read": "Read",
     "markRead": "Mark read",
     "fallback": "Notification",
+    "walletTitle": "Shangong wallet",
     "actions": {
       "achievement": "Achievement",
       "answer": "Answer",
@@ -504,6 +519,12 @@
       "question": "New question",
       "repost": "Repost",
       "vote": "Upvote",
+      "like": "Like",
+      "collection": "Save",
+      "walletTip": "Tip received",
+      "walletRecharge": "Top-up",
+      "walletConversion": "Conversion",
+      "publicationFailed": "Publication failed",
       "moderation": "Review",
       "reportResolved": "Report result"
     },
@@ -517,6 +538,8 @@
       "question": "{{actor}} posted a new question",
       "repost": "{{actor}} reposted your {{target}}",
       "vote": "{{actor}} upvoted your {{target}}",
+      "like": "{{actor}} liked your {{target}}",
+      "collection": "{{actor}} saved your {{target}}",
       "badge": "You earned a new {{action}}",
       "default": "{{actor}} triggered {{action}}",
       "moderationFirstReview": "Your content has moved to secondary review.",
@@ -527,7 +550,11 @@
       "reportActionTaken": "The content you reported has been handled.",
       "reportNoViolation": "The review found no violation.",
       "reportTargetUnavailable": "The related content is no longer available; the report is closed.",
-      "reportResolved": "Your report has been resolved."
+      "reportResolved": "Your report has been resolved.",
+      "walletTip": "{{actor}} tipped your work.",
+      "walletRecharge": "Your top-up is available.",
+      "walletConversion": "Your Shangong conversion is complete.",
+      "publicationFailed": "The content update could not be published. The current version remains available."
     }
   },
   "activity": {

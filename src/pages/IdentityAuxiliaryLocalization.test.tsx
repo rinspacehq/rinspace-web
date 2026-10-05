@@ -183,6 +183,7 @@ beforeEach(() => {
         objectType: 'question',
       },
       rank: 1,
+      actorKind: 'user',
       notificationAction: 'comment',
       isRead: false,
       updateTime: Date.parse('2026-08-28T08:00:00Z') / 1000,
@@ -194,6 +195,7 @@ beforeEach(() => {
   });
   vi.mocked(loadNotificationStatus).mockResolvedValue({
     inbox: 1,
+    system: 0,
     achievement: 0,
     revision: 0,
     canRevision: false,
@@ -259,6 +261,7 @@ describe('identity auxiliary localization', () => {
           objectType: 'comment',
         },
         rank: 0,
+        actorKind: 'system',
         notificationAction: 'report_resolved',
         isRead: true,
         updateTime: Date.parse('2026-08-28T08:00:00Z') / 1000,
@@ -279,9 +282,76 @@ describe('identity auxiliary localization', () => {
     await switchLanguage('en');
 
     const view = shell(<NotificationsPage />, '/notifications');
+    fireEvent.click(await view.findByRole('button', { name: /System notifications/ }));
     expect(await view.findByText('The content you reported has been handled.')).toBeTruthy();
     expect(view.queryByText('你举报的内容已处理。')).toBeNull();
     expect(view.getByText('作者保留举报对象')).toBeTruthy();
+  });
+
+  it('localizes wallet delivery notifications without exposing server copy or fiat amounts', async () => {
+    vi.mocked(loadNotificationPage).mockResolvedValue({
+      count: 2,
+      page: 1,
+      pageSize: 12,
+      items: [{
+        id: 'notification-wallet-tip',
+        userInfo: {
+          id: 'reader-1',
+          username: 'reader-one',
+          displayName: 'Reader One',
+          avatar: '',
+        },
+        objectInfo: {
+          title: '作者保留作品名',
+          objectId: '73',
+          objectMap: { blog: '73' },
+          objectType: 'blog',
+        },
+        rank: 0,
+        actorKind: 'user',
+        notificationAction: 'wallet_tip_received',
+        isRead: false,
+        updateTime: Date.parse('2026-08-28T08:00:00Z') / 1000,
+        type: 'wallet_tip_received',
+        targetType: 'blog',
+        targetId: '73',
+        message: '服务端金额 ¥7.00',
+      }, {
+        id: 'notification-wallet-recharge',
+        objectInfo: {
+          title: 'wallet',
+          objectId: '11111111-1111-4111-8111-111111111111',
+          objectMap: { wallet: '11111111-1111-4111-8111-111111111111' },
+          objectType: 'wallet',
+        },
+        rank: 0,
+        actorKind: 'system',
+        notificationAction: 'wallet_recharge_completed',
+        isRead: false,
+        updateTime: Date.parse('2026-08-28T08:00:00Z') / 1000,
+        type: 'wallet_recharge_completed',
+        targetType: 'wallet',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        href: '/wallet?view=statements',
+      }],
+    });
+    await ensureLocaleNamespaces('en', ['identity']);
+    await ensureLocaleNamespaces('zh-CN', ['identity']);
+    await switchLanguage('en');
+
+    const view = shell(<NotificationsPage />, '/notifications');
+    expect(await view.findByText('Reader One tipped your work.')).toBeTruthy();
+    expect(view.getByText('Your top-up is available.')).toBeTruthy();
+    expect(view.getByText('Shangong wallet')).toBeTruthy();
+    expect(view.queryByText(/¥7\.00/)).toBeNull();
+    expect(view.getByRole('link', { name: 'Shangong wallet' }).getAttribute('href')).toBe('/wallet?view=statements');
+
+    await switchLanguage('zh-CN');
+
+    expect(view.getByText('Reader One 打赏了你的作品。')).toBeTruthy();
+    expect(view.getByText('充值已到账。')).toBeTruthy();
+    expect(view.getByText('善功钱包')).toBeTruthy();
+    expect(view.queryByText(/人民币|¥/)).toBeNull();
   });
 
   it('retains an unsent activity lookup across a live language switch', async () => {

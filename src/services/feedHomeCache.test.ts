@@ -45,6 +45,9 @@ const feed: HomeFeed = {
     tags: [],
     interactions: "",
     heat: "",
+    liked: true,
+    collectionActive: true,
+    reaction_summary: [{ emoji: "heart", count: 2, tooltip: "", is_active: true }],
   },
   stream: [reviewedBook],
   questionHotlist: [],
@@ -64,4 +67,8 @@ test("shared home cache strips personalized book reviews", () => {
     breakdown: [],
   });
   expect(feed.stream[0]?.bookRating?.myReview?.id).toBe("701");
+  expect(cached.featuredBlog.liked).toBe(false);
+  expect(cached.featuredBlog.collectionActive).toBe(false);
+  expect(cached.featuredBlog.reaction_summary?.[0]?.is_active).toBe(false);
+  expect(feed.featuredBlog.collectionActive).toBe(true);
 });

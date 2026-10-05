@@ -1,10 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MotionConfig } from 'motion/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AnimateButton, AnimateCheckbox, AnimateIconButton, AnimateProgress, AnimateSidebar, AnimateSidebarContent, AnimateSidebarInset, AnimateSidebarMenu, AnimateSidebarMenuButton, AnimateSidebarMenuItem, AnimateSidebarProvider, AnimateSidebarTrigger, AnimateSwitch, AnimateTabs, AnimateTabsContent, AnimateTabsList, AnimateTabsTrigger } from './index';
+import { AnimateButton, AnimateCheckbox, AnimateGithubStars, AnimateIconButton, AnimateProgress, AnimateSidebar, AnimateSidebarContent, AnimateSidebarInset, AnimateSidebarMenu, AnimateSidebarMenuButton, AnimateSidebarMenuItem, AnimateSidebarProvider, AnimateSidebarTrigger, AnimateSwitch, AnimateTabs, AnimateTabsContent, AnimateTabsList, AnimateTabsTrigger } from './index';
 
 describe('owned Animate UI acceptance contract', () => {
   it('keeps names, disabled and pending semantics independent of motion', async () => {
@@ -79,6 +79,15 @@ describe('owned Animate UI acceptance contract', () => {
     expect(screen.getByText('上传进度：65%')).toBeTruthy();
   });
 
+  it('keeps the aggregate GitHub star value accessible', () => {
+    render(
+      <MotionConfig reducedMotion="always">
+        <AnimateGithubStars value={42} label="Rinspace 开源项目 GitHub Stars" />
+      </MotionConfig>,
+    );
+    expect(screen.getByText('Rinspace 开源项目 GitHub Stars: 42')).toBeTruthy();
+  });
+
   it('keeps the sidebar accessible while its desktop rail collapses', async () => {
     const user = userEvent.setup();
     const { container } = render(
@@ -98,9 +107,49 @@ describe('owned Animate UI acceptance contract', () => {
     );
     expect(screen.getByRole('complementary', { name: '创作导航' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '内容管理' }).getAttribute('aria-current')).toBe('page');
-    await user.click(screen.getByRole('button', { name: '收起管理导航' }));
+    const collapse = screen.getByRole('button', { name: '收起管理导航' });
+    const navigation = screen.getByRole('complementary', { name: '创作导航' });
+    expect(collapse.getAttribute('aria-expanded')).toBe('true');
+    expect(collapse.getAttribute('aria-controls')).toBe(navigation.id);
+    await user.click(collapse);
     expect(container.querySelector('.rin-animate-sidebar-provider')?.getAttribute('data-sidebar-state')).toBe('collapsed');
-    expect(screen.getByRole('button', { name: '展开管理导航' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '展开管理导航' }).getAttribute('aria-expanded')).toBe('false');
     expect(window.localStorage.getItem('rinspace-sidebar-test')).toBe('false');
+  });
+
+  it('returns focus to the mobile sidebar trigger after Escape', async () => {
+    const matchMedia = vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+      matches: query === '(max-width: 840px)',
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    } as MediaQueryList));
+    const user = userEvent.setup();
+    render(
+      <AnimateSidebarProvider storageKey="rinspace-sidebar-mobile-test" navigationName="钱包">
+        <AnimateSidebarTrigger />
+        <AnimateSidebar label="钱包导航">
+          <AnimateSidebarContent>
+            <AnimateSidebarMenu>
+              <AnimateSidebarMenuItem><AnimateSidebarMenuButton>交易记录</AnimateSidebarMenuButton></AnimateSidebarMenuItem>
+            </AnimateSidebarMenu>
+          </AnimateSidebarContent>
+        </AnimateSidebar>
+      </AnimateSidebarProvider>,
+    );
+    const trigger = screen.getByRole('button', { name: '打开钱包导航' });
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
+    await user.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(trigger.getAttribute('aria-expanded')).toBe('false'));
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+    matchMedia.mockRestore();
   });
 });

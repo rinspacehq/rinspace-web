@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "note": "Synthetic admin response fixtures; no production user or payment data.",
+  "summaries": [
+    {
+      "name": "pending_exact_integer",
+      "valid": true,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "applicant_uid": "synthetic-reader",
+        "payment_operation_id": "22345678-1234-4234-8234-123456789abc",
+        "amount_fen": "9007199254741000",
+        "state": "REQUESTED_RESERVED",
+        "version": "2",
+        "created_at": "2026-09-20T08:00:00Z",
+        "out_trade_no": "wallet_22345678123442348234123456789abc",
+        "paid_at": "2026-09-20T07:00:00Z",
+        "reserved_quantity": "900719925474100",
+        "request_reason": "重复购买"
+      }
+    },
+    {
+      "name": "numeric_amount_rejected",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "applicant_uid": "synthetic-reader",
+        "payment_operation_id": "22345678-1234-4234-8234-123456789abc",
+        "amount_fen": 100,
+        "state": "REQUESTED_RESERVED",
+        "version": "2",
+        "created_at": "2026-09-20T08:00:00Z",
+        "out_trade_no": "wallet_22345678123442348234123456789abc",
+        "paid_at": "2026-09-20T07:00:00Z",
+        "reserved_quantity": "10",
+        "request_reason": "重复购买"
+      }
+    }
+  ],
+  "details": [
+    {
+      "name": "reviewed_detail",
+      "valid": true,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "applicant_uid": "synthetic-reader",
+        "payment_operation_id": "22345678-1234-4234-8234-123456789abc",
+        "amount_fen": "1000",
+        "state": "APPROVED_QUEUED",
+        "version": "3",
+        "created_at": "2026-09-20T08:00:00Z",
+        "submitted_at": "2026-09-20T08:10:00Z",
+        "out_trade_no": "wallet_22345678123442348234123456789abc",
+        "paid_at": "2026-09-20T07:00:00Z",
+        "reserved_quantity": "100",
+        "request_reason": "重复购买",
+        "payment_amount_fen": "5000",
+        "reviews": [
+          {"decision":"approve","reviewer_uid":"synthetic-reviewer","reason":"原单和来源已核对","created_at":"2026-09-20T08:10:00Z"}
+        ]
+      }
+    },
+    {
+      "name": "unknown_review_decision",
+      "valid": false,
+      "value": {
+        "operation_id": "12345678-1234-4234-8234-123456789abc",
+        "applicant_uid": "synthetic-reader",
+        "payment_operation_id": "22345678-1234-4234-8234-123456789abc",
+        "amount_fen": "1000",
+        "state": "APPROVED_QUEUED",
+        "version": "3",
+        "created_at": "2026-09-20T08:00:00Z",
+        "submitted_at": "2026-09-20T08:10:00Z",
+        "out_trade_no": "wallet_22345678123442348234123456789abc",
+        "paid_at": "2026-09-20T07:00:00Z",
+        "reserved_quantity": "100",
+        "request_reason": "重复购买",
+        "payment_amount_fen": "5000",
+        "reviews": [
+          {"decision":"auto","reviewer_uid":"synthetic-reviewer","reason":"错误决定","created_at":"2026-09-20T08:10:00Z"}
+        ]
+      }
+    }
+  ]
+}

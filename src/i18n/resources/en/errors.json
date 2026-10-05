@@ -4,12 +4,6 @@
   "conflict": "The content has changed. Refresh and try again.",
   "notFound": "The requested content does not exist or has been removed.",
   "validationFailed": "Check your input and try again.",
-  "capabilities": {
-    "generic": "This capability is unavailable in the selected runtime. See the demo capability panel for its dependency and recovery path.",
-    "upload": "The demo only supports local images up to 2 MB. Use a smaller image or configure a real upload service in an integration deployment.",
-    "renderer": "The demo does not submit production render jobs. Use the local preview or configure Renderer in an integration deployment.",
-    "workspace": "The demo does not open production code workspaces. Use the local editor or configure a workspace service in an integration deployment."
-  },
   "authentication": {
     "required": "Please sign in to continue.",
     "otpSendFailed": "The verification code could not be sent.",
@@ -76,7 +70,7 @@
   },
   "discovery": {
     "announcementsLoadFailed": "Announcements could not be loaded.",
-    "blogsLoadFailed": "Blogs could not be loaded.",
+    "blogsLoadFailed": "Articles could not be loaded.",
     "booksLoadFailed": "Books could not be loaded.",
     "bookCollectionFailed": "The saved state could not be updated.",
     "discussionsLoadFailed": "Discussions could not be loaded.",
@@ -94,6 +88,7 @@
     "workspaceOpenFailed": "The tag source workspace could not be opened.",
     "tagSourceLoadFailed": "Tag source information could not be loaded.",
     "tagFollowFailed": "The tag follow state could not be updated.",
+    "tagLikeFailed": "The tag like state could not be updated.",
     "linkedQuestionsLoadFailed": "Citing questions could not be loaded.",
     "bookAuthorLoadFailed": "Books by this author could not be loaded.",
     "bookActivityLoadFailed": "Book activity could not be loaded.",
@@ -184,7 +179,6 @@
     "operationsReconciliationFailed": "The reconciliation operation could not be completed."
   },
   "creation": {
-    "quiverUnavailable": "The demo does not load Quiver or call a real diagram service. Continue with Markdown/LaTeX or enable Quiver in an integration deployment.",
     "markdownSectionLoadFailed": "The Markdown section could not be loaded.",
     "markdownSectionSaveFailed": "The Markdown section could not be saved.",
     "coverUploadFailed": "The cover could not be uploaded.",

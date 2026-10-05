@@ -1,4 +1,4 @@
-import { contentDeletionCommand } from './contentDeletion';
+import { contentDeletionCommand, contentDeletionStepUpHeader } from './contentDeletion';
 
 declare function test(name: string, callback: () => void): void;
 declare function expect(actual: unknown): {
@@ -10,4 +10,11 @@ test('content deletion command satisfies the server confirmation contract', () =
     confirmation: 'DELETE draft-42',
     idempotencyKey: 'delete-draft-42',
   });
+});
+
+test('content deletion sends only a normalized action-bound proof', () => {
+  expect(contentDeletionStepUpHeader('  rin_su_proof  ')).toEqual({
+    'X-Rinspace-Step-Up': 'rin_su_proof',
+  });
+  expect(contentDeletionStepUpHeader()).toEqual({});
 });

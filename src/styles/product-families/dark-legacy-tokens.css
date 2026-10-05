@@ -10,7 +10,7 @@
   --white: #111c25;
   --ink: #e8f0f5;
   --muted: #a8b6c2;
-  --line: #40515e;
+  --line: var(--rin-border-subtle);
   --green: #83b4d4;
   --rust: #a8b6c2;
   --danger: #ff8a80;

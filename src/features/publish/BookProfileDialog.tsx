@@ -15,14 +15,12 @@ import {
   useState,
 } from 'react';
 
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import ImageCropDialog from '@/components/ImageCropDialog';
 import TagPicker from '@/components/TagPicker';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { updateContent } from '@/services/domains/article';
 import { messageFromError } from '@/services/errors';
 import type { PostDetail } from '@/services/feed';
-import type { CloudUser } from '@/services/phoneAuth';
 import { uploadCoverFile } from '@/services/profile';
 
 import './publish-dialog.css';
@@ -35,15 +33,21 @@ type PendingCoverCrop = {
 type BookProfileDialogProps = {
   open: boolean;
   post: PostDetail | null;
-  user: CloudUser | null;
+  user: { id?: string } | null;
+  variant?: 'book' | 'article';
   onClose(): void;
   onSaved(post: PostDetail): void;
 };
 
-export default function BookProfileDialog({ open, post, user, onClose, onSaved }: BookProfileDialogProps) {
-  const bootstrap = useOptionalBootstrap();
+export default function BookProfileDialog({
+  open,
+  post,
+  user,
+  variant = 'book',
+  onClose,
+  onSaved,
+}: BookProfileDialogProps) {
   const { t } = useFeatureTranslation('creation');
-  const demoMode = bootstrap?.config.mode === 'demo';
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -68,6 +72,7 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
   }, [open, post]);
 
   const busy = saving || coverUploading;
+  const isArticle = variant === 'article';
 
   const closeDialog = () => {
     if (busy) return;
@@ -93,7 +98,7 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
     setNotice('');
     setPendingCoverCrop({
       imageUrl: URL.createObjectURL(file),
-      fileName: file.name || 'book-cover.jpg',
+      fileName: file.name || (isArticle ? 'article-cover.jpg' : 'book-cover.jpg'),
     });
   };
 
@@ -106,15 +111,18 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
   };
 
   const uploadCroppedCover = async (file: File) => {
-    if (!user || !pendingCoverCrop) return;
+    if (!pendingCoverCrop) return;
+    if (!user) {
+      setError(t('publishPage.validation.signInToUploadCover'));
+      setNotice('');
+      return;
+    }
     setCoverUploading(true);
     setError('');
     setNotice(t('publishDialog.cover.uploading'));
     try {
-      const uploaded = demoMode && bootstrap
-        ? await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })
-        : await uploadCoverFile(user, file);
-      setCoverUrl('fileID' in uploaded ? uploaded.fileID : uploaded.url);
+      const uploaded = await uploadCoverFile(user, file);
+      setCoverUrl(uploaded.fileID);
       setNotice(t('publishDialog.cover.uploaded'));
       URL.revokeObjectURL(pendingCoverCrop.imageUrl);
       setPendingCoverCrop(null);
@@ -131,32 +139,48 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
     if (!post || !user || saving) return;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setError(t('publishDialog.bookProfile.titleRequired'));
+      setError(t(isArticle ? 'publishDialog.quickEdit.titleRequired' : 'publishDialog.bookProfile.titleRequired'));
       return;
     }
     setSaving(true);
     setError('');
-    setNotice(t('publishDialog.bookProfile.saving'));
+    setNotice(t(isArticle ? 'publishDialog.quickEdit.saving' : 'publishDialog.bookProfile.saving'));
     try {
       const saved = await updateContent(post.slug || post.id, {
-        type: 'book',
+        type: isArticle ? 'blog' : 'book',
+        status: post.publishStatus === 'draft' || post.publishStatus === 'private' || post.publishStatus === 'published'
+          ? post.publishStatus
+          : undefined,
+        repositoryStatus: post.repositoryStatus === 'draft' || post.repositoryStatus === 'private' || post.repositoryStatus === 'published'
+          ? post.repositoryStatus
+          : undefined,
+        sourceVisibility: post.sourceVisibility === 'open' || post.sourceVisibility === 'private'
+          ? post.sourceVisibility
+          : undefined,
         title: trimmedTitle,
         body: post.body,
         excerpt: excerpt.trim(),
         tags: tags.slice(0, 6),
         coverUrl,
-        book: {
-          ...(post.book || { kind: 'original' as const, bookTitle: trimmedTitle, authors: [] }),
-          bookTitle: trimmedTitle,
-        },
+        editor: post.editor === 'rin' || post.editor === 'markdown' || post.editor === 'typst'
+          ? post.editor
+          : undefined,
+        sourceCommit: post.repositorySource?.commit,
+        markdownSource: post.markdownSource || null,
+        book: isArticle
+          ? undefined
+          : {
+              ...(post.book || { kind: 'original' as const, bookTitle: trimmedTitle, authors: [] }),
+              bookTitle: trimmedTitle,
+            },
       });
       if (saved.publicationPending) {
-        setNotice(t('publishDialog.bookProfile.activationPending'));
+        setNotice(t(isArticle ? 'publishDialog.quickEdit.activationPending' : 'publishDialog.bookProfile.activationPending'));
         onSaved(saved);
         setSaving(false);
         return;
       }
-      setNotice(t('publishDialog.bookProfile.saved'));
+      setNotice(t(isArticle ? 'publishDialog.quickEdit.saved' : 'publishDialog.bookProfile.saved'));
       onSaved(saved);
       onClose();
     } catch (saveError) {
@@ -176,13 +200,13 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
         >
           <div className="auth-dialog-head">
             <DialogTitle className="auth-dialog-title">
-              {t('publishDialog.bookProfile.title')}
+              {t(isArticle ? 'publishDialog.quickEdit.articleTitle' : 'publishDialog.bookProfile.title')}
             </DialogTitle>
             <DialogClose asChild>
               <AnimateButton
                 unstyled
                 type="button"
-                aria-label={t('publishDialog.bookProfile.close')}
+                aria-label={t(isArticle ? 'publishDialog.quickEdit.close' : 'publishDialog.bookProfile.close')}
                 disabled={busy}
               >
                 <Icon name="x-lg" />
@@ -222,8 +246,8 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
               />
             </div>
             <div className="latex-blog-cover-row">
-              <div className="latex-blog-cover-preview publish-dialog-book-cover">
-                {coverUrl ? <img src={coverUrl} alt="" /> : <span>2:3</span>}
+              <div className={`latex-blog-cover-preview${isArticle ? '' : ' publish-dialog-book-cover'}`}>
+                {coverUrl ? <img src={coverUrl} alt="" /> : <span>{isArticle ? '16:9' : '2:3'}</span>}
               </div>
               <label className="latex-blog-cover-upload">
                 <Icon name="image" />
@@ -258,8 +282,8 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
               </AnimateButton>
               <AnimateButton unstyled type="submit" disabled={busy}>
                 {saving
-                  ? t('publishDialog.bookProfile.savingAction')
-                  : t('publishDialog.bookProfile.saveAction')}
+                  ? t(isArticle ? 'publishDialog.quickEdit.savingAction' : 'publishDialog.bookProfile.savingAction')
+                  : t(isArticle ? 'publishDialog.quickEdit.saveAction' : 'publishDialog.bookProfile.saveAction')}
               </AnimateButton>
             </div>
           </form>
@@ -269,13 +293,14 @@ export default function BookProfileDialog({ open, post, user, onClose, onSaved }
         <ImageCropDialog
           open
           imageUrl={pendingCoverCrop.imageUrl}
-          title={t('publishDialog.cover.cropBook')}
-          aspect={2 / 3}
+          title={t(isArticle ? 'publishDialog.cover.cropBlog' : 'publishDialog.cover.cropBook')}
+          aspect={isArticle ? 16 / 9 : 2 / 3}
           cropShape="rect"
-          outputWidth={900}
-          outputHeight={1350}
+          outputWidth={isArticle ? 1600 : 900}
+          outputHeight={isArticle ? 900 : 1350}
           outputFileName={pendingCoverCrop.fileName}
           busy={coverUploading}
+          error={error}
           onCancel={closeCoverCrop}
           onConfirm={uploadCroppedCover}
         />

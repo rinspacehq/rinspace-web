@@ -37,7 +37,7 @@ describe('DirectoryStreamCard localization', () => {
       await i18n.changeLanguage('en');
     });
 
-    render(
+    const { container } = render(
       <LanguageProvider>
         <MemoryRouter>
           <DirectoryModeTabs mode="hot" onChange={() => undefined} />
@@ -48,7 +48,8 @@ describe('DirectoryStreamCard localization', () => {
 
     expect(screen.getByRole('navigation', { name: 'Directory sorting' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Popular' })).toBeTruthy();
-    expect(screen.getByText('Blog')).toBeTruthy();
+    expect(screen.getByText('Article')).toBeTruthy();
+    expect(container.querySelector('.content-type-meta-blog .char')?.textContent).toBe('a');
     expect(screen.getByText('保留作者写下的标题')).toBeTruthy();
     expect(screen.getByText('1,200 reads')).toBeTruthy();
     expect(screen.getByText('2 saves')).toBeTruthy();

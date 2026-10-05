@@ -1,9 +1,26 @@
 @layer rin-dark-important {
   [data-rin-ui="v2"] .blog-like-row .repository-like-action.active[data-tone="like"],
   [data-rin-ui="v2"] .blog-header-actions .repository-like-action.active[data-tone="like"] {
-    border-color: color-mix(in srgb, var(--rin-like) 38%, var(--rin-border)) !important;
-    background: color-mix(in srgb, var(--rin-like) 10%, transparent) !important;
-    color: var(--rin-like-ink) !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    color: var(--rin-like) !important;
+    box-shadow: none !important;
+  }
+
+  [data-rin-ui="v2"] .book-detail-header .blog-header-actions :is(a, button) {
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--rin-ink-muted) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+
+  [data-rin-ui="v2"] .book-detail-header .blog-header-actions :is(a, button):is(:hover, :focus-visible) {
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--rin-accent) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
   }
 }
 
@@ -16,6 +33,10 @@
 }
 
 @layer route-foundation {
+  [data-rin-ui="v2"] .book-detail-header .blog-header-tags a {
+    border-radius: 3px !important;
+  }
+
   [data-rin-ui="v2"] .blog-article-taxonomy .meta-category.content-type-meta a .label {
     color: #4a5568 !important;
   }

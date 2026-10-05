@@ -1,6 +1,6 @@
 import { Icon, AnimateButton, useNoticeToasts } from 'components/ui';
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
@@ -600,7 +600,7 @@ function ActivityTimelinePage() {
 
   return (
     <>
-      <Helmet title={`${title} - ${t('activity.titleSuffix')}`} />
+      <Helmet title={`${title} - ${t('activity.titleSuffix')} - ${t('navigation:brandName')}`} />
       <SiteTopbar />
 
       <main className="activity-shell">

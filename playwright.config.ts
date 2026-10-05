@@ -1,8 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const previewBasePath = process.env.RINSPACE_PREVIEW_BASE_PATH || '/';
-const localPreviewURL = new URL(previewBasePath, 'http://127.0.0.1:4173').toString().replace(/\/$/, '');
-const baseURL = process.env.RINSPACE_PREVIEW_URL || localPreviewURL;
+const requestedPreviewPort = Number.parseInt(process.env.PORT || '4173', 10);
+const previewPort = Number.isInteger(requestedPreviewPort) && requestedPreviewPort > 0 && requestedPreviewPort <= 65535
+  ? requestedPreviewPort
+  : 4173;
+const previewOrigin = `http://127.0.0.1:${previewPort}`;
+const baseURL = process.env.RINSPACE_PREVIEW_URL || `${previewOrigin}/rinspace`;
 const isContinuousIntegration = process.env.GITHUB_ACTIONS === 'true'
   || /^(1|true)$/i.test(process.env.CI || '');
 const requestedWorkers = Number.parseInt(process.env.PLAYWRIGHT_WORKERS || '', 10);
@@ -21,7 +24,7 @@ export default defineConfig({
   use: {
     baseURL,
     locale: 'zh-CN',
-    storageState: './playwright/.auth/anonymous.json',
+    storageState: { cookies: [], origins: [] },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -29,9 +32,14 @@ export default defineConfig({
     ? undefined
     : {
         command: 'pnpm preview:artifact',
-        url: new URL(previewBasePath, 'http://127.0.0.1:4173').toString(),
+        url: `${previewOrigin}/rinspace/`,
         reuseExistingServer: !process.env.CI,
-        env: { ...process.env, NO_PROXY: '127.0.0.1,localhost', no_proxy: '127.0.0.1,localhost' },
+        env: {
+          ...process.env,
+          PORT: String(previewPort),
+          NO_PROXY: '127.0.0.1,localhost',
+          no_proxy: '127.0.0.1,localhost',
+        },
       },
   projects: [
     { name: 'desktop-light', use: { ...devices['Desktop Chrome'], colorScheme: 'light' } },

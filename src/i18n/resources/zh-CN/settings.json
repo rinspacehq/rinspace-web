@@ -1,5 +1,5 @@
 {
-  "pageTitle": "设置",
+  "pageTitle": "设置 - 芥子环",
   "title": "设置",
   "scope": {
     "signedIn": "偏好与通知",
@@ -10,7 +10,6 @@
   "signIn": "登录",
   "profile": "主页",
   "notificationsLink": "通知",
-  "demoBoundary": "演示设置只保存在当前浏览器。真实短信、邮件发送、账号绑定、支付和外部 OAuth 均已禁用。",
   "interface": {
     "heading": "界面",
     "caption": "界面偏好",
@@ -46,7 +45,7 @@
     "rows": {
       "inbox": {
         "title": "收件箱",
-        "detail": "评论、回答、转发、邀请和赞同。"
+        "detail": "评论、回复、关注、喜欢和收藏。"
       },
       "allNewQuestion": {
         "title": "新题目",
@@ -56,6 +55,55 @@
         "title": "关注标签",
         "detail": "关注标签下的新题。"
       }
+    }
+  },
+  "security": {
+    "heading": "设备与应用凭据",
+    "caption": "管理各浏览器登录和个人 Git/OAuth 访问",
+    "refresh": "刷新",
+    "loading": "正在读取安全状态…",
+    "loadFailed": "设备或应用凭据暂时无法读取，请稍后重试。",
+    "verificationStartFailed": "无法开始安全核验，请稍后重试。",
+    "operationFailed": "操作尚未确认完成，请重试并核对远端状态。",
+    "operationAccepted": "操作已确认；列表已按远端事实刷新。",
+    "signedOutComplete": "撤销已确认，本设备需要重新登录。",
+    "unknownTime": "未知时间",
+    "createdAt": "创建：{{value}}",
+    "lastActiveAt": "最近活动：{{value}}",
+    "lastUsedAt": "最近使用：{{value}}",
+    "cleanupComplete": "关联运行面已清理",
+    "cleanupPending": "关联运行面仍在清理",
+    "revoked": "已撤销",
+    "devices": {
+      "heading": "浏览器设备",
+      "detail": "每台设备拥有独立登录。退出一台设备不会退出其他设备，也不会删除个人 SSH、PAT 或 OAuth 凭据。",
+      "listLabel": "浏览器设备列表",
+      "unknown": "未命名浏览器",
+      "current": "当前设备",
+      "revokeCurrent": "退出当前设备",
+      "revokeOne": "退出此设备",
+      "revokeAll": "退出所有浏览器设备"
+    },
+    "credentials": {
+      "heading": "个人应用凭据",
+      "detail": "只列出 Gitea 与里世界提供的个人 SSH、PAT 和 OAuth 元数据，不显示任何密钥。",
+      "listLabel": "个人应用凭据列表",
+      "empty": "当前没有个人应用凭据。",
+      "unknownScope": "权限范围未知",
+      "revokeOne": "撤销此凭据",
+      "revokeAll": "撤销全部个人访问凭据",
+      "revokeAllImpact": "撤销全部个人访问凭据会同时退出所有浏览器设备；仓库内容、工作副本、部署密钥和服务账号不受影响。"
+    },
+    "verification": {
+      "caption": "近期核验",
+      "detail": "输入当前账号在 CloudBase 使用的手机号，获取验证码以确认操作。",
+      "phone": "手机号",
+      "send": "发送验证码",
+      "sending": "发送中…",
+      "code": "验证码",
+      "cancel": "取消",
+      "confirm": "确认操作",
+      "working": "确认中…"
     }
   },
   "recovery": {

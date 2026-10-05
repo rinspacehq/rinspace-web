@@ -119,7 +119,6 @@ export function cleanShikiPreHtml(highlighted: string, lang: string): string {
   const pre = document.body.querySelector<HTMLPreElement>('pre');
   if (!pre) return highlighted;
   pre.classList.add('rin-code-pre');
-  pre.tabIndex = 0;
   pre.removeAttribute('style');
   if (lang) pre.dataset.rinCodeLanguage = lang;
   return pre.outerHTML;
@@ -129,7 +128,6 @@ export function cleanShikiPreHtml(highlighted: string, lang: string): string {
 export function plainRinCodePreHtml(source: string): string {
   const pre = document.createElement('pre');
   pre.className = 'rin-code-pre';
-  pre.tabIndex = 0;
   pre.dataset.rinCodeLanguage = 'text';
   const code = document.createElement('code');
   const lines = source.split('\n');

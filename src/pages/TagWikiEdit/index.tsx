@@ -1,6 +1,6 @@
 import { AnimateButton, Icon } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { publicEnv } from '@/app/config/env';
@@ -11,6 +11,7 @@ import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { loadTagDetail } from '@/services/domains/tag';
 import { messageFromError } from '@/services/errors';
 import type { TagDetail } from '@/services/contracts';
+import { openGiteaPath } from '@/utils/giteaPaths';
 
 export default function TagWikiEditPage() {
   const { t } = useFeatureTranslation('reader');
@@ -57,6 +58,9 @@ export default function TagWikiEditPage() {
               if (!open) navigate('/tags');
             }}
             invocation={{ source: 'directory', initialName }}
+            onCreated={(createdTag) => {
+              openGiteaPath('tags', createdTag.id);
+            }}
           />
         </main>
       </>

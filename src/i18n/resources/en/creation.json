@@ -51,7 +51,7 @@
       "uploaded": "Cover uploaded.",
       "imageOnly": "Choose an image file.",
       "cropBook": "Crop book cover",
-      "cropBlog": "Crop blog cover"
+      "cropBlog": "Crop article cover"
     },
     "bookProfile": {
       "title": "Edit profile",
@@ -63,14 +63,22 @@
       "savingAction": "Saving…",
       "saveAction": "Save profile"
     },
-    "capabilities": {
-      "demoBoundary": "Demo creation and image uploads stay in this browser; remote repositories, workspaces, Renderer, PDF uploads, and archive uploads remain disabled.",
-      "pdfUnavailable": "Demo mode does not upload PDFs. Use local Markdown/LaTeX creation or configure real upload and Renderer services in an integration deployment."
+    "quickEdit": {
+      "articleTitle": "Edit article",
+      "close": "Close article editor",
+      "titleRequired": "Enter a title.",
+      "saving": "Saving…",
+      "activationPending": "The change is awaiting publication.",
+      "saved": "Saved.",
+      "savingAction": "Saving…",
+      "saveAction": "Save"
     },
     "create": {
       "titles": {
-        "blog": "Create LaTeX blog",
+        "blog": "Create LaTeX article",
+        "typstBlog": "Create Typst article",
         "latexBook": "Create LaTeX book",
+        "typstBook": "Create Typst book",
         "markdownBook": "Create Markdown book",
         "pdfBook": "Upload PDF book"
       },
@@ -81,17 +89,18 @@
       "titleRequired": "Enter a title.",
       "excerptRequired": "Enter a summary.",
       "pdfRequired": "Upload a PDF file first.",
-      "initialChapter": "Getting started",
       "creatingAction": "Creating…",
       "createAction": "Create and edit",
       "creating": {
-        "blog": "Creating LaTeX blog…",
+        "blog": "Creating LaTeX article…",
+        "typstBlog": "Creating Typst article…",
         "latexBook": "Creating LaTeX book…",
+        "typstBook": "Creating Typst book…",
         "markdownBook": "Creating Markdown book…",
         "pdfBook": "Uploading PDF book…"
       },
       "openingRepository": "Opening Git repository…",
-      "activationPending": "The content was committed to Gitea and is waiting for exact-commit validation and activation. It stays unavailable or on the previous version until then.",
+	  "activationPending": "The content was committed to Gitea and is waiting for exact-commit validation and activation. It stays unavailable or on the previous version until then.",
       "moderation": {
         "pending": "Content submitted for review.",
         "published": "Content published.",
@@ -115,18 +124,16 @@
   },
   "bookWorkspace": {
     "fallbackTitle": "Book workspace",
-    "documentTitle": "{{title}} workspace",
+    "documentTitle": "{{title}} workspace · Rinspace",
     "notBook": "This content is not a book.",
     "externalBookManagement": "Manage external and PDF books from the profile editor.",
     "editBookProfile": "Edit book profile",
-    "capabilities": {
-      "demoBoundary": "Local chapter and profile editing remain available; production repositories, code-server, whole-book uploads, and Renderer never start in the demo.",
-      "rendererUnavailable": "The demo does not upload archives or submit production render jobs. Local chapter editing remains available."
-    },
     "markdownWorkspace": "Markdown book workspace",
     "latexWorkspace": "LaTeX book workspace",
     "defaultMarkdownExcerpt": "A lightweight Markdown web book.",
     "defaultBookExcerpt": "This book does not have a summary yet.",
+    "typstWorkspace": "Typst book workspace",
+    "defaultTypstExcerpt": "A web and PDF book built from Typst source.",
     "publishStatus": {
       "draft": "Draft",
       "private": "Private",
@@ -153,13 +160,11 @@
       "readingPending": "Reading page pending",
       "editProfile": "Edit profile",
       "authorOnly": "Only the author can edit",
-      "openingRepository": "Opening",
       "openRepository": "Open repository",
       "uploading": "Uploading",
       "rendering": "Rendering in the background",
       "loading": "Loading",
       "importAndPublish": "Import and publish book"
-      ,"rendererUnavailable": "Renderer unavailable"
     },
     "markdown": {
       "chapters": "Markdown chapters",
@@ -185,11 +190,18 @@
       "sources": {
         "reader": "Web book contents",
         "toc": "Book contents",
-        "tex": "TeX source",
+        "latex": "TeX source",
+        "typst": "Typst source",
         "sameFile": "Node in the same file"
       },
       "emptyGroup": "No chapters yet",
       "empty": "No visible chapters yet"
+    },
+    "typst": {
+      "workspace": "Typst workspace",
+      "noChapters": "No chapters yet",
+      "emptyDirectory": "No chapters yet",
+      "empty": "This book does not have any readable chapters yet."
     },
     "matter": {
       "front": "Front matter",
@@ -205,7 +217,7 @@
     }
   },
   "publishPage": {
-    "documentTitle": "{{heading}}",
+    "documentTitle": "{{heading}} · Rinspace",
     "modes": {
       "question": {
         "eyebrow": "Ask",
@@ -251,17 +263,20 @@
       "latex": "Create LaTeX book profile",
       "pdf": "Upload PDF book",
       "markdown": "Create Markdown book profile",
+      "typst": "Create Typst book profile",
       "copyrighted": "Submit external or PDF book"
     },
     "bookEditHeadings": {
       "latex": "Edit LaTeX book profile",
       "pdf": "Edit PDF book",
       "markdown": "Edit Markdown book profile",
+      "typst": "Edit Typst book profile",
       "copyrighted": "Edit external or PDF book"
     },
     "bookPlaceholders": {
       "pdf": "Describe what this PDF book covers, who it is for, its prerequisites, and its highlights.",
-      "markdown": "Describe what this Markdown book covers, who it is for, its prerequisites, and its highlights."
+      "markdown": "Describe what this Markdown book covers, who it is for, its prerequisites, and its highlights.",
+      "typst": "Describe what this Typst book covers, who it is for, its prerequisites, and its highlights."
     },
     "fields": {
       "title": "Title",
@@ -386,8 +401,8 @@
   },
   "writer": {
     "documentTitle": {
-      "article": "LaTeX writing",
-      "book": "LaTeX book writing"
+      "article": "LaTeX writing · Rinspace",
+      "book": "LaTeX book writing · Rinspace"
     },
     "fallbacks": {
       "bookProject": "Book project",
@@ -417,7 +432,7 @@
       "change": "Change",
       "upload": "Upload",
       "remove": "Remove",
-      "cropArticle": "Crop blog cover",
+      "cropArticle": "Crop article cover",
       "cropBook": "Crop book cover"
     },
     "import": {
@@ -453,14 +468,14 @@
       "bookProject": "Loading book project…",
       "articleSource": "Loading source archive…",
       "sourceArchive": "Sending the TeX source archive to Rin…",
-      "articleTemplate": "Loading LaTeX blog template…",
+      "articleTemplate": "Loading LaTeX article template…",
       "bookTemplate": "Loading LaTeX book template…"
     },
     "status": {
       "bookProfileLoaded": "Book profile loaded. The first save will create a Rin source project.",
       "archiveEditing": "Loaded {{filename}}. Editing {{path}}.",
       "archiveReady": "Loaded {{filename}}. You can continue editing.",
-      "articleTemplateLoaded": "LaTeX blog template loaded.",
+      "articleTemplateLoaded": "LaTeX article template loaded.",
       "bookTemplateLoaded": "LaTeX book template loaded.",
       "articleDraftSaved": "Draft saved. You can continue editing it in Creator Center.",
       "bookDraftSaved": "Book draft saved. You can continue editing it in Creator Center.",
@@ -476,8 +491,8 @@
     },
     "validation": {
       "contentType": "Only Rin articles or books can be edited in the Rin editor.",
-      "bookMode": "Book-writing mode cannot edit blog content.",
-      "articleMode": "Blog-writing mode cannot edit book content.",
+      "bookMode": "Book-writing mode cannot edit article content.",
+      "articleMode": "Article-writing mode cannot edit book content.",
       "missingArchive": "This content has no saved TeX source archive and cannot be edited in the Rin editor.",
       "signInArticle": "Sign in before saving the article.",
       "signInBook": "Sign in before saving the book.",
@@ -485,7 +500,7 @@
     }
   },
   "markdownWriter": {
-    "documentTitle": "Markdown writing",
+    "documentTitle": "Markdown writing · Rinspace",
     "labels": {
       "title": "Article title",
       "tags": "Tags",
@@ -495,9 +510,6 @@
       "page": "Page"
     },
     "placeholders": {
-      "newTitle": "Markdown blog title",
-      "editTitle": "Blog title",
-      "editor": "Write a Markdown blog…",
       "imageCaption": "Image caption",
       "imageUpload": "Upload image",
       "summary": "Write a summary…"
@@ -516,6 +528,7 @@
       "remove": "Remove",
       "save": "Save",
       "saving": "Saving",
+      "viewBlog": "View article",
       "edit": "Edit",
       "preview": "Preview",
       "useDefault": "Use default",
@@ -523,9 +536,11 @@
       "done": "Done"
     },
     "controls": {
-      "saveState": "Blog save state",
+      "saveState": "Article save state",
       "sourceVisibility": "Source visibility",
-      "pageState": "Page state"
+      "pageState": "Page state",
+      "fullscreen": "Enter fullscreen editor",
+      "exitFullscreen": "Exit fullscreen editor"
     },
     "editor": "Markdown editor",
     "summary": {
@@ -539,9 +554,11 @@
       "inlineEditor": "Edit inline formula"
     },
     "topBar": {
+      "toolbar": "Markdown editing tools",
+      "heading": "Paragraph and heading",
       "bold": "Bold",
       "italic": "Italic",
-      "strike": "Strikethrough",
+      "strikethrough": "Strikethrough",
       "inlineCode": "Inline code",
       "bulletList": "Bulleted list",
       "orderedList": "Numbered list",
@@ -549,12 +566,11 @@
       "link": "Insert link",
       "image": "Insert image",
       "table": "Insert table",
-      "codeBlock": "Code block",
-      "quote": "Block quote",
-      "divider": "Divider",
+      "codeBlock": "Insert code block",
+      "quote": "Insert quote",
+      "horizontalRule": "Insert divider",
       "math": "Math",
-      "quiver": "Quiver diagram",
-      "tool": "Editor tool {{index}}"
+      "quiver": "Quiver"
     },
     "headings": {
       "paragraph": "Paragraph",
@@ -565,7 +581,6 @@
       "heading6": "Heading 6"
     },
     "quiver": {
-      "unavailableDemo": "The demo does not load Quiver or call a real diagram service. Continue with Markdown/LaTeX or enable Quiver in an integration deployment.",
       "editor": "Quiver commutative diagram editor",
       "help": "Export as an image and insert at the current cursor position",
       "exporting": "Exporting",
@@ -575,7 +590,8 @@
       "stillLoading": "Quiver is still loading. Try inserting again shortly.",
       "timeout": "Quiver export timed out. Check that the editor has loaded.",
       "exportFailed": "The Quiver diagram could not be exported.",
-      "empty": "Draw a diagram in Quiver before inserting it."
+      "empty": "Draw a diagram in Quiver before inserting it.",
+      "pendingPublish": "A Quiver diagram is still waiting to render. Its source is saved in the draft; retry before publishing."
     },
     "render": {
       "aria": "Markdown publication render status",
@@ -618,20 +634,22 @@
       "renderComplete": "Markdown rendering is complete. Saving the article…",
       "compatibilitySave": "This publication is using the compatibility reader path. Saving the article…",
       "draftSaved": "Draft saved. You can continue editing it in Creator Center.",
+      "revisionDraftSaved": "Your changes are saved to your account draft. Reopen this editor to continue. The public version is unchanged.",
+      "publishFailedDraftKept": "Publishing failed. Your source is saved to your account draft. Reopen this editor to continue. {{reason}}",
+      "draftContentSaveFailedDraftKept": "Creator Center saving failed, but your source is saved to your account draft. Reopen this editor to continue. {{reason}}",
+      "accountDraftFailedLocalKept": "Account draft saving failed, but a local copy remains. Keep this page open and retry.",
+      "accountDraftFailed": "Draft saving failed. Copy your source as a backup and retry later.",
 	  "activationPending": "The change was committed to Gitea and is waiting for exact-commit validation and activation. The site still shows the previous version.",
       "published": "Published: {{title}}",
       "privatePublished": "Saved as a private publication: {{title}}"
     },
     "validation": {
-      "blogOnly": "Only blogs can be edited in the Markdown editor.",
-      "wrongEditor": "This blog was not written with Markdown. Open it in the LaTeX editor.",
-      "missingSource": "This blog has no saved Markdown source and cannot be edited.",
+      "blogOnly": "Only articles can be edited in the Markdown editor.",
+      "wrongEditor": "This article was not written with Markdown. Open it in the LaTeX editor.",
+      "missingSource": "This article has no saved Markdown source and cannot be edited.",
       "imageOnly": "Choose an image file.",
       "signIn": "Sign in before saving the article."
     }
-  },
-  "demoCapabilities": {
-    "notice": "Browser demo: drafts and publication stay on this device. Server rendering, collaboration, code workspaces, moderation, and production publication are unavailable; reset demo data to restore the original fixture."
   },
   "markdownSection": {
     "notMarkdownBook": "This section does not belong to a Markdown book.",

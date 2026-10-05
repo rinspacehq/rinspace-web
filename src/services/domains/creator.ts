@@ -1,6 +1,4 @@
-import { getDemoRepositoryRuntime } from '@/demo/repository';
-import { requestJson } from '@/services/httpClient';
-import { loadGiteaUserHeatmap } from '@/services/gitea';
+import { giteaBasePath } from '@/utils/giteaPaths';
 
 export {
   cachedCreatorAnalytics,
@@ -66,10 +64,20 @@ export async function loadCreatorContributions(username: string, options: { forc
     if (pending) return pending;
   }
 
-  const request = (getDemoRepositoryRuntime()
-    ? requestJson<unknown>('creator/contributions', { auth: 'required' })
-    : loadGiteaUserHeatmap(username))
-    .then((payload) => {
+  const request = fetch(`${giteaBasePath}api/v1/users/${encodeURIComponent(username)}/heatmap`, {
+    // Contribution heatmaps are public. Omitting same-origin credentials keeps
+    // an expired managed Gitea binding from turning this public read into 401.
+    credentials: 'omit',
+    headers: { Accept: 'application/json' },
+  }).then(async (response) => {
+    const text = await response.text();
+    let payload: unknown = null;
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch {
+      payload = text;
+    }
+    if (!response.ok) throw new Error('创作活跃加载失败。');
     const contributions = parseCreatorContributions(payload);
     creatorContributionCache.set(key, {
       expiresAt: Date.now() + creatorInsightsCacheLifetimeMs,

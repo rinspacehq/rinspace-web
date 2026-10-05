@@ -21,16 +21,7 @@ import {
   questionPath as routeQuestionPath,
   tagReadOrLegacyPath,
 } from '@/utils/routes';
-
-const typeMetaChar: Record<string, string> = {
-  blog: 'b',
-  question: 'q',
-  discussion: 'd',
-  announcement: 'a',
-  dynamic: 's',
-  book: 'k',
-  tag: 't',
-};
+import { contentTypeMetaChar } from '@/utils/contentTypeMeta';
 
 export type DirectoryMode = 'hot' | 'latest' | 'following' | 'saved';
 
@@ -131,7 +122,7 @@ export function DirectoryTypeMetaCategory({
     <span className={`meta-category content-type-meta content-type-meta-${displayType}`} title={visibleLabel}>
       <Link to={itemTypePath(displayType)}>
         <span className="char" aria-hidden="true">
-          {typeMetaChar[displayType] || visibleLabel.slice(0, 1).toLowerCase()}
+          {contentTypeMetaChar(displayType, visibleLabel.slice(0, 1).toLowerCase())}
         </span>
         <span className="label">{visibleLabel}</span>
       </Link>

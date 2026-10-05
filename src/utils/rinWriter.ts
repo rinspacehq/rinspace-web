@@ -1,6 +1,4 @@
 import { publicEnv } from '@/app/config/env';
-import { loadBlobAsset } from '@/platform/assets';
-import { exportRinProject, renderRinProject } from '@/services/rinIntegration';
 export type RinRenderer = 'katex' | 'mathjax';
 export type RinView = 'split' | 'source' | 'preview';
 export type RinEventName = 'change' | 'error' | 'preview' | 'ready' | 'save';
@@ -229,8 +227,11 @@ export function rinspaceCitationResolver(): RinCitationResolverConfig {
 
 export async function fileFromLatexTemplate(kind: RinLatexTemplateKind): Promise<File> {
   const filename = `${kind}.tar.gz`;
-  const blob = await loadBlobAsset(publicAssetPath(`templates/${filename}`))
-    .catch(() => { throw new Error(`无法读取 LaTeX 模板包：${filename}`); });
+  const response = await fetch(publicAssetPath(`templates/${filename}`));
+  if (!response.ok) {
+    throw new Error(`无法读取 LaTeX 模板包：${filename}`);
+  }
+  const blob = await response.blob();
   return new File([blob], filename, {
     type: blob.type || 'application/gzip',
   });
@@ -304,11 +305,28 @@ export async function exportRinProjectArchive(
   project: RinProject,
   title: string,
 ): Promise<File> {
-  const blob = await exportRinProject({
-    title,
-    mainFile: project.mainFile || 'main.tex',
-    files: project.files || [],
+  const response = await fetch('/rin/api/projects/export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title,
+      mainFile: project.mainFile || 'main.tex',
+      files: project.files || [],
+    }),
   });
+  const blob = await response.blob();
+  if (!response.ok) {
+    let message = 'Rin 项目打包失败。';
+    try {
+      const payload: unknown = JSON.parse(await blob.text());
+      if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+        message = payload.error;
+      }
+    } catch {
+      // Keep the fallback message from above.
+    }
+    throw new Error(message);
+  }
   const filename = `${slugify(title) || 'rinspace-book'}.tar.gz`;
   return new File([blob], filename, {
     type: blob.type || 'application/gzip',
@@ -402,8 +420,11 @@ export async function fileFromRinArchiveInfo(
   archive: RinArchiveInfo,
   fallbackFilename = 'rin-source.zip',
 ): Promise<File> {
-  const blob = await loadBlobAsset(archive.url)
-    .catch(() => { throw new Error('无法读取 Rin 源包。'); });
+  const response = await fetch(archive.url);
+  if (!response.ok) {
+    throw new Error('无法读取 Rin 源包。');
+  }
+  const blob = await response.blob();
   return new File([blob], archive.filename || fallbackFilename, {
     type: archive.mime || blob.type || 'application/zip',
   });
@@ -418,7 +439,18 @@ export async function renderRinProjectArchive(
   if (options.title) form.set('title', options.title);
   if (options.renderer) form.set('renderer', options.renderer);
   if (options.status) form.set('status', options.status);
-  const payload = await renderRinProject(form);
+  const response = await fetch('/rin/api/projects/render', {
+    method: 'POST',
+    body: form,
+  });
+  const payload: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message =
+      payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string'
+        ? payload.error
+        : 'Rin 项目渲染失败。';
+    throw new Error(message);
+  }
   if (!payload || typeof payload !== 'object') {
     throw new Error('Rin 项目渲染返回格式异常。');
   }

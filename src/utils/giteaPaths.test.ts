@@ -1,6 +1,7 @@
 import {
   articleGiteaSourcePath,
   canonicalGiteaPathname,
+  giteaPath,
   normalizeGiteaBasePath,
   safeGiteaRedirectPath,
 } from './giteaPaths';
@@ -25,6 +26,11 @@ test('canonicalizes both supported Gitea prefixes', () => {
 
 test('links article source to its canonical standalone repository', () => {
   expect(articleGiteaSourcePath(269)).toBe('/repos/a/269/src/branch/main');
+});
+
+test('builds standalone article and tag repository paths', () => {
+  expect(giteaPath('a', 269)).toBe('/repos/a/269');
+  expect(giteaPath('tags', 42)).toBe('/repos/tags/42');
 });
 
 test('keeps redirects same-origin and canonical', () => {

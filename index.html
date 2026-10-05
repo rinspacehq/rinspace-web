@@ -1,23 +1,44 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <style>
-      @view-transition {
-        navigation: auto;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        @view-transition {
-          navigation: none;
-        }
-      }
-    </style>
-    <script src="/bootstrap-theme.js"></script>
+    <script>
+      (() => { try { const value = localStorage.getItem('rinspace-theme-v2') || 'system'; const dark = value === 'dark' || (value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme = dark ? 'dark' : 'light'; document.documentElement.style.colorScheme = dark ? 'dark' : 'light'; const themeColor = document.querySelector('meta[name="theme-color"]'); if (themeColor) themeColor.setAttribute('content', dark ? '#0b1218' : '#f8fafc'); } catch { document.documentElement.dataset.theme = 'light'; } })();
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f8fafc" />
-    <meta name="description" content="Loading the public Rinspace Web configuration." />
-    <meta name="rinspace-runtime-config" content="%BASE_URL%runtime-config.json" />
-    <meta name="generator" content="Rinspace Web" />
+    <meta name="description" content="Rinspace 是一个以 Tag 为核心的长文知识社区，支持 Markdown 与 LaTeX 写作，并依托 Git 进行版本管理。" />
+    <meta name="author" content="任务优先（上海）网络科技有限责任公司" />
+    <meta name="generator" content="Rinspace" />
+    <meta name="baidu-site-verification" content="codeva-LjXqtDBsLT" />
+    <meta name="360-site-verification" content="ebe308a82c03b12233b169e1142f264b" />
+    <meta name="sogou_site_verification" content="3zsgS7qvwL" />
+    <script>
+      document.documentElement.classList.add('js-enabled', 'rin-fonts-loading');
+    </script>
+    <style>
+      .js-enabled .static-icp-fallback {
+        display: none;
+      }
+
+      .rin-fonts-loading #root[data-rin-ui="v2"] {
+        visibility: hidden;
+      }
+    </style>
+    <link rel="icon" href="%BASE_URL%favicon.ico" sizes="16x16 32x32 48x48 64x64" />
+    <link rel="icon" href="%BASE_URL%favicon-32x32.png" type="image/png" sizes="32x32" />
+    <link rel="shortcut icon" href="%BASE_URL%favicon.ico" />
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="%BASE_URL%site.webmanifest" />
+    <link
+      rel="preload"
+      href="%BASE_URL%assets/brand/rinspace-mark-128.png"
+      as="image"
+      type="image/png"
+      fetchpriority="high"
+    />
+    <meta name="application-name" content="芥子环" />
+    <meta name="apple-mobile-web-app-title" content="芥子环" />
     <link rel="stylesheet" href="/fonts/library/rinspace-core-fonts.css" />
     <!--
       MathJax CHTML composes tall delimiters from NewCM glyphs.  Fetch the two
@@ -38,12 +59,56 @@
       type="font/woff2"
       crossorigin
     />
-    <title>Rinspace Web</title>
+    <title>芥子环 - 以 Tag 为核心的长文社区</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://rinspace.com/#organization",
+            "name": "任务优先（上海）网络科技有限责任公司",
+            "url": "https://rinspace.com/",
+            "email": "lunifans@outlook.com",
+            "logo": "https://rinspace.com/assets/brand/rinspace-mark.png",
+            "brand": {
+              "@type": "Brand",
+              "name": "芥子环",
+              "logo": "https://rinspace.com/assets/brand/rinspace-mark.png"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://rinspace.com/#website",
+            "name": "芥子环",
+            "url": "https://rinspace.com/",
+            "description": "芥子环是一个以 Tag 为核心的长文知识社区，支持 Markdown 与 LaTeX 写作，并依托 Git 进行版本管理。",
+            "inLanguage": "zh-CN",
+            "publisher": {
+              "@id": "https://rinspace.com/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://rinspace.com/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <noscript>Rinspace Web requires JavaScript to load its public site configuration.</noscript>
+    <noscript>Rinspace 需要启用 JavaScript 才能完整运行。</noscript>
     <div id="root" data-rin-ui="v2">
-      <p data-rin-bootstrap-fallback="true" style="padding: 24px; text-align: center; color: #5f6470; font: 14px/1.6 system-ui, sans-serif;">Loading Rinspace Web…</p>
+      <footer class="static-icp-fallback" style="padding: 24px; text-align: center; color: #5f6470; font-size: 13px; line-height: 1.8;">
+        <div>© 2026 任务优先（上海）网络科技有限责任公司</div>
+        <div>
+          <a href="https://beian.miit.gov.cn/" style="color: inherit; text-decoration: none;">沪ICP备2025152146号-2</a>
+        </div>
+        <div>
+          <a href="https://beian.mps.gov.cn/#/query/webSearch?code=31012102000206" style="color: inherit; text-decoration: none;">沪公网安备31012102000206号</a>
+        </div>
+      </footer>
     </div>
     <script type="module" src="/src/index.tsx"></script>
   </body>

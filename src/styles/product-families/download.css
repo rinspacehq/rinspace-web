@@ -1,0 +1,248 @@
+.download-page {
+  position: relative;
+  min-block-size: calc(100dvh - 64px);
+  overflow: hidden;
+  background: var(--rin-canvas);
+  color: var(--rin-ink);
+}
+
+.download-page::before,
+.download-page::after {
+  position: absolute;
+  z-index: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rin-accent) 9%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.download-page::before {
+  inset: -18rem auto auto -14rem;
+  inline-size: 32rem;
+  block-size: 32rem;
+}
+
+.download-page::after {
+  inset: auto -12rem -20rem auto;
+  inline-size: 38rem;
+  block-size: 38rem;
+  background: color-mix(in srgb, #34a853 8%, transparent);
+}
+
+.download-hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  inline-size: min(calc(100% - 3rem), 72rem);
+  min-block-size: calc(100dvh - 130px);
+  margin-inline: auto;
+  padding-block: clamp(3rem, 8vw, 7rem) clamp(2rem, 5vw, 4rem);
+  align-items: center;
+  grid-template-columns: minmax(0, 0.9fr) minmax(18rem, 0.72fr);
+  gap: clamp(3rem, 8vw, 8rem);
+}
+
+.download-copy {
+  max-inline-size: 38rem;
+}
+
+.download-eyebrow {
+  margin: 0 0 1rem;
+  color: var(--rin-accent);
+  font-family: var(--rin-font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.download-copy h1 {
+  margin: 0;
+  color: var(--rin-ink);
+  font-family: var(--rin-font-editorial);
+  font-size: clamp(3rem, 8vw, 6.6rem);
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 0.96;
+  text-wrap: balance;
+}
+
+.download-description {
+  max-inline-size: 31rem;
+  margin: 1.5rem 0 2rem;
+  color: var(--rin-ink-muted);
+  font-size: clamp(1rem, 1.8vw, 1.12rem);
+  line-height: 1.7;
+}
+
+.download-install-button.rin-ui-button {
+  min-block-size: 3.5rem;
+  padding-inline: 1.45rem;
+  border: 1px solid color-mix(in srgb, var(--rin-accent) 84%, #000);
+  border-radius: 0.85rem;
+  background: var(--rin-accent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--rin-accent) 24%, transparent);
+  color: var(--rin-on-accent);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.download-install-button.rin-ui-button:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--rin-focus-ring),
+    0 12px 30px color-mix(in srgb, var(--rin-accent) 24%, transparent);
+}
+
+.download-install-button.rin-ui-button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.download-install-button .rin-animate-button__icon {
+  display: inline-grid;
+  inline-size: 1.7rem;
+  block-size: 1.1rem;
+  place-items: center;
+}
+
+.download-android-icon {
+  display: block;
+  inline-size: 1.7rem;
+  block-size: auto;
+}
+
+.download-install-status {
+  min-block-size: 1.35rem;
+  margin: 0.75rem 0 0;
+  color: var(--rin-ink-muted);
+  font-size: 0.78rem;
+}
+
+.download-preview {
+  position: relative;
+  display: grid;
+  min-inline-size: 0;
+  place-items: center;
+}
+
+.download-preview::before {
+  position: absolute;
+  inline-size: min(34vw, 25rem);
+  block-size: min(34vw, 25rem);
+  border: 1px solid color-mix(in srgb, var(--rin-accent) 18%, transparent);
+  border-radius: 999px;
+  content: "";
+}
+
+.download-device {
+  position: relative;
+  z-index: 1;
+  inline-size: min(19rem, 76vw);
+  padding: 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--rin-ink) 24%, transparent);
+  border-radius: 2.4rem;
+  background: #101820;
+  box-shadow: 0 2rem 5rem rgb(15 23 42 / 22%);
+  transform: rotate(2.2deg);
+}
+
+.download-device-sensor {
+  position: absolute;
+  inset-block-start: 0.85rem;
+  inset-inline-start: 50%;
+  z-index: 2;
+  inline-size: 4.25rem;
+  block-size: 0.38rem;
+  border-radius: 999px;
+  background: #101820;
+  transform: translateX(-50%);
+}
+
+.download-device-screen {
+  aspect-ratio: 412 / 915;
+  overflow: hidden;
+  border-radius: 1.95rem;
+  background: var(--rin-surface);
+}
+
+.download-explore-screenshot {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.download-android-attribution {
+  position: relative;
+  z-index: 1;
+  padding: 0 1.5rem 1.25rem;
+  text-align: center;
+}
+
+.download-android-attribution a {
+  color: var(--rin-ink-muted);
+  font-size: 0.65rem;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.download-android-attribution a:hover {
+  color: var(--rin-accent);
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .download-page {
+    min-block-size: calc(100dvh - 54px);
+  }
+
+  .download-hero {
+    inline-size: min(calc(100% - 2rem), 34rem);
+    min-block-size: auto;
+    padding-block: 3.25rem 2.5rem;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .download-copy {
+    text-align: center;
+  }
+
+  .download-copy h1 {
+    font-size: clamp(2.9rem, 15vw, 4.8rem);
+  }
+
+  .download-description {
+    margin: 1.1rem auto 1.6rem;
+  }
+
+  .download-install-status {
+    margin-inline: auto;
+  }
+
+  .download-preview::before {
+    inline-size: 20rem;
+    block-size: 20rem;
+  }
+
+  .download-device {
+    inline-size: min(17rem, 78vw);
+    transform: rotate(1.5deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .download-hero {
+    inline-size: calc(100% - 1.25rem);
+  }
+
+  .download-copy h1 {
+    font-size: clamp(2.7rem, 15vw, 3.8rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .download-device {
+    transform: none;
+  }
+}

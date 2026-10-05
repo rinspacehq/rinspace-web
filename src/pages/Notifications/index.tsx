@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/compat';
 import { Icon, type IconName, AnimateButton, useNoticeToasts } from 'components/ui';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 
 import SiteTopbar from '@/components/SiteTopbarShell';
@@ -20,7 +20,7 @@ import { contentPath, profilePath, tagReadOrLegacyPath } from '@/utils/routes';
 type NotificationSection = NonNullable<NotificationPageInput['type']>;
 type InboxFilter = NonNullable<NotificationPageInput['inboxType']>;
 
-const inboxFilters: InboxFilter[] = ['all', 'posts', 'invites', 'votes'];
+const inboxFilters: InboxFilter[] = ['all', 'posts', 'follows', 'likes', 'collections'];
 
 function itemPath(item: NotificationPageItem) {
   if (item.href?.startsWith('/') && !item.href.startsWith('//')) return item.href;
@@ -49,7 +49,7 @@ function actorProfilePath(item: NotificationPageItem) {
 
 function currentUnread(status: NotificationStatus | null, section: NotificationSection) {
   if (!status) return 0;
-  return section === 'achievement' ? status.achievement : status.inbox;
+  return section === 'system' ? status.system : status.inbox;
 }
 
 function notificationSentence(t: IdentityTranslation, item: NotificationPageItem) {
@@ -94,6 +94,12 @@ function notificationSentence(t: IdentityTranslation, item: NotificationPageItem
       if (item.reportResult?.outcome === 'no_violation') return t('notifications.sentences.reportNoViolation');
       if (item.reportResult?.outcome === 'target_unavailable') return t('notifications.sentences.reportTargetUnavailable');
       return t('notifications.sentences.reportResolved');
+    case 'wallet_tip_received':
+      return t('notifications.sentences.walletTip', { actor });
+    case 'wallet_recharge_completed':
+      return t('notifications.sentences.walletRecharge');
+    case 'wallet_conversion_completed':
+      return t('notifications.sentences.walletConversion');
     default:
       return t('notifications.sentences.default', {
         actor,
@@ -134,6 +140,11 @@ function actionIcon(value: string): IconName {
     case 'badge':
     case 'achievement':
       return 'award';
+    case 'wallet_tip_received':
+      return 'star';
+    case 'wallet_recharge_completed':
+    case 'wallet_conversion_completed':
+      return 'arrow-left-right';
     default:
       return 'bell';
   }
@@ -249,13 +260,16 @@ function NotificationsPage() {
     count: number;
   }> = [
     { key: 'inbox', icon: 'inbox', count: status?.inbox || 0 },
-    { key: 'achievement', icon: 'award', count: status?.achievement || 0 },
+    { key: 'system', icon: 'bell', count: status?.system || 0 },
   ];
 
   const renderNotification = (item: NotificationPageItem) => {
     const reportResolution = isReportResolution(item);
     const actorHref = actorProfilePath(item);
     const actorAvatar = <AvatarName name={actorName(item)} imageUrl={item.userInfo?.avatar} size="sm" />;
+    const objectTitle = item.targetType === 'wallet'
+      ? t('notifications.walletTitle')
+      : item.objectInfo.title || `${identityObjectTypeLabel(t, item.targetType)} #${item.targetId}`;
     return (
       <article className={`notification-row${item.isRead ? ' is-read' : ' is-unread'}${reportResolution ? ' is-system' : ''}`} key={item.id}>
         <div className="notification-avatar">
@@ -286,7 +300,7 @@ function NotificationsPage() {
           ) : null}
           <h2>
             <Link to={itemPath(item)} onClick={() => void markItemRead(item)}>
-              <MathInline text={item.objectInfo.title || `${identityObjectTypeLabel(t, item.targetType)} #${item.targetId}`} />
+              <MathInline text={objectTitle} />
             </Link>
           </h2>
           <p className="notification-meta">
@@ -316,7 +330,7 @@ function NotificationsPage() {
 
   return (
     <>
-      <Helmet title={t('notifications.title')} />
+      <Helmet title={`${t('notifications.title')} - ${t('navigation:brandName')}`} />
       <SiteTopbar />
 
       <main className="notification-shell">

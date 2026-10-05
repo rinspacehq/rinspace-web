@@ -1,7 +1,7 @@
 import { AnimateButton, useNoticeToasts } from 'components/ui';
 import { type FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Alert, Button, Container, Form } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -132,7 +132,7 @@ function SponsorSupporterRow({
           rank={supporter.rank}
           size={spacious ? 'md' : 'sm'}
         />
-        {spacious && message ? <span className="sponsor-supporter-message">{message}</span> : null}
+        {message ? <span className="sponsor-supporter-message">{message}</span> : null}
       </span>
       <span className="sponsor-supporter-meta">
         <strong>{supporterAmountLabel(supporter)}</strong>
@@ -291,7 +291,7 @@ function SponsorPage() {
 
   return (
     <>
-      <Helmet title="赞助">
+      <Helmet title={`赞助 · ${t('brandName')}`}>
         <meta name="description" content="赞助 Rinspace" />
       </Helmet>
       <SiteTopbar onSessionChange={refreshCurrentUser} />
@@ -448,7 +448,7 @@ export function SponsorSupporterListPage() {
 
   return (
     <>
-      <Helmet title="赞助名单">
+      <Helmet title={`赞助名单 · ${t('brandName')}`}>
         <meta name="description" content="Rinspace 赞助名单" />
       </Helmet>
       <SiteTopbar />
@@ -580,7 +580,7 @@ export function SponsorSupporterPage() {
 
   return (
     <>
-      <Helmet title={title}>
+      <Helmet title={`${title} · ${t('brandName')}`}>
         <meta name="description" content={title} />
       </Helmet>
       <SiteTopbar />
@@ -646,7 +646,7 @@ export function SponsorAlipayReturnPage() {
 
   return (
     <>
-      <Helmet title="赞助结果">
+      <Helmet title={`赞助结果 · ${t('brandName')}`}>
         <meta name="description" content="赞助结果" />
       </Helmet>
       <SiteTopbar />

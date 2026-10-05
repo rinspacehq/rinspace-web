@@ -157,7 +157,7 @@ describe("home community content cards", () => {
     const target = {
       id: "77",
       type: "blog" as const,
-      title: "测试博客",
+      title: "测试文章",
       author: "作者",
       meta: "",
       excerpt: "",
@@ -205,7 +205,7 @@ describe("home community content cards", () => {
     const target = {
       id: "77",
       type: "blog" as const,
-      title: "测试博客",
+      title: "测试文章",
       author: "作者",
       meta: "",
       excerpt: "",

@@ -450,6 +450,9 @@ type ToastMessage = {
   id: number;
   title: string;
   tone?: "default" | "destructive";
+  actionLabel?: string;
+  onAction?: () => void;
+  durationMs?: number;
 };
 const ToastContext = createContext<{
   notify(message: Omit<ToastMessage, "id">): void;
@@ -457,14 +460,17 @@ const ToastContext = createContext<{
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ToastMessage[]>([]);
   const nextMessageId = useRef(0);
+  const dismiss = useCallback((id: number) => {
+    setMessages((current) => current.filter((item) => item.id !== id));
+  }, []);
   const notify = useCallback((message: Omit<ToastMessage, "id">) => {
     const id = ++nextMessageId.current;
     setMessages((current) => [...current, { ...message, id }]);
     window.setTimeout(
-      () => setMessages((current) => current.filter((item) => item.id !== id)),
-      4000,
+      () => dismiss(id),
+      message.durationMs ?? 4000,
     );
-  }, []);
+  }, [dismiss]);
   const value = useMemo(() => ({ notify }), [notify]);
   return (
     <ToastContext.Provider value={value}>
@@ -476,11 +482,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       >
         {messages.map((message) => (
           <div
-            className="rin-ui-panel"
+            className="rin-ui-panel rin-ui-toast"
             data-tone={message.tone}
             key={message.id}
           >
-            {message.title}
+            <span>{message.title}</span>
+            {message.actionLabel && message.onAction ? (
+              <button
+                className="rin-ui-toast-action"
+                type="button"
+                onClick={() => {
+                  dismiss(message.id);
+                  message.onAction?.();
+                }}
+              >
+                {message.actionLabel}
+              </button>
+            ) : null}
           </div>
         ))}
       </div>
@@ -493,7 +511,7 @@ export function useToast() {
   return value;
 }
 
-// Routes transient status/error/notice states to the bottom-right toast region.
+// Routes transient status/error/notice states to the shared bottom-left toast region.
 export function useNoticeToasts(
   notices: Record<string, string | undefined | null>,
 ) {

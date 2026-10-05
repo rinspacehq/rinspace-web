@@ -1,9 +1,8 @@
-import { AnimateButton, AnimateClipboard, AnimateClock, AnimateMessageCircleWarning, AnimateTerminal, Tooltip } from 'components/ui';
+import { AnimateButton, AnimateCircleAlert, AnimateClipboard, AnimateHistory, AnimateMessageCircleWarning, AnimateTerminal, Icon, Tooltip } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import { formatNumber } from '@/i18n/format';
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import { useOptionalLanguage } from '@/i18n/LanguageProvider';
 import { resolveLocale } from '@/i18n/resolveLocale';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
@@ -77,8 +76,6 @@ function ConnectionList({ items, empty }: { items: KnowledgeConnection[]; empty:
 
 export default function TagKnowledgeConnections({ tagId, displayName, parentTags, repositoryState }: Props) {
   const { t, i18n } = useFeatureTranslation('reader');
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === 'demo';
   const language = useOptionalLanguage();
   const resolvedLocale = language?.resolvedLocale ?? resolveLocale(i18n.resolvedLanguage || i18n.language, []);
   const location = useLocation();
@@ -131,7 +128,37 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
     return () => { cancelled = true; };
   }, [candidateCommit, tagId, t]);
 
-  const knownParentNames = useMemo(() => new Map(parentTags.map((parent) => [Number(parent.tagId), parent.displayName || parent.slugName])), [parentTags]);
+  const relationTagNames = useMemo(() => {
+    const names = new Map<number, string>();
+    parentTags.forEach((parent) => names.set(Number(parent.tagId), parent.displayName || parent.slugName));
+    hierarchy?.parentTags?.forEach((tag) => names.set(tag.id, tag.displayName));
+    hierarchy?.childTags?.forEach((tag) => names.set(tag.id, tag.displayName));
+    requires.forEach((item) => {
+      if (item.objectTagDisplayName) names.set(item.objectTagId, item.objectTagDisplayName);
+      if (item.contextTagId && item.contextTagDisplayName) names.set(item.contextTagId, item.contextTagDisplayName);
+    });
+    requiredBy.forEach((item) => {
+      if (item.subjectTagDisplayName) names.set(item.subjectTagId, item.subjectTagDisplayName);
+      if (item.contextTagId && item.contextTagDisplayName) names.set(item.contextTagId, item.contextTagDisplayName);
+    });
+    return names;
+  }, [hierarchy, parentTags, requiredBy, requires]);
+
+  const relationTagLink = (id: number, key: string | number) => {
+    const name = relationTagNames.get(id)?.trim() || '';
+    const formattedID = formatNumber(resolvedLocale, id);
+    return (
+      <Link key={key} to={tagReadPath(id, name || `tag-${id}`)}>
+        {name ? <><span>{name}</span><small>ID {formattedID}</small></> : t('tagKnowledge.tagId', { id: formattedID })}
+      </Link>
+    );
+  };
+
+  const relationContext = (id: number) => {
+    const name = relationTagNames.get(id)?.trim() || '';
+    const formattedID = formatNumber(resolvedLocale, id);
+    return name ? `${name} · ID ${formattedID}` : t('tagKnowledge.contextId', { id: formattedID });
+  };
 
   const copyText = async (text: string, label: string) => {
     try {
@@ -163,86 +190,85 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
     revision: citation?.activeCommit || 'unknown',
     page: publicTagURL,
   });
+  const actionButtons = (
+    <div className="tag-knowledge-actions" aria-label={t('tagKnowledge.actions')}>
+      {hierarchy ? <TagGovernancePanel tagId={tagId} displayName={displayName} version={hierarchy.tag.version} parentTags={parentTags} /> : null}
+      <Tooltip content={t('tagKnowledge.reportIssue')}>
+        <a className="tag-knowledge-icon-action tag-knowledge-report" aria-label={t('tagKnowledge.reportIssue')} href={issueURL(repositoryURL, t('tagKnowledge.correctionTitle', { tag: displayName }), reportBody)} target="_blank" rel="noreferrer"><AnimateCircleAlert data-tag-knowledge-icon="report" animateOnHover size={18} /></a>
+      </Tooltip>
+      <Tooltip content={t('tagKnowledge.source')}>
+        <a className="tex-source-link tag-knowledge-icon-action tag-knowledge-source" aria-label={t('tagKnowledge.source')} href={repositoryURL} target="_blank" rel="noreferrer"><Icon data-tag-knowledge-icon="source" name="git" size={18} /></a>
+      </Tooltip>
+      {citation ? <Tooltip content={t('tagKnowledge.copyCurrent')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyCurrent')} onClick={() => void copyText(citation.current, t('tagKnowledge.currentCitation'))}><AnimateClipboard data-tag-knowledge-icon="copy-current" animateOnHover size={18} /></AnimateButton></Tooltip> : null}
+      {citation ? <Tooltip content={t('tagKnowledge.copyRevision')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyRevision')} onClick={() => void copyText(citation.revision, t('tagKnowledge.revisionCitation'))}><AnimateHistory data-tag-knowledge-icon="copy-revision" animateOnHover size={18} /></AnimateButton></Tooltip> : null}
+    </div>
+  );
 
   return (
-    <section className="panel tag-knowledge-panel" aria-labelledby="tag-knowledge-title">
-      <div className="panel-heading">
-        <span id="tag-knowledge-title">{t('tagKnowledge.title')}</span>
-        <div className="tag-knowledge-actions" aria-label={t('tagKnowledge.actions')}>
-          {hierarchy ? <TagGovernancePanel tagId={tagId} displayName={displayName} version={hierarchy.tag.version} parentTags={parentTags} /> : null}
-          {demoMode ? (
-            <span className="tag-knowledge-warning" data-rin-demo-gitea-source="true">
-              {t('tagKnowledge.sourceUnavailable')}
-            </span>
-          ) : (
-            <>
-              <Tooltip content={t('tagKnowledge.reportIssue')}>
-                <a className="tag-knowledge-icon-action tag-knowledge-report" aria-label={t('tagKnowledge.reportIssue')} href={issueURL(repositoryURL, t('tagKnowledge.correctionTitle', { tag: displayName }), reportBody)} target="_blank" rel="noreferrer"><AnimateMessageCircleWarning animateOnHover size={17} /></a>
-              </Tooltip>
-              <Tooltip content={t('tagKnowledge.source')}>
-                <a className="tag-knowledge-icon-action tag-knowledge-source" aria-label={t('tagKnowledge.source')} href={repositoryURL} target="_blank" rel="noreferrer"><AnimateTerminal animateOnHover size={17} /></a>
-              </Tooltip>
-            </>
-          )}
-          {citation ? <Tooltip content={t('tagKnowledge.copyCurrent')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyCurrent')} onClick={() => void copyText(citation.current, t('tagKnowledge.currentCitation'))}><AnimateClipboard animateOnHover size={17} /></AnimateButton></Tooltip> : null}
-          {citation ? <Tooltip content={t('tagKnowledge.copyRevision')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyRevision')} onClick={() => void copyText(citation.revision, t('tagKnowledge.revisionCitation'))}><AnimateClock animateOnHover size={17} /></AnimateButton></Tooltip> : null}
+    <>
+      <section className="panel tag-knowledge-maintenance-panel" aria-labelledby="tag-knowledge-maintenance-title">
+        <div className="panel-heading">
+          <span id="tag-knowledge-maintenance-title">{t('tagKnowledge.maintenanceTitle')}</span>
         </div>
-      </div>
-      <p className="sr-only" aria-live="polite">{announcement}</p>
-      {loading ? <p className="tag-knowledge-empty" role="status">{t('tagKnowledge.loading')}</p> : null}
-      {error ? <p className="tag-knowledge-warning" role="status">{error}</p> : null}
-      {candidate ? (
-        <section className="tag-candidate-diagnostics" aria-labelledby="tag-candidate-title">
-          <div><AnimateTerminal size={17} /><strong id="tag-candidate-title">{candidate.preview ? t('tagKnowledge.pullRequestPreview') : t('tagKnowledge.releaseCandidate')}</strong><code>{compactCommit(candidate.commit, t('tagKnowledge.noPublicRevision'))}</code></div>
-          <p>{t('tagKnowledge.candidateState', { state: candidate.state, source: candidate.sourceRef })}</p>
-          {candidate.diagnostics.length ? <ul>{candidate.diagnostics.map((item) => <li key={`${item.code}:${item.path || ''}:${item.line || 0}`}><code>{item.code}</code><span>{item.message}</span>{item.path ? <small>{item.path}:{item.line || 1}</small> : null}</li>)}</ul> : <p>{t('tagKnowledge.noDiagnostics')}</p>}
-        </section>
-      ) : null}
-      {repositoryState && repositoryState !== 'active' ? <p className="tag-knowledge-repository-state" data-state={repositoryState}>{t(`tagKnowledge.repositoryState.${repositoryState}`)}</p> : null}
+        {actionButtons}
+        <p className="sr-only" aria-live="polite">{announcement}</p>
+      </section>
 
-      <div className="tag-knowledge-section">
-        <dl className="tag-relation-list">
-          <div><dt>{t('tagKnowledge.parents')}</dt><dd className="tag-knowledge-chips">{(hierarchy?.parentTagIds || []).map((id) => <Link key={id} to={tagReadPath(id, knownParentNames.get(id) || `tag-${id}`)}>{knownParentNames.get(id) || t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, id) })}</Link>)}{!hierarchy?.parentTagIds.length ? <span>{t('tagKnowledge.none')}</span> : null}</dd></div>
-          {hierarchy?.childTagIds.length ? <div><dt>{t('tagKnowledge.children')}</dt><dd className="tag-knowledge-chips">{hierarchy.childTagIds.map((id) => <Link key={id} to={tagReadPath(id, `tag-${id}`)}>{t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, id) })}</Link>)}</dd></div> : null}
-          <div><dt>{t('tagKnowledge.prerequisites')}</dt><dd className="tag-knowledge-chips">{requires.length ? requires.map((item) => <Link key={item.id} to={tagReadPath(item.objectTagId, `tag-${item.objectTagId}`)}>{t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.objectTagId) })}{item.contextTagId ? <small>{t('tagKnowledge.contextId', { id: formatNumber(resolvedLocale, item.contextTagId) })}</small> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
-          <div><dt>{t('tagKnowledge.dependants')}</dt><dd className="tag-knowledge-chips">{requiredBy.length ? requiredBy.map((item) => <Link key={item.id} to={tagReadPath(item.subjectTagId, `tag-${item.subjectTagId}`)}>{t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.subjectTagId) })}{item.contextTagId ? <small>{t('tagKnowledge.contextId', { id: formatNumber(resolvedLocale, item.contextTagId) })}</small> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
-        </dl>
-      </div>
+      <section className="panel tag-knowledge-panel" aria-labelledby="tag-knowledge-title">
+        <div className="panel-heading">
+          <span id="tag-knowledge-title">{t('tagKnowledge.title')}</span>
+        </div>
+        {loading ? <p className="tag-knowledge-empty" role="status">{t('tagKnowledge.loading')}</p> : null}
+        {error ? <p className="tag-knowledge-warning" role="status">{error}</p> : null}
+        {candidate ? (
+          <section className="tag-candidate-diagnostics" aria-labelledby="tag-candidate-title">
+            <div><AnimateTerminal size={17} /><strong id="tag-candidate-title">{candidate.preview ? t('tagKnowledge.pullRequestPreview') : t('tagKnowledge.releaseCandidate')}</strong><code>{compactCommit(candidate.commit, t('tagKnowledge.noPublicRevision'))}</code></div>
+            <p>{t('tagKnowledge.candidateState', { state: candidate.state, source: candidate.sourceRef })}</p>
+            {candidate.diagnostics.length ? <ul>{candidate.diagnostics.map((item) => <li key={`${item.code}:${item.path || ''}:${item.line || 0}`}><code>{item.code}</code><span>{item.message}</span>{item.path ? <small>{item.path}:{item.line || 1}</small> : null}</li>)}</ul> : <p>{t('tagKnowledge.noDiagnostics')}</p>}
+          </section>
+        ) : null}
+        {repositoryState && repositoryState !== 'active' ? <p className="tag-knowledge-repository-state" data-state={repositoryState}>{t(`tagKnowledge.repositoryState.${repositoryState}`)}</p> : null}
 
-      {pages.outgoing?.items.length ? <div className="tag-knowledge-section">
-        <h3>{t('tagKnowledge.outgoing')}</h3>
-        <ConnectionList items={pages.outgoing.items} empty="" />
-        {pages.outgoing?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'outgoing'} onClick={() => void loadMore('outgoing')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
-      </div> : null}
-      {pages.backlinks?.items.length ? <div className="tag-knowledge-section">
-        <h3>{t('tagKnowledge.backlinks')}</h3>
-        <ConnectionList items={pages.backlinks.items} empty="" />
-        {pages.backlinks?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'backlinks'} onClick={() => void loadMore('backlinks')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
-      </div> : null}
-      {pages.unresolved?.items.length ? <div className="tag-knowledge-section">
-        <h3>{t('tagKnowledge.unresolved')}</h3>
-        <ConnectionList items={pages.unresolved.items} empty="" />
-        {pages.unresolved?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'unresolved'} onClick={() => void loadMore('unresolved')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
-      </div> : null}
-      {anchors.length ? (
         <div className="tag-knowledge-section">
-          <h3>{t('tagKnowledge.anchors')}</h3>
-          <ul className="tag-anchor-list">
-            {anchors.map((anchor) => (
-              <li key={anchor.anchorId}>
-                <code>{anchor.anchorId}</code><span>{anchor.anchorState}</span>
-                <AnimateButton unstyled type="button" onClick={() => void loadCanonicalTagCitation(tagId, anchor.anchorId).then((value) => copyText(value.current, t('tagKnowledge.anchorCitation'))).catch(() => setAnnouncement(t('tagKnowledge.anchorUnavailable')))}><AnimateClipboard animateOnHover size={16} />{t('tagKnowledge.cite')}</AnimateButton>
-                {demoMode ? (
-                  <span data-rin-demo-gitea-source="true">{t('tagKnowledge.correctionUnavailable')}</span>
-                ) : (
-                  <a href={issueURL(repositoryURL, t('tagKnowledge.anchorCorrectionTitle', { tag: displayName, anchor: anchor.anchorId }), `${reportBody}\nAnchor: ${anchor.anchorId}`)} target="_blank" rel="noreferrer"><AnimateMessageCircleWarning animateOnHover size={16} />{t('tagKnowledge.correction')}</a>
-                )}
-              </li>
-            ))}
-          </ul>
-          {pages.anchors?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'anchors'} onClick={() => void loadMore('anchors')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
+          <dl className="tag-relation-list">
+            <div><dt>{t('tagKnowledge.parents')}</dt><dd className="tag-knowledge-chips">{(hierarchy?.parentTagIds || []).map((id) => relationTagLink(id, id))}{!hierarchy?.parentTagIds.length ? <span>{t('tagKnowledge.none')}</span> : null}</dd></div>
+            {hierarchy?.childTagIds.length ? <div><dt>{t('tagKnowledge.children')}</dt><dd className="tag-knowledge-chips">{hierarchy.childTagIds.map((id) => relationTagLink(id, id))}</dd></div> : null}
+            <div><dt>{t('tagKnowledge.prerequisites')}</dt><dd className="tag-knowledge-chips">{requires.length ? requires.map((item) => <Link key={item.id} to={tagReadPath(item.objectTagId, relationTagNames.get(item.objectTagId) || `tag-${item.objectTagId}`)}><span>{relationTagNames.get(item.objectTagId) || t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.objectTagId) })}</span>{relationTagNames.has(item.objectTagId) ? <small>ID {formatNumber(resolvedLocale, item.objectTagId)}</small> : null}{item.contextTagId ? <small>{relationContext(item.contextTagId)}</small> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
+            <div><dt>{t('tagKnowledge.dependants')}</dt><dd className="tag-knowledge-chips">{requiredBy.length ? requiredBy.map((item) => <Link key={item.id} to={tagReadPath(item.subjectTagId, relationTagNames.get(item.subjectTagId) || `tag-${item.subjectTagId}`)}><span>{relationTagNames.get(item.subjectTagId) || t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.subjectTagId) })}</span>{relationTagNames.has(item.subjectTagId) ? <small>ID {formatNumber(resolvedLocale, item.subjectTagId)}</small> : null}{item.contextTagId ? <small>{relationContext(item.contextTagId)}</small> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
+          </dl>
         </div>
-      ) : null}
-    </section>
+
+        {pages.outgoing?.items.length ? <div className="tag-knowledge-section">
+          <h3>{t('tagKnowledge.outgoing')}</h3>
+          <ConnectionList items={pages.outgoing.items} empty="" />
+          {pages.outgoing?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'outgoing'} onClick={() => void loadMore('outgoing')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
+        </div> : null}
+        {pages.backlinks?.items.length ? <div className="tag-knowledge-section">
+          <h3>{t('tagKnowledge.backlinks')}</h3>
+          <ConnectionList items={pages.backlinks.items} empty="" />
+          {pages.backlinks?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'backlinks'} onClick={() => void loadMore('backlinks')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
+        </div> : null}
+        {pages.unresolved?.items.length ? <div className="tag-knowledge-section">
+          <h3>{t('tagKnowledge.unresolved')}</h3>
+          <ConnectionList items={pages.unresolved.items} empty="" />
+          {pages.unresolved?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'unresolved'} onClick={() => void loadMore('unresolved')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
+        </div> : null}
+        {anchors.length ? (
+          <div className="tag-knowledge-section">
+            <h3>{t('tagKnowledge.anchors')}</h3>
+            <ul className="tag-anchor-list">
+              {anchors.map((anchor) => (
+                <li key={anchor.anchorId}>
+                  <code>{anchor.anchorId}</code><span>{anchor.anchorState}</span>
+                  <AnimateButton unstyled type="button" onClick={() => void loadCanonicalTagCitation(tagId, anchor.anchorId).then((value) => copyText(value.current, t('tagKnowledge.anchorCitation'))).catch(() => setAnnouncement(t('tagKnowledge.anchorUnavailable')))}><AnimateClipboard animateOnHover size={16} />{t('tagKnowledge.cite')}</AnimateButton>
+                  <a href={issueURL(repositoryURL, t('tagKnowledge.anchorCorrectionTitle', { tag: displayName, anchor: anchor.anchorId }), `${reportBody}\nAnchor: ${anchor.anchorId}`)} target="_blank" rel="noreferrer"><AnimateMessageCircleWarning animateOnHover size={16} />{t('tagKnowledge.correction')}</a>
+                </li>
+              ))}
+            </ul>
+            {pages.anchors?.nextCursor ? <AnimateButton unstyled type="button" disabled={busyView === 'anchors'} onClick={() => void loadMore('anchors')}>{t('tagKnowledge.loadMore')}</AnimateButton> : null}
+          </div>
+        ) : null}
+      </section>
+    </>
   );
 }

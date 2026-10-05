@@ -22,12 +22,14 @@ function book(
 }
 
 describe("home original book scope", () => {
-  it("includes original PDF, LaTeX and Markdown books", () => {
+  it("includes original PDF, LaTeX, Markdown and Typst books", () => {
     expect(homeOriginalBookFormat(book("original", "/book.pdf"))).toBe(
       "pdf",
     );
     expect(homeOriginalBookFormat(book("original"))).toBe("latex");
     expect(homeOriginalBookFormat(book("markdown"))).toBe("markdown");
+    expect(homeOriginalBookFormat(book("typst"))).toBe("typst");
+    expect(isHomeOriginalBook(book("typst"))).toBe(true);
   });
 
   it("excludes published books even when they have a PDF", () => {

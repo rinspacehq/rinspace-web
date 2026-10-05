@@ -1,6 +1,0 @@
-services:
-  rinspace-web:
-    environment:
-      RINSPACE_PUBLIC_API_BASE_URL: /rinspace-demo/api/
-      RINSPACE_PUBLIC_BASE_PATH: /rinspace-demo/
-      RINSPACE_PUBLIC_CANONICAL_ORIGIN: http://localhost:8080

@@ -16,17 +16,17 @@ declare function expect(actual: unknown): {
 test('enhances wiki tag links in rendered html text nodes', () => {
   const html = enhanceWikiTagLinks('<p>See [[sheaf|sheaves]] and [[cohomology]].</p>');
 
-  expect(html).toContain('href="/tags/sheaf/info"');
+  expect(html).toContain('href="/rinspace/tags/sheaf/info"');
   expect(html).toContain('data-wiki-tag-ref="sheaf"');
   expect(html).toContain('>sheaves</a>');
-  expect(html).toContain('href="/tags/cohomology/info"');
+  expect(html).toContain('href="/rinspace/tags/cohomology/info"');
 });
 
 test('does not enhance wiki tag links inside code-like containers', () => {
   const html = enhanceWikiTagLinks('<p><code>[[sheaf]]</code></p><p>[[scheme]]</p>');
 
   expect(html).toContain('<code>[[sheaf]]</code>');
-  expect(html).toContain('href="/tags/scheme/info"');
+  expect(html).toContain('href="/rinspace/tags/scheme/info"');
 });
 
 test('strips rin writer document title from wiki html', () => {
@@ -72,9 +72,9 @@ test('enhances and extracts rinspace article citations', () => {
   const html = enhanceWikiTagLinks('<p>See \\cite{tags/42,a/123,books/91}.</p>');
   const references = extractWikiTagReferences('\\cite{tags/42,a/123,books/91}');
 
-  expect(html).toContain('href="/tags/42/info/tag"');
-  expect(html).toContain('href="/a/123"');
-  expect(html).toContain('href="/books/91"');
+  expect(html).toContain('href="/rinspace/tags/42/info/tag"');
+  expect(html).toContain('href="/rinspace/a/123"');
+  expect(html).toContain('href="/rinspace/books/91"');
   expect(references.length).toBe(3);
   expect(references[0].kind).toBe('tag');
   expect(references[1].kind).toBe('blog');
@@ -119,7 +119,7 @@ test('extracts canonical id-first wiki tag links', () => {
   expect(references[0].tagId).toBe('42');
   expect(references[0].slug).toBe('sheaf');
   expect(references[0].section).toBe('definition');
-  expect(references[0].href).toBe('/tags/42/info/sheaf#definition');
+  expect(references[0].href).toBe('/rinspace/tags/42/info/sheaf#definition');
 });
 
 test('extracts rin bibliography citation anchors', () => {

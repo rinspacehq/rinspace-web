@@ -8,7 +8,7 @@
     "homeAria": "Open Creator Center home"
   },
   "tabs": {
-    "blog": "Blogs",
+    "blog": "Articles",
     "book": "Books",
     "question": "Q&A",
     "discussion": "Discussions",
@@ -96,7 +96,7 @@
       "newFollowers": "New followers"
     },
     "chart": {
-      "title": "Blog and book trends",
+      "title": "Article and book trends",
       "description": "Line chart of reads, likes, bookmarks, and new followers"
     },
     "sources": {
@@ -104,12 +104,9 @@
       "untitled": "Untitled work"
     },
     "table": {
-      "caption": "Blog and book data for {{period}}",
+      "caption": "Article and book data for {{period}}",
       "date": "Date"
     }
-  },
-  "demoCapabilities": {
-    "notice": "Browser demo: creator data and local publications stay on this device. Code workspaces, collaboration, moderation, Gitea activity, and production publication are unavailable."
   },
   "heatmap": {
     "label": "Contribution heatmap",

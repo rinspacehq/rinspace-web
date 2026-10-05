@@ -38,7 +38,7 @@ function ConfirmActionDialog({
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <p>{description}</p>
+        <Modal.Description>{description}</Modal.Description>
         {details.length ? (
           <ul>
             {details.map((item) => (

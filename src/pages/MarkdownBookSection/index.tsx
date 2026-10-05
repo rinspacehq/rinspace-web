@@ -1,19 +1,22 @@
 import { Icon, AnimateButton, useNoticeToasts } from 'components/ui';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Spinner } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { useParams } from 'react-router-dom';
 
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
 import { MathInline } from '@/components/MathText';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import LoadingState from '@/components/LoadingState';
-import RinMilkdownEditor from '@/components/RinMilkdownEditor';
+import RinMilkdownEditor, { type RinMilkdownEditorHandle } from '@/components/RinMilkdownEditor';
+import {
+  repositoryAssetUrl,
+  type RepositoryFileInput,
+} from '@/components/milkdown/repositoryAssets';
 import SiteTopbar from '@/components/SiteTopbarShell';
 import { loadContentDetail, updateContent } from '@/services/domains/article';
-import { markdownRenderJobNotice, submitMarkdownBookRenderJob, waitForMarkdownRenderJob } from '@/services/domains/publication';
+import { loadMarkdownEditorSource } from '@/services/markdownEditorSource';
 import type { BookMetadata, PostDetail } from '@/services/contracts';
-import type { CloudUser } from '@/services/phoneAuth';
+import type { RinspaceUser } from '@/services/phoneAuth';
 import { messageFromError } from '@/services/errors';
 import { getCurrentUser } from '@/services/profile';
 import {
@@ -38,11 +41,9 @@ function sameUserId(left: string | undefined | null, right: string | undefined |
 
 export default function MarkdownBookSectionPage() {
   const { t } = useFeatureTranslation('creation');
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === 'demo';
   const { postId = '', sectionId = '' } = useParams();
   const [post, setPost] = useState<PostDetail | null>(null);
-  const [user, setUser] = useState<CloudUser | null>(null);
+  const [user, setUser] = useState<RinspaceUser | null>(null);
   const [project, setProject] = useState<MarkdownBookProject | null>(null);
   const [title, setTitle] = useState('');
   const [draft, setDraft] = useState('');
@@ -51,6 +52,12 @@ export default function MarkdownBookSectionPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [restoredRepositoryFiles, setRestoredRepositoryFiles] = useState<RepositoryFileInput[]>([]);
+  const editorRef = useRef<RinMilkdownEditorHandle | null>(null);
+  const resolveRepositoryAsset = useCallback(
+    (path: string) => post ? repositoryAssetUrl(post, path) : path,
+    [post],
+  );
 
   useNoticeToasts({
     error,
@@ -65,13 +72,17 @@ export default function MarkdownBookSectionPage() {
       loadContentDetail(postId),
       getCurrentUser().catch(() => null),
     ])
-      .then(([detail, currentUser]) => {
+      .then(async ([detail, currentUser]) => {
         if (cancelled) return;
         if (detail.type !== 'book' || detail.book?.kind !== 'markdown') {
           throw new Error(t('markdownSection.notMarkdownBook'));
         }
+        const repositoryBody = detail.repositorySource
+          ? await loadMarkdownEditorSource(detail)
+          : detail.body;
+        if (cancelled) return;
         const nextProject = markdownBookProjectFromBody(
-          detail.body,
+          repositoryBody,
           detail.book.bookTitle || detail.title,
         );
         const file = nextProject.files.find((item) => item.id === sectionId);
@@ -125,9 +136,10 @@ export default function MarkdownBookSectionPage() {
       bookId: postId,
       sectionId,
       bookTitle,
+      repositoryFiles: editorRef.current?.snapshotRepositoryFiles() || restoredRepositoryFiles,
       savedAt: Date.now(),
     };
-  }, [autosaveKey, bookTitle, draft, file, post, postId, sectionId, title]);
+  }, [autosaveKey, bookTitle, draft, file, post, postId, restoredRepositoryFiles, sectionId, title]);
 
   const applyAutosaveDraft = useCallback((autosaveDraft: MilkdownAutosaveDraft) => {
     if (
@@ -140,6 +152,7 @@ export default function MarkdownBookSectionPage() {
     const nextTitle = autosaveDraft.title || firstMarkdownHeading(autosaveDraft.markdown) || title;
     setTitle(nextTitle);
     setDraft(markdownWithTitle(autosaveDraft.markdown, nextTitle));
+    setRestoredRepositoryFiles(autosaveDraft.repositoryFiles || []);
   }, [postId, sectionId, title]);
 
   const {
@@ -148,6 +161,7 @@ export default function MarkdownBookSectionPage() {
     noticeTone: autosaveNoticeTone,
     markChanged: markAutosaveChanged,
     scheduleAutosave,
+    saveNow,
     clearAutosave,
   } = useMilkdownAutosave({
     key: autosaveKey,
@@ -177,6 +191,11 @@ export default function MarkdownBookSectionPage() {
     setError('');
     setNotice('');
     try {
+      await saveNow();
+      if (editorRef.current?.hasPendingQuiver(draft)) {
+        setError(t('markdownWriter.quiver.pendingPublish'));
+        return;
+      }
       const nextProject = updateMarkdownBookFile(project, file.id, title, draft);
       const book: BookMetadata = {
         ...(post.book || {
@@ -187,22 +206,10 @@ export default function MarkdownBookSectionPage() {
         kind: 'markdown',
         bookTitle,
       };
-      let renderJobId: string | undefined;
-      if (!demoMode) {
-        const submission = await submitMarkdownBookRenderJob(
-          nextProject.files,
-          bookTitle,
-          post.slug || post.id,
-        );
-        renderJobId = submission.enabled
-          ? (await waitForMarkdownRenderJob(
-              submission.job.queue ? submission.job : { ...submission.job, queue: submission.queue },
-              (job) => setNotice(markdownRenderJobNotice(job)),
-            )).jobId
-          : undefined;
-      }
+      const repositoryFiles = await editorRef.current?.collectRepositoryFiles(draft) || [];
       const saved = await updateContent(post.slug || post.id, {
         type: 'book',
+        sourceCommit: post.pendingCommit || post.repositorySource?.commit,
         status: 'published',
         editor: 'markdown',
         title: post.title,
@@ -210,10 +217,12 @@ export default function MarkdownBookSectionPage() {
         excerpt: post.excerpt || markdownBookExcerpt(nextProject),
         tags: post.tags || [],
         coverUrl: post.coverUrl || '',
-        renderJobId,
+        repositoryFiles,
         book,
       });
-      const savedProject = markdownBookProjectFromBody(saved.body, bookTitle);
+      const savedProject = saved.publicationPending
+        ? nextProject
+        : markdownBookProjectFromBody(saved.body, bookTitle);
       const savedFile = savedProject.files.find((item) => item.id === file.id);
       setPost(saved);
       setProject(savedProject);
@@ -221,6 +230,7 @@ export default function MarkdownBookSectionPage() {
         setTitle(savedFile.title);
         setDraft(markdownWithTitle(savedFile.body, savedFile.title));
       }
+      await editorRef.current?.clearPersistedRepositoryFiles();
       await clearAutosave();
       setNotice(t('markdownSection.saved'));
     } catch (saveError) {
@@ -233,7 +243,7 @@ export default function MarkdownBookSectionPage() {
 
   return (
     <>
-      <Helmet title={title || t('markdownSection.documentFallback')} />
+      <Helmet title={`${title || t('markdownSection.documentFallback')} · ${t('navigation:brandName')}`} />
       <SiteTopbar />
       <main className="writer-shell markdown-writer-shell">
         <div className="writer-publish-bar book-writer-publish-bar workspace-section-editor-bar">
@@ -293,10 +303,15 @@ export default function MarkdownBookSectionPage() {
         {!loading && post && !canEdit ? (
           <Alert className="notice warning">{t('markdownSection.authorOnly')}</Alert>
         ) : null}
-        {!loading && file && (!canEdit || autosaveChecked) ? (
+        {!loading && post && file && (!canEdit || autosaveChecked) ? (
           <section className="writer-frame markdown-writer-frame" aria-label={t('markdownSection.editor')}>
             <RinMilkdownEditor
+              ref={editorRef}
               id="markdown-book-section-body"
+              repositoryAssets
+              repositoryFiles={restoredRepositoryFiles}
+              assetNamespace={`markdown-book:${post.id}:${file.id}`}
+              resolveRepositoryAssetUrl={resolveRepositoryAsset}
               value={draft}
               minHeight="560px"
               placeholder={t('markdownSection.placeholder')}

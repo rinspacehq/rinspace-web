@@ -2,7 +2,7 @@
   "title": "发现",
   "empty": "暂无内容",
   "contentTypes": {
-    "blog": "博客",
+    "blog": "文章",
     "question": "问答",
     "discussion": "讨论",
     "announcement": "公告",
@@ -57,15 +57,15 @@
   },
   "pages": {
     "blog": {
-      "documentTitle": "博客",
-      "heading": "博客",
-      "sort": "博客排序",
-      "contextTitle": "博客目录",
-      "contextExcerpt": "当前博客列表：{{items}} 篇，{{authors}} 位作者。",
-      "current": "当前博客"
+      "documentTitle": "文章 - 芥子环",
+      "heading": "文章",
+      "sort": "文章排序",
+      "contextTitle": "文章目录",
+      "contextExcerpt": "当前文章列表：{{items}} 篇，{{authors}} 位作者。",
+      "current": "当前文章"
     },
     "dynamic": {
-      "documentTitle": "动态",
+      "documentTitle": "动态 · 芥子环",
       "heading": "动态",
       "sort": "动态排序",
       "contextTitle": "动态目录",
@@ -73,7 +73,7 @@
       "current": "当前动态"
     },
     "discussion": {
-      "documentTitle": "讨论",
+      "documentTitle": "讨论 · 芥子环",
       "heading": "讨论",
       "sort": "讨论排序",
       "contextTitle": "讨论目录",
@@ -81,7 +81,7 @@
       "current": "当前讨论"
     },
     "question": {
-      "documentTitle": "问答",
+      "documentTitle": "问答 - 芥子环",
       "heading": "问答",
       "sort": "问答排序",
       "contextTitle": "问答目录",
@@ -89,7 +89,7 @@
       "current": "当前题目"
     },
     "book": {
-      "documentTitle": "书库",
+      "documentTitle": "书库 · 芥子环",
       "heading": "书库",
       "sort": "书库排序",
       "contextTitle": "书库",
@@ -99,6 +99,7 @@
       "view": "查看《{{title}}》",
       "external": "站外书籍",
       "original": "原创书籍",
+      "typst": "Typst 书籍",
       "officialSite": "官网",
       "pageCount_one": "{{displayCount}} 页",
       "pageCount_other": "{{displayCount}} 页",
@@ -113,7 +114,7 @@
       "reviewCount_other": "{{displayCount}} 人评分"
     },
     "tag": {
-      "documentTitle": "标签",
+      "documentTitle": "标签 - 芥子环",
       "governanceTitle": "知识目录",
       "governanceDescription": "按语义父级浏览，并集中处理未分类、待审阅与仓库异常。",
       "create": "创建 Tag",
@@ -158,8 +159,8 @@
       }
     },
     "search": {
-      "documentTitle": "搜索",
-      "queryDocumentTitle": "{{query}} - 搜索",
+      "documentTitle": "搜索 - 芥子环",
+      "queryDocumentTitle": "{{query}} - 搜索 - 芥子环",
       "heading": "搜索",
       "resultCount_one": "{{displayCount}} 条结果",
       "resultCount_other": "{{displayCount}} 条结果",
@@ -169,7 +170,7 @@
       "typesLabel": "搜索类型",
       "types": {
         "all": "综合",
-        "blog": "博客",
+        "blog": "文章",
         "book": "书籍",
         "question": "问答",
         "discussion": "讨论",
@@ -203,7 +204,7 @@
       "next": "下一页"
     },
     "announcement": {
-      "documentTitle": "公告",
+      "documentTitle": "公告 · 芥子环",
       "type": "公告",
       "contextTitle": "公告目录",
       "contextExcerpt": "当前公告列表：{{items}} 条。",
@@ -216,7 +217,7 @@
       "empty": "暂无公告。"
     },
     "users": {
-      "documentTitle": "成员",
+      "documentTitle": "成员 - 芥子环",
       "heading": "成员",
       "reputation": "修为",
       "upvotes": "赞同",
@@ -239,11 +240,10 @@
     "seo": {
       "title": "芥子环 - 以 Tag 为核心的长文社区",
       "description": "芥子环是一个以 Tag 为核心的长文知识社区，支持 Markdown 与 LaTeX 写作，并依托 Git 进行版本管理。",
-      "publisher": "Rinspace Web"
+      "publisher": "任务优先（上海）网络科技有限责任公司"
     },
     "views": {
-      "reading": "阅读",
-      "stream": "旧栏目",
+      "stream": "社区流",
       "tags": "标签",
       "books": "书库",
       "graph": "知识图谱"
@@ -271,7 +271,6 @@
       "title": "芥子环 首页",
       "excerpt": "当前首页视图：{{view}}；信息流模式：{{mode}}。",
       "streamTitle": "社区流",
-      "readingTitle": "书籍与博客",
       "tagActivityTitle": "标签动态",
       "bookTitle": "书库 · {{mode}}",
       "hotDiscussions": "最近热议",
@@ -286,7 +285,7 @@
       "signInShelf": "登录后查看书架。",
       "signInFollowingBooks": "登录后查看关注书籍。",
       "signInSave": "请先登录后收藏。",
-      "signInLike": "请先登录后点赞。"
+      "signInLike": "请先登录后喜欢。"
     },
     "status": {
       "saved": "已收藏：{{title}}",
@@ -297,7 +296,6 @@
       "liked": "已喜欢。",
       "unliked": "已取消喜欢。"
     },
-    "mediaUnavailable": "媒体加载失败",
     "actions": {
       "interactions": "内容互动",
       "like": "喜欢",
@@ -340,14 +338,13 @@
       "contentCount_other": "{{displayCount}} 条内容"
     },
     "board": {
-      "landmark": "书籍、博客与知识标签",
+      "landmark": "综合动态与题目问答",
       "views": "首页社区视图",
       "feedFilter": "动态筛选",
       "bookFilter": "书库筛选",
       "tagSyncFailed": "标签动态同步失败：{{error}}",
       "usingLocal": "正在使用本地摘要：{{error}}",
-      "syncingContent": "正在同步最新社区内容...",
-      "emptyReading": "暂时没有可阅读的书籍或博客。"
+      "syncingContent": "正在同步最新社区内容..."
     },
     "rail": {
       "graph": "知识图谱",
@@ -360,12 +357,8 @@
       "signInFollowed": "登录后显示关注标签。",
       "sponsor": "赞助我们",
       "support": "支持",
-      "legacyTitle": "旧社区栏目",
-      "legacyStatus": "保留入口",
-      "legacyDescription": "讨论、问答与动态保留原有路由和历史内容，不参与里世界帖子迁移。",
-      "discussions": "讨论",
-      "questions": "问答",
-      "dynamics": "动态"
+      "supporters": "赞助人",
+      "openSourceStars": "Rinspace 开源项目 GitHub Stars"
     },
     "time": {
       "unknown": "时间未知",

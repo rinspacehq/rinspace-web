@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { identitySessionMock } from './identity-session-mock';
 
 const currentUser = {
   id: 'creator-browser-1',
@@ -53,14 +54,7 @@ const analyticsFixture = {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
-    localStorage.setItem('rinspace-auth-session', JSON.stringify({
-      access_token: `e30.${payload}.signature`,
-      refresh_token: 'creator-browser-refresh',
-      expires_in: 3600,
-      issued_at: Date.now(),
-      sub: 'creator-browser-1',
-    }));
+    localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'creator-browser-1' }));
     if (!localStorage.getItem('rinspace-language-preference-v1')) {
       localStorage.setItem(
         'rinspace-language-preference-v1',
@@ -79,6 +73,10 @@ test.beforeEach(async ({ page }) => {
   }));
   await page.route('**/api/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname.replace(/^\/rinspace(?=\/)/, '');
+    if (pathname === '/api/identity/v1/session') {
+      await route.fulfill({ json: identitySessionMock('creator-browser-1', 'creator-browser') });
+      return;
+    }
     if (pathname === '/repos/api/v1/users/creator-browser/heatmap') {
       await route.fulfill({
         json: [{

@@ -16,6 +16,7 @@ import {
   type ReportTarget,
 } from "@/services/domains/reporting";
 import { messageFromError } from "@/services/errors";
+import { subscribeToMediaQuery } from "@/utils/mediaQuery";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,8 +35,7 @@ function useCompactReportOverlay() {
     const media = window.matchMedia(query);
     const update = () => setCompact(media.matches);
     update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
+    return subscribeToMediaQuery(media, update);
   }, []);
   return compact;
 }

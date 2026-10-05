@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppProviders } from '@/app/providers/AppProviders';
 import { SiteTopbarHost } from '@/components/SiteTopbarShell';
-import { i18n } from '@/i18n';
 import type { CurrentUserInfo, UserNotificationConfig } from '@/services/contracts';
 import {
   loadCurrentUserInfo,
@@ -14,6 +13,13 @@ import {
   updateUserNotificationConfig,
 } from '@/services/domains/identity';
 import { loadCodeRecoveries } from '@/services/recovery';
+import {
+  sendIdentityStepUpOtp,
+  completeCloudBaseStepUp,
+  listIdentityCredentials,
+  listIdentityDevices,
+  revokeIdentityCredential,
+} from '@/services/phoneAuth';
 import SettingsPage from './index';
 
 vi.mock('@/services/domains/identity', () => ({
@@ -27,6 +33,21 @@ vi.mock('@/services/recovery', () => ({
   loadCodeRecoveries: vi.fn(),
   createCodeRecoveryTicket: vi.fn(),
 }));
+
+vi.mock('@/services/phoneAuth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/phoneAuth')>();
+  return {
+    ...actual,
+    sendIdentityStepUpOtp: vi.fn(),
+    completeCloudBaseStepUp: vi.fn(),
+    listIdentityCredentials: vi.fn(),
+    listIdentityDevices: vi.fn(),
+    revokeAllIdentityDevices: vi.fn(),
+    revokeAllIdentityPersonalAccess: vi.fn(),
+    revokeIdentityCredential: vi.fn(),
+    revokeIdentityDevice: vi.fn(),
+  };
+});
 
 const currentUser: CurrentUserInfo = {
   id: 'user-1',
@@ -73,31 +94,9 @@ function renderSettings() {
 }
 
 describe('Settings interface language', () => {
-  beforeEach(async () => {
-    await i18n.changeLanguage('zh-CN');
+  beforeEach(() => {
+    vi.clearAllMocks();
     window.localStorage.clear();
-    window.localStorage.setItem(
-      'rinspace-language-preference-v1',
-      JSON.stringify({ preference: 'zh-CN' }),
-    );
-    window.localStorage.setItem('rinspace-auth-session', JSON.stringify({
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
-      sub: 'user-1',
-    }));
-    window.localStorage.setItem('rinspace-topbar-session-cache', JSON.stringify({
-      authorizationSource: 'backend-identity-v1',
-      user: { id: 'user-1', username: 'rin-user' },
-      profile: { nickname: 'Rin User', avatarDataUrl: '' },
-      nickname: 'Rin User',
-      avatarDataUrl: '',
-      publicUserId: 'rin-user',
-      isAdmin: false,
-      isModerator: false,
-      language: 'zh-CN',
-      colorScheme: 'system',
-      cachedAt: Date.now(),
-    }));
     vi.mocked(loadCurrentUserInfo).mockResolvedValue(currentUser);
     vi.mocked(loadUserNotificationConfig).mockResolvedValue(notifications);
     vi.mocked(updateUserNotificationConfig).mockResolvedValue(notifications);
@@ -106,6 +105,11 @@ describe('Settings interface language', () => {
       colorScheme: 'system',
     });
     vi.mocked(loadCodeRecoveries).mockResolvedValue([]);
+    vi.mocked(listIdentityDevices).mockResolvedValue([]);
+    vi.mocked(listIdentityCredentials).mockResolvedValue([]);
+    vi.mocked(sendIdentityStepUpOtp).mockResolvedValue({ verificationId: 'verification-security', phoneNumber: '+8613700000000', isUser: true });
+    vi.mocked(completeCloudBaseStepUp).mockResolvedValue('rin_su_proof');
+    vi.mocked(revokeIdentityCredential).mockResolvedValue({});
   });
 
   it('offers the three approved choices and switches atomically after save', async () => {
@@ -124,8 +128,48 @@ describe('Settings interface language', () => {
       language: 'en',
       colorScheme: 'system',
     }));
-    await screen.findByRole('heading', { name: 'Settings', level: 1 });
+    await screen.findByRole('heading', { name: 'Settings', level: 1, hidden: true });
     expect(document.documentElement.lang).toBe('en');
     expect(screen.getByLabelText('Language')).toBe(languageSelect);
+  });
+
+  it('renders without the hero, sidebar, or notification preferences', async () => {
+    const { container } = renderSettings();
+
+    expect(await screen.findByLabelText('语言')).toBeTruthy();
+    expect(container.querySelector('.settings-toolbar')).toBeNull();
+    expect(container.querySelector('.settings-profile-card')).toBeNull();
+    expect(screen.queryByText('通知偏好')).toBeNull();
+    expect(loadUserNotificationConfig).not.toHaveBeenCalled();
+  });
+
+  it('shows separate device and personal credential scopes and confirms a targeted revoke', async () => {
+    vi.mocked(listIdentityDevices).mockResolvedValue([{
+      sid: 'sid-current', clientLabel: 'Desktop browser', authMethod: 'sms',
+      createdAt: '2026-09-01T00:00:00Z', lastActiveAt: '2026-09-12T00:00:00Z',
+      idleExpiresAt: '2026-10-01T00:00:00Z', absoluteExpires: '2026-12-01T00:00:00Z',
+      current: true, revoked: false, cleanupComplete: true, runtimes: { gitea_web: 'active' },
+    }]);
+    vi.mocked(listIdentityCredentials).mockResolvedValue([{
+      ref: 'gitea:ssh:17', provider: 'gitea', kind: 'ssh', label: 'Laptop key',
+      scopes: ['git'], createdAt: '2026-09-01T00:00:00Z', state: 'active',
+    }]);
+    renderSettings();
+
+    expect(await screen.findByText('Desktop browser')).toBeTruthy();
+    expect(screen.getByText('Laptop key')).toBeTruthy();
+    expect(screen.getByText('最近使用：未知时间')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '撤销此凭据' }));
+    fireEvent.change(await screen.findByLabelText('手机号'), { target: { value: '13700000000' } });
+    fireEvent.click(screen.getByRole('button', { name: '发送验证码' }));
+    await waitFor(() => expect(sendIdentityStepUpOtp).toHaveBeenCalledWith('credential_revoke', 'gitea:ssh:17', '13700000000'));
+    fireEvent.change(await screen.findByLabelText('验证码'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: '确认操作' }));
+    await waitFor(() => expect(completeCloudBaseStepUp).toHaveBeenCalledWith(
+      'credential_revoke', 'gitea:ssh:17',
+      { verificationId: 'verification-security', phoneNumber: '+8613700000000', isUser: true },
+      '123456',
+    ));
+    await waitFor(() => expect(revokeIdentityCredential).toHaveBeenCalledWith('gitea:ssh:17', 'rin_su_proof'));
   });
 });
