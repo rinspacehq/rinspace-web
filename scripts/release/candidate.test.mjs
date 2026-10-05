@@ -78,6 +78,16 @@ test('GNU tar reads the strict archive and its long-path prefix without director
   assert.equal(gunzipSync(result.artifactBytes).length % 512, 0);
 });
 
+test('candidate preserves the site font filenames that begin with a hyphen', () => {
+  const value = fixture();
+  const name = 'fonts/library/ibm-plex-mono/-F63fjptAgt5VM-kVkqdyU8n1iIq129k.woff2';
+  const bytes = Buffer.from('synthetic font fixture');
+  value.site.set(name, bytes);
+  const result = createCandidate(value);
+  assert.deepEqual(execFileSync('tar', ['-xzOf', '-', `site/${name}`], { input: result.artifactBytes }), bytes);
+  assert.equal(JSON.parse(result.manifestBytes).files.find((entry) => entry.path === `site/${name}`).sha256, sha256(bytes));
+});
+
 test('a candidate cannot invent missing checks or bind different checked inputs', () => {
   const value = fixture();
   for (const changed of [{ sourceCommit: 'b'.repeat(40) }, { dependencyLockSha256: 'b'.repeat(64) }, { publicConfigSha256: 'b'.repeat(64) }, { checks: { ...value.checks.checks, unit: 'skipped' } }, { checks: { ...value.checks.checks, 'vite-artifact': 'pending' } }]) assert.throws(() => createCandidate({ ...value, checks: { ...value.checks, ...changed } }));
