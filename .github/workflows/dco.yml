@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   dco:
+    name: Verify DCO sign-offs for every commit author and coauthor
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

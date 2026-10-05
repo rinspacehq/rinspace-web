@@ -16,6 +16,7 @@ test('PR checks use only disposable hosted runners and no formal build/private s
 test('DCO metadata workflow never checks out or executes PR head code', () => {
   const text = workflow('dco');
   assert.match(text, /pull_request_target:/);
+  assert.match(text, /name: Verify DCO sign-offs for every commit author and coauthor/);
   assert.match(text, /ref: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
   assert.match(text, /commits\.length !== pr\.commits/);
   assert.doesNotMatch(text, /ref:.*head|pnpm install|npm install|contents: write|secrets\./);

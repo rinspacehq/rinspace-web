@@ -1,12 +1,13 @@
 # 新前端检查与候选产物流程 / Frontend checks and candidate artifacts
 
-这些文件是新源码的本地迁移准备，不复用历史 Demo/容器/发布流程。目前未推送、
-未调度构建，也没有使公开仓库成为生产来源。既有 1036 文件源码迁出摘要不变；
-本目录与 scripts/release/ 是另行批准添加的流程控制输入，需要随新提交重新审查。
+这些流程随当前前端源码公开，不复用历史 Demo/容器/发布流程。源码公开和公开
+main 的审查合入不等于官网切换；未调度正式构建、发行或部署。除同步迁移状态的
+README 外，既有 1036 文件源码基线不变；新增流程控制输入逐提交审查。
 
-These are locally prepared workflows for the current frontend, not historical demo releases.
-They have not been pushed, dispatched or activated as production inputs. The previously reviewed
-1036 source files remain unchanged; these additional control inputs require review of the new SHA.
+These workflows accompany the published frontend, not historical demo releases. Public source
+and main integration do not activate production inputs or authorize builds, releases or deployment.
+Only migration-status documentation differs from the reviewed source baseline; control inputs
+continue to require review of each new commit.
 
 ## PR 与 DCO
 
@@ -16,6 +17,7 @@ They have not been pushed, dispatched or activated as production inputs. The pre
 - dco.yml 的 pull_request_target 仅读取提交元数据，检出的是受信任 base SHA，
   不检出、不安装、不执行 PR head。逐提交核对作者及共同作者的真实 trailer 签署；
   超过 250 个提交的 PR 要求拆分，不截断后冒充完成。
+  Job 名称保留现有必需状态检查，不修改或绕过 main 的 DCO 保护规则。
 - 两者只有只读权限，不使用生产 secrets、不共享正式构建缓存；外部 PR 不进入
   私仓、生产或正式构建 runner。Action 均锁定已核对的官方完整 commit SHA。
 
@@ -84,7 +86,7 @@ backend authorization rollout and source cutover are separate pending steps, not
 安全设计参考：[GitHub Actions 安全指南](https://docs.github.com/en/actions/reference/security/secure-use)
 和[环境保护说明](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)。
 
-## 本地验证记录 / Local validation — 2026-10-05
+## 源码公开前的本地验证记录 / Pre-publication local validation — 2026-10-05
 
 - 当前修改为 11 个新增流程/脚本/测试/说明文件；原 1036 个迁出文件逐字节复核
   一致，原范围摘要仍为 6638fa3315dab6a16f1158f87111418313dc4653b131cc357ab4393e24865528。
