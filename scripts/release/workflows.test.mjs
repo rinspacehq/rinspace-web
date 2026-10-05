@@ -34,6 +34,9 @@ test('fixed candidate is manual, read-only, separately approved and isolated', (
   assert.match(text, /RINSPACE_FRONTEND_REVIEWED_SOURCE/);
   assert.match(text, /context_sha256/);
   assert.match(text, /--output "\/stage\/\$GITHUB_RUN_ID"/);
+  assert.match(text, /test "\$\(node --version\)" = v22\.22\.3/);
+  assert.match(text, /test "\$\(pnpm --version\)" = 9\.7\.0/);
+  assert.doesNotMatch(text, /actions\/setup-node/);
   assert.doesNotMatch(text, /actions\/upload-artifact|frontend-candidate-output/);
   assert.doesNotMatch(text, /^  (push|pull_request|pull_request_target|workflow_run):/m);
   assert.doesNotMatch(text, /contents: write|id-token: write|secrets\.|gh release|docker |git push/);

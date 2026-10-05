@@ -89,6 +89,10 @@ vMAJOR.MINOR.PATCH，且不能覆盖已有 tag/release。它没有写仓库、�
    不保留通用 self-hosted/Linux/X64 标签，否则历史 PR 的通用排队任务也可选中它。
    This is still a Linux x64 self-hosted runner; omitting default routing labels prevents
    unrelated generic jobs from claiming the single-use candidate runner.
+   候选 job 先核验宿主只读 `/usr/bin/node` 恰为 v22.22.3，并核验 pnpm 9.7.0；
+   不再由 setup-node 在作业里重复下载 Node。首次内部 run 37291345729 在
+   setup-node 的 GitHub Release 下载 TLS 中断后取消，尚未检查或打包产品源码，
+   stage 为空；不能记为候选成功。
 4. 在受保护环境中明确设置 RINSPACE_FRONTEND_CANDIDATE_ENABLED、
    RINSPACE_FRONTEND_ISOLATED_RUNNER_APPROVED 为 true，
    RINSPACE_FRONTEND_DISTRIBUTION_APPROVED 保持 false；

@@ -102,9 +102,6 @@ jobs:
         with:
           ref: ${{ needs.authorize.outputs.source_commit }}
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: '22.22.3'
       - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: '9.7.0'
@@ -133,6 +130,9 @@ jobs:
       - name: Verify runner tools and canonical remote
         run: |
           command -v bwrap
+          test "$(command -v node)" = /usr/bin/node
+          test "$(node --version)" = v22.22.3
+          test "$(pnpm --version)" = 9.7.0
           git remote -v
           test "$(git remote get-url origin)" = https://github.com/rinspacehq/rinspace-web
           test "$(git remote get-url --push origin)" = https://github.com/rinspacehq/rinspace-web
