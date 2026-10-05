@@ -24,6 +24,17 @@ continue to require review of each new commit.
 PR checks run on disposable hosted runners with no production secrets. DCO uses trusted-base
 code and PR metadata only. External PR code never runs on a private or production runner.
 
+公开 PR 检查固定使用 ubuntu-22.04。首次 Ubuntu 24.04 hosted run
+[37264175473](https://github.com/rinspacehq/rinspace-web/actions/runs/37264175473)
+在隔离启动时报告 `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`，
+测试尚未开始；DCO 同次通过。这是实际 runner 的命名空间初始化兼容性问题，
+不能以本地通过替代远端验证。改用 GitHub 仍支持的 Ubuntu 22.04 hosted image，
+保留原 bubblewrap 的网络/PID 隔离、空凭据环境和全部检查，不改内核保护设置。
+具体 LSM 拒绝规则未在该次 run 中直接采集，不将 AppArmor 推断写成已确认事实。
+参考 [GitHub runner 镜像](https://github.com/actions/runner-images)与
+[Ubuntu 安全特性表](https://documentation.ubuntu.com/security/security-features/security-features-tables/)；
+修复是否通过以该 PR 的新 GitHub run 为准。
+
 ## 固定候选：默认关闭，构建不等于发布
 
 frontend-candidate.yml 只有显式 workflow_dispatch。它要求 canonical main 上的
