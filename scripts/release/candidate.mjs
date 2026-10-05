@@ -39,8 +39,8 @@ export function releaseContext(value) {
   if (!/^[a-f0-9]{40}$/.test(value.sourceCommit) || value.sourceCommit !== value.workflowCommit || value.sourceCommit !== value.remoteMain) {
     throw Error('Source must be the exact reviewed workflow commit and current main');
   }
-  if (value.enabled !== 'true' || value.isolatedRunner !== 'true' || value.distributionApproved !== 'true' || value.reviewedSource !== value.sourceCommit || value.reviewedVersion !== value.version) {
-    throw Error('Explicit candidate, isolated-runner, source/version and distribution approvals are required');
+  if (value.enabled !== 'true' || value.isolatedRunner !== 'true' || value.distributionApproved !== 'false' || value.reviewedSource !== value.sourceCommit || value.reviewedVersion !== value.version) {
+    throw Error('Internal-only candidate requires explicit candidate, isolated-runner and source/version approvals with distribution disabled');
   }
   if (!/^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(value.version)) throw Error('Version must be exact vMAJOR.MINOR.PATCH');
   if (!value.compatibility || typeof value.compatibility !== 'object' || Array.isArray(value.compatibility) || Object.keys(value.compatibility).sort().join(',') !== 'api,identity,shared') throw Error('Explicit api/identity/shared compatibility is required');

@@ -11,7 +11,7 @@ export function fixture() {
   const input = {
     repository: 'rinspacehq/rinspace-web', eventName: 'workflow_dispatch', ref: 'refs/heads/main',
     sourceCommit: 'a'.repeat(40), workflowCommit: 'a'.repeat(40), remoteMain: 'a'.repeat(40),
-    version: 'v1.2.3', enabled: 'true', isolatedRunner: 'true', distributionApproved: 'true',
+    version: 'v1.2.3', enabled: 'true', isolatedRunner: 'true', distributionApproved: 'false',
     reviewedSource: 'a'.repeat(40), reviewedVersion: 'v1.2.3',
     compatibility: { api: 'synthetic-api/1', identity: 'synthetic-identity/1', shared: 'synthetic-shared/1' },
     publicConfig: { REACT_APP_CLOUDBASE_ENV_ID: 'synthetic-environment', REACT_APP_CLOUDBASE_ACCESS_KEY: 'synthetic-publishable-fixture-not-a-credential' },
@@ -36,7 +36,7 @@ test('release context is exact, reviewed, manual and canonical', () => {
   for (const [field, changed] of [
     ['repository', 'lunifans/rinspace-web'], ['eventName', 'pull_request'], ['ref', 'refs/tags/v1.2.3'],
     ['sourceCommit', 'main'], ['workflowCommit', 'b'.repeat(40)], ['remoteMain', 'b'.repeat(40)],
-    ['enabled', ''], ['isolatedRunner', 'false'], ['distributionApproved', 'false'],
+    ['enabled', ''], ['isolatedRunner', 'false'], ['distributionApproved', 'true'],
     ['reviewedSource', 'b'.repeat(40)], ['reviewedVersion', 'v1.2.4'], ['version', 'latest'],
   ]) assert.throws(() => releaseContext({ ...value.input, [field]: changed }), undefined, field);
 });

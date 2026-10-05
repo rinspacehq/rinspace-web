@@ -74,9 +74,11 @@ frontend-candidate.yml 只有显式 workflow_dispatch。它要求 canonical main
 vMAJOR.MINOR.PATCH，且不能覆盖已有 tag/release。它没有写仓库、创建 Release、
 推送 tag、调用私仓或部署的步骤。
 
-启用前由负责人另行确认：
+这个阶段只在隔离 runner 的 `/stage/<run-id>/` 留存一次构建出的候选字节与摘要，
+不上传公开 Actions artifact。启用前由负责人另行确认：
 
-1. 源码/新增流程/完整发行许可与署名审查，源码公开和该次构建调度授权。
+1. 源码/新增流程与署名审查、源码公开和该次内部候选构建调度授权；公开编译产物
+   的完整再分发许可审查仍单独待办。
 2. frontend-candidate 环境的 main-only 和人工审批保护已实际设置；仅声明 environment
    名称不会自动设置这些保护。不得从当前工作区自动创建或放开这些配置。
 3. 隔离的一次性 self-hosted runner 已准备，含 Node 22.22.3、pnpm 9.7.0、Linux
@@ -88,17 +90,18 @@ vMAJOR.MINOR.PATCH，且不能覆盖已有 tag/release。它没有写仓库、�
    This is still a Linux x64 self-hosted runner; omitting default routing labels prevents
    unrelated generic jobs from claiming the single-use candidate runner.
 4. 在受保护环境中明确设置 RINSPACE_FRONTEND_CANDIDATE_ENABLED、
-   RINSPACE_FRONTEND_ISOLATED_RUNNER_APPROVED、RINSPACE_FRONTEND_DISTRIBUTION_APPROVED
-   为 true；RINSPACE_FRONTEND_REVIEWED_SOURCE/REVIEWED_VERSION 为该次精确值。
-   当前不设置这些值，缺少批准时流程失败，不生成候选。
+   RINSPACE_FRONTEND_ISOLATED_RUNNER_APPROVED 为 true，
+   RINSPACE_FRONTEND_DISTRIBUTION_APPROVED 保持 false；
+   RINSPACE_FRONTEND_REVIEWED_SOURCE/REVIEWED_VERSION 为该次精确值。
+   缺少批准时流程失败，不生成候选；本 workflow 也拒绝分发开关变为 true。
 5. RINSPACE_FRONTEND_COMPATIBILITY 是已双方评审的 api/identity/shared JSON，
    不是由候选自己宣称私仓支持。RINSPACE_FRONTEND_PUBLIC_CONFIG 只含经审查的
    浏览器公开配置；两项 CloudBase 必填参数中的 access key 是 publishable key，
    不是管理密钥。不得复制生产 .env、私有账号/管理手机号摘要或 server 配置。
 
-The candidate workflow is disabled until explicit source/version, isolated-runner and distribution
-approvals are configured. A protected environment and an isolated ephemeral runner must be
-provisioned and verified separately; this change does not create or authorize them.
+The candidate workflow stays disabled until exact source/version and isolated-runner approvals
+are configured. It requires distribution approval to remain false and never uploads a public
+artifact. A protected environment and an isolated ephemeral runner are separate prerequisites.
 
 构建在仅含公开输入和固定安装依赖的临时副本中进行，原工作树不修改。原 build
 pipeline 执行一次；实际检查结果绑定 source、lock、public config。产物包含：
@@ -121,9 +124,11 @@ are only for existing one-way integration. The SBOM records installed metadata, 
 
 ## 后续私仓消费
 
-Actions artifact 只供该候选的审查，不是生产发行。私仓随后用同一 tar.gz 进行独立、
-无生产凭据的集成检查，绑定 integration commit/change ID 与 compatibility；公共
-证据不能伪造私仓验收。双方接受后，另获授权把这些原字节发布为固定 GitHub Release，
+候选仅留在专用 runner 宿主的私有 stage 目录，不是公开发行。宿主从已停机的
+一次性 runner 取出相同 tar.gz/证据，并以固定摘要交给私仓进行独立、无生产
+凭据的集成检查，绑定 integration commit/change ID 与 compatibility；公开构建
+日志不能伪造私仓验收。双方接受且完成编译产物分发审查后，另获授权把这些原字节
+发布为固定 GitHub Release，
 私仓锁定精确 URL/版本/摘要，再改接已有 runtime/部署消费者和保留回退产物。
 公开来源正式切换及删除私仓重复前端仍待单独验收，productionAuthorized 始终 false。
 
