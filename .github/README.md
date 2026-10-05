@@ -35,6 +35,13 @@ code and PR metadata only. External PR code never runs on a private or productio
 [Ubuntu 安全特性表](https://documentation.ubuntu.com/security/security-features/security-features-tables/)；
 修复是否通过以该 PR 的新 GitHub run 为准。
 
+第二次 Ubuntu 22.04 run
+[37264454946](https://github.com/rinspacehq/rinspace-web/actions/runs/37264454946)
+已越过网络命名空间初始化，随后因 hosted Node 位于工具缓存、只读 `/usr` 下
+没有 `/usr/bin/node` 挂载点而停止。隔离入口把同一固定 Node 二进制只读挂到自己
+的 `/tools/node`，PATH 只增加这个目录；不改系统目录、隔离边界或业务代码。
+该路径布局增加回归，并在本地以只读且无 Node 的 `/usr/bin` 实际验证。
+
 ## 固定候选：默认关闭，构建不等于发布
 
 frontend-candidate.yml 只有显式 workflow_dispatch。它要求 canonical main 上的

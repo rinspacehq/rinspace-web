@@ -38,17 +38,19 @@ try {
   if (!fs.lstatSync(dependencyRoot).isDirectory()) throw Error('Dependencies must be an installed directory');
   const sandbox = ['--die-with-parent', '--unshare-net', '--unshare-pid', '--clearenv'];
   for (const name of ['/usr', '/lib', '/lib64']) if (fs.existsSync(name)) sandbox.push('--ro-bind', name, name);
-  sandbox.push('--ro-bind', fs.realpathSync(process.execPath), '/usr/bin/node', '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--dir', '/etc');
+  // setup-node installs under a tool cache; /usr/bin/node may not exist, and
+  // /usr is already read-only. Mount the pinned binary into our own directory.
+  sandbox.push('--dir', '/tools', '--ro-bind', fs.realpathSync(process.execPath), '/tools/node', '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--dir', '/etc');
   for (const name of ['/etc/hosts', '/etc/nsswitch.conf']) sandbox.push('--ro-bind', name, name);
   sandbox.push('--bind', project, '/app', '--ro-bind', dependencyRoot, '/app/node_modules');
   // Caches live only in the sandbox, never in a shared dependency installation.
   if (!fs.existsSync(path.join(dependencyRoot, '.vite'))) fs.mkdirSync(path.join(dependencyRoot, '.vite'));
   sandbox.push('--tmpfs', '/app/node_modules/.vite');
-  sandbox.push('--setenv', 'PATH', '/usr/bin:/bin', '--setenv', 'CI', 'true', '--setenv', 'NODE_OPTIONS', '--max-old-space-size=2048');
+  sandbox.push('--setenv', 'PATH', '/tools:/usr/bin:/bin', '--setenv', 'CI', 'true', '--setenv', 'NODE_OPTIONS', '--max-old-space-size=2048');
   if (build) for (const [key, value] of Object.entries(publicConfig)) sandbox.push('--setenv', key, value);
   sandbox.push('--chdir', '/app', '--');
   function run(command) {
-    const result = spawnSync('bwrap', [...sandbox, '/usr/bin/node', ...command], { stdio: 'inherit' });
+    const result = spawnSync('bwrap', [...sandbox, '/tools/node', ...command], { stdio: 'inherit' });
     if (result.error || result.status !== 0) throw Error(`Isolated frontend check failed: ${command[0]}`);
   }
   run(['-e', "const fs=require('node:fs'); for(const p of ['/home/ubuntu/rinspace','/specs','/templates','/app/.git','/app/.env.production']) if(fs.existsSync(p)) throw Error('Hidden/private input visible'); if(Object.keys(process.env).some(k=>/TOKEN|SECRET|PASSWORD|GITHUB|ACTIONS_RUNTIME/.test(k))) throw Error('Inherited credential environment'); console.log('Frontend-only snapshot, empty credential environment, network isolated.');"]);

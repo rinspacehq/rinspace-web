@@ -45,3 +45,11 @@ test('all third-party actions are pinned to complete official commit SHAs', () =
     assert.match(text, /persist-credentials: false/);
   }
 });
+
+test('isolation mounts the pinned Node outside read-only system directories', () => {
+  const text = fs.readFileSync(path.join(import.meta.dirname, 'run-isolated-checks.mjs'), 'utf8');
+  assert.match(text, /'--dir', '\/tools', '--ro-bind', fs\.realpathSync\(process\.execPath\), '\/tools\/node'/);
+  assert.match(text, /'PATH', '\/tools:\/usr\/bin:\/bin'/);
+  assert.match(text, /\.\.\.sandbox, '\/tools\/node', \.\.\.command/);
+  assert.doesNotMatch(text, /'--ro-bind', fs\.realpathSync\(process\.execPath\), '\/usr\/bin\/node'/);
+});
