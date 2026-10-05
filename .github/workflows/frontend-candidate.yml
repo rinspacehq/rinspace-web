@@ -80,9 +80,10 @@ jobs:
 
   build:
     needs: authorize
-    # This extra label MUST belong only to a disposable public build runner.
-    # Never add it to private/production runners; see ../README.md.
-    runs-on: [self-hosted, linux, x64, rinspace-release-build, rinspace-public-frontend-isolated]
+    # Dedicated Linux x64 self-hosted runner registered with --no-default-labels.
+    # Generic self-hosted jobs must not be able to claim this one-job runner.
+    # Never add these labels to private/production runners; see ../README.md.
+    runs-on: [rinspace-release-build, rinspace-public-frontend-isolated]
     timeout-minutes: 60
     environment: frontend-candidate
     env:
