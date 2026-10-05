@@ -145,19 +145,13 @@ jobs:
           pnpm licenses list --json > "$RUNNER_TEMP/frontend-licenses.json"
       - name: Check and build the fixed candidate once without credentials or network
         run: node scripts/release/run-isolated-checks.mjs --build --output "$RUNNER_TEMP/frontend-check-output"
-      - name: Package original site bytes and the reviewed shared input closure
+      - name: Package original site bytes for internal same-byte review only
         run: |
+          test -d /stage
           node scripts/release/candidate.mjs \
             --context "$RUNNER_TEMP/frontend-context.json" \
             --site "$RUNNER_TEMP/frontend-check-output/build" \
             --licenses "$RUNNER_TEMP/frontend-licenses.json" \
             --checks "$RUNNER_TEMP/frontend-check-output/checks.json" \
-            --output "$RUNNER_TEMP/frontend-candidate-output"
-      - name: Preserve candidate for same-byte public/private review, not a release
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: frontend-${{ needs.authorize.outputs.version }}-${{ github.sha }}
-          path: ${{ runner.temp }}/frontend-candidate-output/*
-          if-no-files-found: error
-          overwrite: false
-          retention-days: 30
+            --output "/stage/$GITHUB_RUN_ID"
+          sha256sum "/stage/$GITHUB_RUN_ID/"*.tar.gz
