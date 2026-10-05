@@ -3,13 +3,26 @@
 }
 .blog-like-section{margin-top:28px;padding-top:18px}
 .blog-like-section.side{margin-top:12px;padding-top:12px;border-top:1px solid rgba(15,23,42,.08)}
-.blog-like-row{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center}
-.blog-like-row button,.blog-like-row a.blog-like-link{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 14px;border:1px solid var(--rin-border);border-radius:999px;background:var(--rin-surface);color:var(--ink);font-family:"IBM Plex Mono","Noto Sans SC",monospace;font-size:.78rem;text-decoration:none}
-.blog-like-row button.active{border-color:var(--rin-accent);background:rgba(43,87,122,.1);color:var(--rin-accent)}
+.blog-like-row{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.blog-like-row button,.blog-like-row a.blog-like-link{display:inline-flex;align-items:center;justify-content:center;gap:.32rem;min-width:44px;min-height:44px;padding:.4rem .55rem;border:0;border-radius:var(--rin-radius-sm);background:transparent;color:var(--rin-ink-muted);font-family:var(--rin-font-mono);font-size:.76rem;text-decoration:none;box-shadow:none}
+[data-rin-ui="v2"] .blog-like-row button,[data-rin-ui="v2"] .blog-like-row a.blog-like-link{border-color:transparent!important;background:transparent!important;box-shadow:none!important}
+[data-rin-ui="v2"] .blog-like-row :is(button,a.blog-like-link):is(:hover,:focus-visible){border-color:transparent!important;background:transparent!important;color:var(--rin-accent)!important}
+[data-rin-ui="v2"] .blog-like-row button.active:not([data-tone="like"]){color:var(--rin-collection)!important}
 .repository-like-action .rin-icon--heart,.repository-like-action .rin-icon--heart-fill{transition:fill var(--rin-motion-immediate),color var(--rin-motion-immediate)}
 .repository-like-action.active .rin-icon--heart,.repository-like-action.active .rin-icon--heart-fill{fill:currentColor}
+.blog-like-row .rin-icon-motion{font-size:1.25rem}
 .blog-like-row button:disabled{cursor:not-allowed;opacity:.64}
-.blog-like-row .blog-like-icon-action{width:32px;padding:0;justify-content:center}
+.blog-like-row .blog-like-icon-action{width:44px;padding:0}
+.tag-detail-follow-row .home-card-action{min-block-size:44px;min-inline-size:44px;padding:.4rem .55rem}
+@media(max-width: 720px){
+  .book-detail-header .blog-header-actions{width:100%;flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .book-detail-header .blog-header-actions::-webkit-scrollbar{display:none}
+  .book-detail-header .blog-header-actions>a,
+  .book-detail-header .blog-header-actions>button{min-width:44px;min-height:44px;flex:0 0 auto;gap:4px;padding:0 7px}
+  .book-detail-header .blog-header-actions .detail-action-label,
+  .book-detail-header .blog-header-actions .wallet-tip-label{display:none}
+  .book-detail-header .book-detail-read-action{width:100%;min-height:44px;align-self:stretch}
+}
 /* TOC 层级恢复（V2 重设计丢失的 level 区分） */
 .blog-toc li.level-2{margin-bottom:12px}
 .blog-toc li.level-3::before,

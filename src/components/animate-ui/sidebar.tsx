@@ -1,5 +1,6 @@
 import { Slot } from '@radix-ui/react-slot';
 import { motion } from 'motion/react';
+import { subscribeToMediaQuery } from '@/utils/mediaQuery';
 import {
   createContext,
   useCallback,
@@ -7,10 +8,12 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type ReactNode,
+  type RefObject,
 } from 'react';
 
 import {
@@ -29,8 +32,10 @@ type SidebarContextValue = {
   isMobile: boolean;
   layoutId: string;
   mobileOpen: boolean;
+  navigationId: string;
   navigationName: string;
   setMobileOpen(open: boolean): void;
+  triggerRef: RefObject<HTMLButtonElement | null>;
   toggle(): void;
 };
 
@@ -70,6 +75,8 @@ export function AnimateSidebarProvider({
     typeof window !== 'undefined' && window.matchMedia('(max-width: 840px)').matches
   ));
   const layoutId = useId();
+  const navigationId = `${layoutId}-navigation`;
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const open = controlledOpen ?? uncontrolledOpen;
 
   const setOpen = useCallback((next: boolean) => {
@@ -87,8 +94,7 @@ export function AnimateSidebarProvider({
     const media = window.matchMedia('(max-width: 840px)');
     const update = () => setIsMobile(media.matches);
     update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
+    return subscribeToMediaQuery(media, update);
   }, []);
 
   useEffect(() => {
@@ -106,10 +112,12 @@ export function AnimateSidebarProvider({
     isMobile,
     layoutId,
     mobileOpen,
+    navigationId,
     navigationName,
     setMobileOpen,
+    triggerRef,
     toggle,
-  }), [isMobile, layoutId, mobileOpen, navigationName, open, toggle]);
+  }), [isMobile, layoutId, mobileOpen, navigationId, navigationName, open, toggle]);
 
   return (
     <SidebarContext.Provider value={value}>
@@ -126,12 +134,13 @@ export function AnimateSidebarProvider({
 
 type AnimateSidebarProps = HTMLAttributes<HTMLElement> & {
   label?: string;
+  description?: string;
 };
 
-export function AnimateSidebar({ children, className = '', label = '工作区导航', ...props }: AnimateSidebarProps) {
-  const { isMobile, mobileOpen, navigationName, setMobileOpen } = useSidebarContext();
+export function AnimateSidebar({ children, className = '', label = '工作区导航', description, id, ...props }: AnimateSidebarProps) {
+  const { isMobile, mobileOpen, navigationId, navigationName, setMobileOpen, triggerRef } = useSidebarContext();
   const content = (
-    <aside className={`rin-animate-sidebar ${className}`.trim()} aria-label={label} {...props}>
+    <aside id={id ?? navigationId} className={`rin-animate-sidebar ${className}`.trim()} aria-label={label} {...props}>
       <div className="rin-animate-sidebar__inner">{children}</div>
     </aside>
   );
@@ -141,9 +150,17 @@ export function AnimateSidebar({ children, className = '', label = '工作区导
     <AnimateSheet open={mobileOpen} onOpenChange={setMobileOpen}>
       <AnimateSheetPortal>
         <AnimateSheetOverlay className="rin-ui-overlay" />
-        <AnimateSheetContent side="left" className="rin-animate-sidebar-sheet" data-rin-ui="v2">
+        <AnimateSheetContent
+          side="left"
+          className="rin-animate-sidebar-sheet"
+          data-rin-ui="v2"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            if (triggerRef.current?.isConnected) triggerRef.current.focus();
+          }}
+        >
           <AnimateSheetTitle className="rin-visually-hidden">{label}</AnimateSheetTitle>
-          <AnimateSheetDescription className="rin-visually-hidden">{navigationName}导航</AnimateSheetDescription>
+          <AnimateSheetDescription className="rin-visually-hidden">{description ?? `${navigationName}导航`}</AnimateSheetDescription>
           {content}
         </AnimateSheetContent>
       </AnimateSheetPortal>
@@ -152,16 +169,21 @@ export function AnimateSidebar({ children, className = '', label = '工作区导
 }
 
 export function AnimateSidebarTrigger({ className = '', onClick, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { collapsed, isMobile, navigationName, toggle } = useSidebarContext();
+  const { collapsed, isMobile, mobileOpen, navigationId, navigationName, toggle, triggerRef } = useSidebarContext();
   const label = isMobile ? `打开${navigationName}导航` : collapsed ? `展开${navigationName}导航` : `收起${navigationName}导航`;
+  const expanded = isMobile ? mobileOpen : !collapsed;
   return (
     <AnimateButton
       unstyled
       className={`rin-animate-sidebar-trigger ${className}`.trim()}
       type="button"
       aria-label={label}
+      aria-controls={navigationId}
+      aria-expanded={expanded}
+      aria-haspopup={isMobile ? 'dialog' : undefined}
       title={label}
       onClick={(event) => {
+        triggerRef.current = event.currentTarget;
         onClick?.(event);
         if (!event.defaultPrevented) toggle();
       }}

@@ -14,8 +14,6 @@ import {
 import { createRoot } from "react-dom/client";
 import { FileCode2 } from "lucide-react";
 import { publicEnv } from "@/app/config/env";
-import { useOptionalBootstrap } from "@/app/bootstrap/context";
-import { useAuthSnapshot } from "@/platform/auth/context";
 import {
   type CSSProperties,
   type ChangeEvent,
@@ -40,13 +38,13 @@ import {
   ContentCommentVotes,
 } from "@/features/comments/ContentCommentThreadList";
 import { useContentReadEvent } from "@/features/content-analytics/useContentReadEvent";
+import BookProfileDialog from "@/features/publish/BookProfileDialog";
 import {
   ReportDialog,
   type ReportTarget,
   type ReportTargetType,
 } from "@/features/reporting";
 import { Alert, Button, Form, Modal } from "@/components/ui/compat";
-import { RuntimeHelmet as Helmet } from "@/components/RuntimeHelmet";
 import katex from "katex";
 
 import AvatarName from "@/components/AvatarName";
@@ -58,9 +56,11 @@ import CollectionFolderDialog from "@/components/CollectionFolderDialog";
 import CultivationBadge from "@/components/CultivationBadge";
 import InternalContentLinkPreview from "@/components/InternalContentLinkPreview";
 import LoadingState from "@/components/LoadingState";
+import DocumentMetadataController, { absolutePublicUrl } from "@/components/DocumentMetadataController";
 import MilkdownMarkdownArticle from "@/components/MilkdownMarkdownArticle";
 import MathText, { MathInline } from "@/components/MathText";
 import PublicationProgressPanel from "@/components/PublicationProgressPanel";
+import TipButton from "@/features/wallet/TipButton";
 import RinMilkdownEditor, {
   type RinMilkdownEditorHandle,
 } from "@/components/RinMilkdownEditor";
@@ -71,13 +71,13 @@ import TagPicker, {
 } from "@/components/TagPicker";
 import { formatDate, formatNumber } from "@/i18n/format";
 import { localizedErrorMessage } from "@/i18n/errors";
-import { requestJson } from "@/services/httpClient";
 import { useResolvedLocale } from "@/i18n/LanguageProvider";
 import type { LocaleId } from "@/i18n/types";
 import { useFeatureTranslation } from "@/i18n/useFeatureTranslation";
 import {
   blogEditPath,
   blogEditorKind,
+  giteaSourceFilePageUrl,
   markdownBlogHtml,
   markdownBlogSource,
   markdownStoredArticleRender,
@@ -85,11 +85,14 @@ import {
   markdownSourceFile,
   rinWriterSourceFile,
   rinWriterSourceFallbackFile,
+  typstSourceFile,
 } from "@/utils/blogBody";
 import { removeMatchingArticleDocumentTitle } from "@/utils/articleHtml";
 import { articleGiteaSourcePath } from "@/utils/giteaPaths";
 import { prefixInlineSvgIds } from "@/utils/inlineSvgIds";
 import { markdownWithoutMatchingTitle } from "@/utils/markdownTitle";
+import { contentTypeMetaChar } from "@/utils/contentTypeMeta";
+import { contentEditDestination } from "@/utils/contentEditDestination";
 import { rinArticleHydrationPlan } from "@/utils/rinArticleHydration";
 import { normalizeRinCodeLanguage } from "@/utils/rinCodeHighlight";
 import {
@@ -143,7 +146,6 @@ import {
   postAnswerStyleVote,
 } from "@/services/domains/moderation";
 import {
-  openArticleCodeWorkspace,
   uploadAnswerFile,
 } from "@/services/domains/publication";
 import {
@@ -190,6 +192,7 @@ import type {
   ContentType,
   CreateCommentInput,
   FeedItem,
+  FeedTagItem,
   PostDetail,
   QuestionDetail,
   ReactionItem,
@@ -219,6 +222,7 @@ import {
   contentPath,
   contentTitleSlug,
   legacyTagPath,
+  tagReadPath,
   bookChapterPath,
   bookReadingPath,
   bookWorkspacePath,
@@ -234,6 +238,7 @@ type DetailPageProps = {
   variant?: "typographyTest";
 };
 
+const blogTypographyTestContentOrigin = "https://rinspace.com";
 
 type VoteTargetType = "question" | "answer" | "comment" | "book_review";
 type VoteDirection = "up" | "down";
@@ -468,15 +473,6 @@ type BookTOCNode = BookTOCItem & {
   children: BookTOCNode[];
 };
 
-const typeMetaChar: Record<string, string> = {
-  blog: "b",
-  question: "q",
-  discussion: "d",
-  announcement: "a",
-  dynamic: "s",
-  book: "k",
-};
-
 const reactionIconClass: Record<string, IconName> = {
   heart: "heart",
   smile: "emoji-smile",
@@ -700,7 +696,7 @@ function TypeMetaCategory({
     >
       <Link to={detailTypePath(type)}>
         <span className="char" aria-hidden="true">
-          {typeMetaChar[displayType] || label.slice(0, 1).toLowerCase()}
+          {contentTypeMetaChar(displayType, label.slice(0, 1).toLowerCase())}
         </span>
         <span className="label">{label}</span>
       </Link>
@@ -715,6 +711,78 @@ function detailMetaText(post: PostDetail, type: DetailKind) {
 
 function tagsFor(post: Pick<PostDetail, "tags">) {
   return post.tags.length ? post.tags : ["general"];
+}
+
+function detailSearchGraph(post: PostDetail, canonicalPath: string) {
+  const canonical = absolutePublicUrl(canonicalPath);
+  const pageId = `${canonical}#webpage`;
+  const entityId = `${canonical}#entity`;
+  const entity: Record<string, unknown> = {
+    '@type': post.type === 'book' ? 'Book' : 'BlogPosting',
+    '@id': entityId,
+    name: post.title,
+    description: post.searchDescription || post.excerpt || undefined,
+    url: canonical,
+    datePublished: post.publishedAt || post.createdAt || undefined,
+    dateModified: post.contentUpdatedAt || post.updatedAt || undefined,
+  };
+  if (post.type === 'blog' && post.author && post.authorId) {
+    const authorUrl = absolutePublicUrl(`/@${encodeURIComponent(post.authorId.replace(/^@+/, ''))}`);
+    entity.author = { '@type': 'Person', '@id': `${authorUrl}#person`, name: post.author, url: authorUrl };
+  }
+  const about = (post.tagItems || [])
+    .filter((tag) => tag.tagId && tag.slugName)
+    .map((tag) => {
+      const url = absolutePublicUrl(tagReadPath(tag.tagId, tag.slugName));
+      return { '@type': 'DefinedTerm', '@id': `${url}#entity`, name: tag.displayName || tag.slugName, url };
+    });
+  if (about.length) entity.about = about;
+  if (post.type === 'book' && post.book) {
+    const authors = post.book.authorEntities?.length
+      ? post.book.authorEntities.map((author, index) => ({
+        '@type': 'Person', '@id': `${canonical}#author-${index + 1}`, name: author.name,
+        ...(author.officialUrl ? { sameAs: author.officialUrl } : {}),
+      }))
+      : post.book.authors.map((name) => ({ '@type': 'Person', name }));
+    if (authors.length) entity.author = authors;
+    const isbn = (post.book.isbn || []).map((item) => item.value).filter(Boolean);
+    if (isbn.length) entity.isbn = isbn;
+    if (post.book.doi) entity.identifier = { '@type': 'PropertyValue', propertyID: 'DOI', value: post.book.doi };
+    if (post.book.publisher) entity.publisher = { '@type': 'Organization', name: post.book.publisher };
+    if (post.book.editionNumber) entity.bookEdition = post.book.editionNumber;
+    if (post.book.numberOfPages) entity.numberOfPages = post.book.numberOfPages;
+    if (post.book.seriesTitle) entity.isPartOf = { '@type': 'CreativeWorkSeries', name: post.book.seriesTitle };
+  }
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'WebPage', '@id': pageId, name: post.title, url: canonical, mainEntity: { '@id': entityId } },
+      entity,
+    ],
+  };
+}
+
+type DetailTagLink = {
+  key: string;
+  label: string;
+  to: string;
+};
+
+function tagLinksFor(
+  post: Pick<PostDetail, "tags" | "tagItems">,
+): DetailTagLink[] {
+  if (post.tagItems?.length) {
+    return post.tagItems.map((tag: FeedTagItem) => ({
+      key: tag.tagId,
+      label: tag.displayName || tag.slugName,
+      to: tagReadPath(tag.tagId, tag.slugName),
+    }));
+  }
+  return tagsFor(post).map((tag) => ({
+    key: `legacy:${tag}`,
+    label: tag,
+    to: legacyTagPath(tag),
+  }));
 }
 
 function rinContextComment(comment: CommentSummary): RinPageContextComment {
@@ -784,7 +852,7 @@ function markdownBookReaderJson(body: string) {
 }
 
 function editableBookWorkspaceKind(kindValue: string | undefined) {
-  return kindValue === "original" || kindValue === "markdown";
+  return kindValue === "original" || kindValue === "markdown" || kindValue === "typst";
 }
 
 type BlogArticleOutput = {
@@ -2621,6 +2689,12 @@ function nextRinReaderDiagramSvgPrefix() {
   return `rin-reader-diagram-${rinReaderDiagramSvgInstance}-`;
 }
 
+function localApiUrl(path: string) {
+  const basePath = `${publicEnv.publicBasePath || ""}${path}`;
+  if (typeof window === "undefined") return basePath;
+  return new URL(basePath, window.location.origin).toString();
+}
+
 function isFullRinReaderDiagramSource(value: string) {
   const trimmed = value.trim();
   return (
@@ -2650,13 +2724,15 @@ function renderRinReaderDiagramFigure(
   }
   figure.dataset.rinDiagramRendered = "true";
   figure.classList.add("is-loading");
-  return requestJson<unknown>(`diagrams/${encodeURIComponent(type)}`, {
+  return fetch(localApiUrl(`/api/diagrams/${encodeURIComponent(type)}`), {
     method: "POST",
-    auth: "none",
-    body: payload,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
     signal,
   })
-    .then((payload) => {
+    .then(async (response) => {
+      const payload: unknown = await response.json();
+      if (!response.ok) throw new Error("diagram render failed");
       const svg = extractRinReaderDiagramSvg(payload);
       if (!svg) throw new Error("empty diagram svg");
       const svgHost = figure.ownerDocument.createElement("div");
@@ -2823,11 +2899,57 @@ function decodeBookReaderHash(hash: string) {
   }
 }
 
+function bookReaderContentItems(items: BlogTocItem[]) {
+  const ids = new Set(items.map((item) => item.id));
+  return items.filter(
+    (item) => item.level !== 2 || !item.id.startsWith("page-") || !ids.has(item.id.slice(5)),
+  );
+}
+
 function bookReaderPageItems(items: BlogTocItem[]) {
-  const sectionItems = items.filter((item) => item.level === 3);
-  if (sectionItems.length) return sectionItems;
-  const chapterItems = items.filter((item) => item.level === 2);
-  return chapterItems.length ? chapterItems : items;
+  const contentItems = bookReaderContentItems(items);
+  const sections = contentItems.filter((item) => item.level === 3);
+  if (!sections.length) {
+    const chapters = contentItems.filter((item) => item.level === 2);
+    return chapters.length ? chapters : contentItems;
+  }
+  return contentItems.filter((item, index) => {
+    if (item.level === 3) return true;
+    if (item.level !== 2) return false;
+    const nextChapter = contentItems.findIndex(
+      (candidate, nextIndex) => nextIndex > index && candidate.level === 2,
+    );
+    const end = nextChapter < 0 ? contentItems.length : nextChapter;
+    return !contentItems.slice(index + 1, end).some((candidate) => candidate.level === 3);
+  });
+}
+
+// The reader keeps three independent numbers apart: the web pages the reader
+// paginates, the outline nodes that make up the TOC, and the physical PDF page
+// count recorded in the book metadata. They must never be conflated, so the
+// TOC head renders them as separate labelled values.
+function bookReaderPageCounts(
+  items: BlogTocItem[],
+  pdfPageCount?: number | null,
+) {
+  const pdfPages =
+    typeof pdfPageCount === "number" &&
+    Number.isFinite(pdfPageCount) &&
+    pdfPageCount > 0
+      ? Math.trunc(pdfPageCount)
+      : null;
+  return {
+    webPages: bookReaderPageItems(items).length,
+    tocNodes: items.length,
+    pdfPages,
+  };
+}
+
+function bookPdfPageCount(book?: { numberOfPages?: string } | null) {
+  const match = (book?.numberOfPages || "").match(/\d+/);
+  if (!match) return null;
+  const value = Number.parseInt(match[0], 10);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function bookReaderNavigationItems(items: BlogTocItem[]) {
@@ -2835,11 +2957,19 @@ function bookReaderNavigationItems(items: BlogTocItem[]) {
   if (!sectionItems.length) return bookReaderPageItems(items);
 
   const navigationItems: BlogTocItem[] = [];
+  const pageIds = new Set(bookReaderPageItems(items).map((item) => item.id));
   let currentChapter: BlogTocItem | null = null;
   let includedChapterId = "";
-  items.forEach((item) => {
+  const includeStandaloneChapter = () => {
+    if (currentChapter && currentChapter.id !== includedChapterId && pageIds.has(currentChapter.id)) {
+      navigationItems.push(currentChapter);
+      includedChapterId = currentChapter.id;
+    }
+  };
+  bookReaderContentItems(items).forEach((item) => {
     if (item.level === 2) {
-      currentChapter = item.id.startsWith("page-") ? null : item;
+      includeStandaloneChapter();
+      currentChapter = item;
       return;
     }
     if (item.level !== 3) return;
@@ -2849,6 +2979,7 @@ function bookReaderNavigationItems(items: BlogTocItem[]) {
     }
     navigationItems.push(item);
   });
+  includeStandaloneChapter();
   return navigationItems;
 }
 
@@ -2863,6 +2994,12 @@ function bookReaderPageForTarget(
     : -1;
   if (targetIndex >= 0) {
     const pageIds = new Set(pages.map((item) => item.id));
+    if (items[targetIndex].level === 2 && !items[targetIndex].id.startsWith("page-")) {
+      if (pageIds.has(targetId)) return items[targetIndex];
+      for (let index = targetIndex + 1; index < items.length && items[index].level !== 2; index += 1) {
+        if (pageIds.has(items[index].id)) return items[index];
+      }
+    }
     for (let index = targetIndex; index >= 0; index -= 1) {
       if (pageIds.has(items[index].id)) return items[index];
     }
@@ -3271,7 +3408,7 @@ const RinWriterArticle = memo(function RinWriterArticle({
 }: {
   html: string;
   title: string;
-  onReaderReference?: (targetId: string) => void;
+  onReaderReference?: (targetId: string, ownerPageId?: string) => void;
   removeGeneratedToc?: boolean;
   deferMath?: boolean;
   serverFinal?: boolean;
@@ -3369,7 +3506,12 @@ const RinWriterArticle = memo(function RinWriterArticle({
       if (!rawId) return;
       const decodedId = decodeBookReaderHash(`#${rawId}`);
       event.preventDefault();
-      onReaderReference?.(decodedId);
+      // The Typst adapter authorises data-rin-page only for references whose
+      // target lives on another reader page; same-page references carry no
+      // marker. Forwarding it lets the reader open the declared owner page
+      // instead of re-scanning every page for the anchor.
+      const ownerPageId = (link.getAttribute("data-rin-page") || "").trim();
+      onReaderReference?.(decodedId, ownerPageId || undefined);
       alignArticleHashTarget(rawId);
     },
     [enableBibliographyHashNavigation, onReaderReference],
@@ -3686,11 +3828,13 @@ function BookReaderTableOfContents({
   items,
   activeId,
   pageId,
+  pdfPageCount,
   onSelect,
 }: {
   items: BlogTocItem[];
   activeId: string;
   pageId: string;
+  pdfPageCount?: number | null;
   onSelect: (id: string) => void;
 }) {
   const { t } = useFeatureTranslation("reader");
@@ -3711,6 +3855,10 @@ function BookReaderTableOfContents({
   );
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(
     () => new Set(),
+  );
+  const pageCounts = useMemo(
+    () => bookReaderPageCounts(items, pdfPageCount),
+    [items, pdfPageCount],
   );
 
   useEffect(() => {
@@ -3807,14 +3955,41 @@ function BookReaderTableOfContents({
     <nav className="book-reader-toc" aria-label={t("detail.toc.bookLabel")}>
       <div className="book-reader-toc-head">
         <span>{t("detail.toc.bookLabel")}</span>
-        <strong>
-          {t("detail.toc.pageCount", {
-            count: bookReaderPageItems(items).length,
-            displayCount: formatNumber(
-              locale,
-              bookReaderPageItems(items).length,
-            ),
-          })}
+        <strong className="book-reader-toc-counts">
+          <span data-rin-reader-web-pages={pageCounts.webPages}>
+            {t("detail.toc.webPageCount", {
+              count: pageCounts.webPages,
+              displayCount: formatNumber(locale, pageCounts.webPages),
+            })}
+          </span>
+          <span className="book-reader-toc-count-divider" aria-hidden="true">
+            {" · "}
+          </span>
+          <span data-rin-reader-toc-nodes={pageCounts.tocNodes}>
+            {t("detail.toc.nodeCount", {
+              count: pageCounts.tocNodes,
+              displayCount: formatNumber(locale, pageCounts.tocNodes),
+            })}
+          </span>
+          {pageCounts.pdfPages ? (
+            <>
+              <span
+                className="book-reader-toc-count-divider"
+                aria-hidden="true"
+              >
+                {" · "}
+              </span>
+              <span
+                className="book-reader-toc-count-pdf"
+                data-rin-reader-pdf-pages={pageCounts.pdfPages}
+              >
+                {t("detail.toc.pdfPageCount", {
+                  count: pageCounts.pdfPages,
+                  displayCount: formatNumber(locale, pageCounts.pdfPages),
+                })}
+              </span>
+            </>
+          ) : null}
         </strong>
       </div>
       <ol className="book-reader-toc-list" ref={listRef}>
@@ -3856,7 +4031,7 @@ function bookReaderTocItems(post: PostDetail | null) {
 
 function bookOverviewIntroText(post: PostDetail | null) {
   if (!post || post.type !== "book") return "";
-  const candidates = [post.excerpt, post.body];
+  const candidates = [post.searchDescription, post.excerpt, post.body];
   for (const candidate of candidates) {
     const text = (candidate || "").trim();
     if (!text || /\[\[RIN_[A-Z_]+\]\]/.test(text)) continue;
@@ -4261,10 +4436,6 @@ function QuestionNetworkPanel({
 
 function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   const { t } = useFeatureTranslation("reader");
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === "demo";
-  const authSnapshot = useAuthSnapshot();
-  const contentOrigin = bootstrap?.config.canonicalOrigin;
   const locale = useResolvedLocale();
   const localizedInteractionText = useCallback(
     (item: PostDetail, isAnnouncement: boolean) => {
@@ -4359,15 +4530,10 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   const [answerStatus, setAnswerStatus] = useState("");
   const [answerError, setAnswerError] = useState("");
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
-  const [blogCodeWorkspaceOpening, setBlogCodeWorkspaceOpening] =
-    useState(false);
-  const [blogCodeWorkspaceError, setBlogCodeWorkspaceError] = useState("");
-  const [legacySessionAvailable, setHasSession] = useState(() =>
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [hasSession, setHasSession] = useState(() =>
     Boolean(getStoredSession()),
   );
-  const hasSession =
-    authSnapshot.status === "authenticated" ||
-    (bootstrap?.config.mode !== "demo" && legacySessionAvailable);
   const [sessionRevision, setSessionRevision] = useState(0);
   const [currentUser, setCurrentUser] = useState<DetailCurrentUser | null>(
     null,
@@ -4859,7 +5025,6 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     mentionError,
     dynamicAuthorFollowStatus,
     dynamicAuthorFollowError,
-    blogCodeWorkspaceError,
     linkedQuestionsError,
     relatedQuestionsError,
   });
@@ -4887,8 +5052,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     setAnswerDraft("");
     setAnswerStatus("");
     setAnswerError("");
-    setBlogCodeWorkspaceOpening(false);
-    setBlogCodeWorkspaceError("");
+    setQuickEditOpen(false);
     setHasSession(Boolean(getStoredSession()));
     setQuestionComments([]);
     setPostComments([]);
@@ -5088,7 +5252,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           : loadContentDetail(
               contentRef,
               isBlogTypographyTest
-                ? { origin: contentOrigin }
+                ? { origin: blogTypographyTestContentOrigin }
                 : undefined,
             ).then((detail) => {
               if (!cancelled) {
@@ -5143,7 +5307,6 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     };
   }, [
     contentRef,
-    contentOrigin,
     isBlogTypographyTest,
     isBookReadingRoute,
     kind,
@@ -5152,7 +5315,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   ]);
 
   useEffect(() => {
-    if (demoMode || (kind !== "blog" && kind !== "book") || isBlogTypographyTest) {
+    if ((kind !== "blog" && kind !== "book") || isBlogTypographyTest) {
       setPublicationProgress(null);
       return undefined;
     }
@@ -5164,7 +5327,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     );
     poller.start();
     return () => poller.stop();
-  }, [contentRef, demoMode, isBlogTypographyTest, kind]);
+  }, [contentRef, isBlogTypographyTest, kind]);
 
   useContentReadEvent({
     target: post ? { id: post.id, slug: post.slug || contentRef, type: post.type } : null,
@@ -5768,30 +5931,6 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     hasSession &&
     sameUserId(currentUser?.id, post.authorUid || post.authorId),
   );
-  const canOpenBlogCodeWorkspace = Boolean(
-    canEditBlog && post && post.editor === "rin",
-  );
-  const openBlogCodeWorkspace = async () => {
-    if (!post || !canOpenBlogCodeWorkspace || blogCodeWorkspaceOpening) return;
-    setBlogCodeWorkspaceOpening(true);
-    setBlogCodeWorkspaceError("");
-    try {
-      if (demoMode && bootstrap) {
-        await bootstrap.ports.workspace.open({ projectId: post.slug || post.id });
-        return;
-      }
-      const workspace = await openArticleCodeWorkspace(post.slug || post.id);
-      window.location.assign(workspace.url);
-    } catch (workspaceError) {
-      setBlogCodeWorkspaceError(
-        localizedErrorMessage(
-          workspaceError,
-          "reader.articleWorkspaceOpenFailed",
-        ),
-      );
-      setBlogCodeWorkspaceOpening(false);
-    }
-  };
   const currentCultivation =
     typeof currentUser?.rank === "number" && Number.isFinite(currentUser.rank)
       ? currentUser.rank
@@ -5861,19 +6000,6 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           }
           return;
         }
-        if (authSnapshot.user) {
-          if (!cancelled) {
-            setCurrentUser({
-              id: authSnapshot.user.id,
-              username: authSnapshot.user.username,
-              display_name: authSnapshot.user.displayName,
-              avatar: authSnapshot.user.avatarUrl
-                ? { custom: authSnapshot.user.avatarUrl }
-                : undefined,
-            });
-          }
-          return;
-        }
         const user = await getCurrentUser();
         const metadata = user?.user_metadata || {};
         const profileId =
@@ -5906,7 +6032,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [authSnapshot.user, hasSession]);
+  }, [hasSession]);
   const isDiscussionDetail = Boolean(
     post &&
     !question &&
@@ -6116,9 +6242,6 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
         : rinWriterHtml(post.body) || markdownBookReaderJson(post.body))),
   );
   const activeBookTitle = post?.book?.bookTitle || post?.title || title;
-  const activeBookOverviewPath = post
-    ? contentPath("book", post.id, activeBookTitle)
-    : contentPath("book", contentRef, title);
   const activeBookReadingPath = post
     ? bookReadingPath(post.id, activeBookTitle)
     : bookReadingPath(contentRef, title);
@@ -6176,10 +6299,28 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     setBookChapterInvalidNotice("");
   }, [bookReaderItems, currentBookReaderPage, isBookReadingPage, post]);
   const navigateBookReaderTarget = useCallback(
-    (targetId: string) => {
+    (targetId: string, ownerPageId?: string) => {
       if (!targetId) return;
       setSelectedBookReaderTargetId(targetId);
-      void loadBookReaderPage(contentRef, targetId)
+      if (document.getElementById(targetId)) {
+        // The anchor is already rendered on the loaded page: keep the URL and
+        // the TOC highlight in sync and let the hash effect scroll, without
+        // re-fetching the page the reader is already showing.
+        pushHashWithoutNavigation(targetId);
+        return;
+      }
+      // Prefer the reader page declared by data-rin-page when it is a known
+      // page of this book; otherwise let the server resolve the anchor from a
+      // TOC id, a page id, or its per-page anchor scan.
+      const declaredOwnerPageId = (ownerPageId || "").trim();
+      const section =
+        declaredOwnerPageId &&
+        bookReaderPageItems(bookReadTocItems).some(
+          (item) => item.id === declaredOwnerPageId,
+        )
+          ? declaredOwnerPageId
+          : targetId;
+      void loadBookReaderPage(contentRef, section)
         .then((reader) => {
           setBookReaderPage(reader);
           applyPostMainDetail(reader.post);
@@ -6192,7 +6333,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           );
         });
     },
-    [contentRef],
+    [bookReadTocItems, contentRef],
   );
   useEffect(() => {
     if (!isBookReadingPage || !bookReaderTargetId) return undefined;
@@ -7222,6 +7363,21 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     }
     setCollectionBusy(true);
     try {
+      if (post.likeSource === "reaction") {
+        const result = await updateReaction({
+          object_id: post.id,
+          object_type: reportTypeForPost(post.type),
+          emoji: "heart",
+          reaction: likeActive ? "deactivate" : "activate",
+        });
+        const heart = result.reaction_summary.find((reaction) => reaction.emoji === "heart");
+        const active = Boolean(heart?.is_active);
+        setLikeActive(active);
+        setLikeCount(heart?.count ?? 0);
+        setReactions(result.reaction_summary);
+        setCollectionStatus(active ? t("detail.notices.liked") : t("detail.notices.likeRemoved"));
+        return;
+      }
       const next = await likePost({
         targetType: contentActionTargetType(kind),
         slug: post.slug || post.id,
@@ -7901,9 +8057,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     try {
       const markdown: string[] = [];
       for (const file of files.slice(0, 9)) {
-        const url = demoMode && bootstrap
-          ? (await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })).url
-          : await uploadAnswerFile("post", file);
+        const url = await uploadAnswerFile("post", file);
         markdown.push(commentImageMarkdown(url, file.name));
       }
       appendCommentDraft(key, markdown.join("\n\n"));
@@ -8075,6 +8229,11 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
         reaction: reaction.is_active ? "deactivate" : "activate",
       });
       setReactions(result.reaction_summary);
+      if (post.likeSource === "reaction" && reaction.emoji === "heart") {
+        const heart = result.reaction_summary.find((item) => item.emoji === "heart");
+        setLikeActive(Boolean(heart?.is_active));
+        setLikeCount(heart?.count ?? 0);
+      }
       if (isDynamicDetail && reaction.emoji === "heart") {
         const users = await queryReactionUsers({
           objectId: post.slug || post.id,
@@ -10239,13 +10398,13 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             {t("detail.reading.revisionHistory")}
           </Link>
         </div>
-        {tagsFor(post).length ? (
+        {tagLinksFor(post).length ? (
           <div className="detail-reading-tags">
-            {tagsFor(post)
+            {tagLinksFor(post)
               .slice(0, 4)
               .map((tag) => (
-                <Link to={legacyTagPath(tag)} key={tag}>
-                  {tag}
+                <Link to={tag.to} key={tag.key}>
+                  {tag.label}
                 </Link>
               ))}
           </div>
@@ -10415,9 +10574,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
         >
           <Icon name={bookmarked ? "bookmark-check" : "bookmark"} />
           {typeof count === "number" ? (
-            <strong>{formatNumber(locale, count)}</strong>
+            <strong className="detail-action-count">{formatNumber(locale, count)}</strong>
           ) : null}
-          {showLabel ? actionLabel : null}
+          {showLabel ? <span className="detail-action-label">{actionLabel}</span> : null}
         </AnimateButton>
       );
     }
@@ -10436,43 +10595,43 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
       >
         <Icon name="bookmark" />
         {typeof count === "number" ? (
-          <strong>{formatNumber(locale, count)}</strong>
+          <strong className="detail-action-count">{formatNumber(locale, count)}</strong>
         ) : null}
-        {showLabel
-          ? compact
-            ? t("detail.collection.bookmark")
-            : t("detail.collection.loginToBookmark")
-          : null}
+        {showLabel ? (
+          <span className="detail-action-label">
+            {compact
+              ? t("detail.collection.bookmark")
+              : t("detail.collection.loginToBookmark")}
+          </span>
+        ) : null}
       </Link>
     );
   };
 
   const renderBlogHeaderActions = () => {
     if (!post || kind !== "blog") return null;
-    if (!canOpenBlogCodeWorkspace && !canEditBlog) return null;
+    if (!canEditBlog) return null;
+    const editDestination = contentEditDestination(post);
     return (
       <div
         className="blog-header-actions"
         aria-label={t("detail.article.actions")}
       >
-        {canOpenBlogCodeWorkspace ? (
+        {editDestination === "quick-edit" ? (
           <AnimateButton
             unstyled
             type="button"
-            disabled={blogCodeWorkspaceOpening}
-            onClick={() => void openBlogCodeWorkspace()}
+            onClick={() => setQuickEditOpen(true)}
           >
             <Icon name="pencil-square" />
-            {blogCodeWorkspaceOpening
-              ? t("detail.common.opening")
-              : t("detail.common.edit")}
+            {t("detail.common.edit")}
           </AnimateButton>
-        ) : canEditBlog ? (
+        ) : (
           <Link to={blogEditPath(post)}>
             <Icon name="pencil-square" />
             {t("detail.common.edit")}
           </Link>
-        ) : null}
+        )}
       </div>
     );
   };
@@ -10518,8 +10677,8 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             size={18}
             fill={likeActive ? "currentColor" : "none"}
           />
-          <strong>{formatNumber(locale, displayedLikeCount)}</strong>
-          {showLabel ? <span>{likeLabel}</span> : null}
+          <strong className="detail-action-count">{formatNumber(locale, displayedLikeCount)}</strong>
+          {showLabel ? <span className="detail-action-label">{likeLabel}</span> : null}
         </AnimateButton>
       );
     }
@@ -10534,8 +10693,8 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
         })}
       >
         <Icon name="heart" size={18} />
-        <strong>{formatNumber(locale, displayedLikeCount)}</strong>
-        {showLabel ? <span>{t("detail.likes.like")}</span> : null}
+        <strong className="detail-action-count">{formatNumber(locale, displayedLikeCount)}</strong>
+        {showLabel ? <span className="detail-action-label">{t("detail.likes.like")}</span> : null}
       </Link>
     );
   };
@@ -10544,6 +10703,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     if (!post || kind !== "blog") return null;
     const displayedCollectionCount =
       collectionCount ?? collectionCountHint(post) ?? 0;
+    const displayedReportCount = post.reportCount ?? 0;
     return (
       <section
         className={compact ? "blog-like-section side" : "blog-like-section"}
@@ -10555,23 +10715,25 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             count: displayedCollectionCount,
             showLabel: !compact,
           })}
+          <TipButton target={{ contentType: "blog", postID: String(post.id) }} showLabel={!compact} />
           <AnimateButton
             unstyled
             type="button"
-            className={compact ? "blog-like-icon-action" : undefined}
-            aria-label={
-              compact ? t("detail.article.reportArticle") : undefined
-            }
+            aria-label={t("detail.reports.actionCount", {
+              count: displayedReportCount,
+              displayCount: formatNumber(locale, displayedReportCount),
+            })}
             title={compact ? t("detail.common.report") : undefined}
             onClick={() =>
               void openReport({
                 targetType: reportTypeForPost(post.type),
-                slug: post.slug || post.id,
+                targetId: String(post.id),
                 title: post.title,
               })
             }
           >
             <Icon name="flag" />
+            <strong className="detail-action-count">{formatNumber(locale, displayedReportCount)}</strong>
             {!compact ? t("detail.common.report") : null}
           </AnimateButton>
         </div>
@@ -10658,9 +10820,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           <div className="blog-article-taxonomy">
             <TypeMetaCategory type={displayKind} label={displayKindLabel} />
             <div className="blog-header-tags">
-              {tagsFor(post).map((tag) => (
-                <Link to={legacyTagPath(tag)} key={tag}>
-                  {tag}
+              {tagLinksFor(post).map((tag) => (
+                <Link to={tag.to} key={tag.key}>
+                  {tag.label}
                 </Link>
               ))}
             </div>
@@ -10709,9 +10871,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           <div className="blog-article-taxonomy">
             <TypeMetaCategory type={displayKind} label={displayKindLabel} />
             <div className="blog-header-tags discussion-header-tags">
-              {tagsFor(post).map((tag) => (
-                <Link to={legacyTagPath(tag)} key={tag}>
-                  {tag}
+              {tagLinksFor(post).map((tag) => (
+                <Link to={tag.to} key={tag.key}>
+                  {tag.label}
                 </Link>
               ))}
             </div>
@@ -10765,9 +10927,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           <div className="blog-article-taxonomy">
             <TypeMetaCategory type={displayKind} label={displayKindLabel} />
             <div className="blog-header-tags question-header-tags">
-              {tagsFor(post).map((tag) => (
-                <Link to={legacyTagPath(tag)} key={tag}>
-                  {tag}
+              {tagLinksFor(post).map((tag) => (
+                <Link to={tag.to} key={tag.key}>
+                  {tag.label}
                 </Link>
               ))}
             </div>
@@ -10967,8 +11129,11 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     if (!post || post.type !== "book") return null;
     const book = post.book;
     const rating = bookRating || post.bookRating;
+    const bookPdfUrl =
+      book?.kind === "original" ? book.pdfUrl?.trim() || "" : "";
     const bookEditRef = encodeURIComponent(post.slug || post.id);
-    const bookEditPath = editableBookWorkspaceKind(book?.kind)
+    const editDestination = contentEditDestination(post);
+    const bookEditPath = editDestination === "book-workspace"
       ? bookWorkspacePath(post.id)
       : `/books/${bookEditRef}/edit`;
     if (isBookReadingPage) return null;
@@ -10978,9 +11143,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           <div className="blog-article-taxonomy">
             <TypeMetaCategory type="book" label={t("detail.type.book")} />
             <div className="blog-header-tags">
-              {tagsFor(post).map((tag) => (
-                <Link to={legacyTagPath(tag)} key={tag}>
-                  {tag}
+              {tagLinksFor(post).map((tag) => (
+                <Link to={tag.to} key={tag.key}>
+                  {tag.label}
                 </Link>
               ))}
             </div>
@@ -10989,48 +11154,59 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             className="blog-header-actions"
             aria-label={t("detail.book.actions")}
           >
-            {hasBookReader ? (
+            {canEditBook && editDestination === "quick-edit" ? (
+              <AnimateButton
+                unstyled
+                type="button"
+                aria-label={t("detail.common.edit")}
+                onClick={() => setQuickEditOpen(true)}
+              >
+                <Icon name="pencil-square" />
+                <span className="detail-action-label">{t("detail.common.edit")}</span>
+              </AnimateButton>
+            ) : canEditBook ? (
               <Link
-                to={
-                  isBookReadingPage
-                    ? activeBookOverviewPath
-                    : activeBookReadingPath
+                to={bookEditPath}
+                aria-label={
+                  editDestination === "book-workspace"
+                    ? t("detail.book.workspace")
+                    : t("detail.common.edit")
                 }
               >
-                <Icon
-                  name={
-                    isBookReadingPage ? "layout-text-sidebar-reverse" : "book"
-                  }
-                />
-                {isBookReadingPage
-                  ? t("detail.book.overview")
-                  : t("detail.book.startReading")}
-              </Link>
-            ) : null}
-            {canEditBook ? (
-              <Link to={bookEditPath}>
                 <Icon name="pencil-square" />
-                {editableBookWorkspaceKind(book?.kind)
-                  ? t("detail.book.workspace")
-                  : t("detail.common.edit")}
+                <span className="detail-action-label">
+                  {editDestination === "book-workspace"
+                    ? t("detail.book.workspace")
+                    : t("detail.common.edit")}
+                </span>
               </Link>
             ) : null}
             {renderRepositoryLikeAction(true)}
             {renderCollectionAction(true, "", {
               count: collectionCount ?? collectionCountHint(post) ?? 0,
             })}
-            {book?.kind === "original" && book.pdfUrl ? (
-              <a href={book.pdfUrl} target="_blank" rel="noreferrer">
-                <Icon name="filetype-pdf" />
-                View PDF
-              </a>
+            {editableBookWorkspaceKind(book?.kind) ? (
+              <TipButton target={{ contentType: "book", postID: String(post.id) }} />
             ) : null}
-            {book?.officialUrl ? (
-              <a href={book.officialUrl} target="_blank" rel="noreferrer">
-                <Icon name="box-arrow-up-right" />
-                {t("detail.book.officialSite")}
-              </a>
-            ) : null}
+            <AnimateButton
+              unstyled
+              type="button"
+              aria-label={t("detail.reports.actionCount", {
+                count: post.reportCount ?? 0,
+                displayCount: formatNumber(locale, post.reportCount ?? 0),
+              })}
+              onClick={() =>
+                void openReport({
+                  targetType: reportTypeForPost(post.type),
+                  targetId: String(post.id),
+                  title: post.title,
+                })
+              }
+            >
+              <Icon name="flag" />
+              <strong className="detail-action-count">{formatNumber(locale, post.reportCount ?? 0)}</strong>
+              <span className="detail-action-label">{t("detail.common.report")}</span>
+            </AnimateButton>
           </div>
         </div>
         <div className="book-detail-hero">
@@ -11047,9 +11223,11 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             <span className="book-kind-pill">
               {book?.kind === "markdown"
                 ? t("detail.book.kind.markdown")
-                : book?.kind === "original"
-                  ? t("detail.book.kind.original")
-                  : t("detail.book.kind.external")}
+                : book?.kind === "typst"
+                  ? t("detail.book.kind.typst")
+                  : book?.kind === "original"
+                    ? t("detail.book.kind.original")
+                    : t("detail.book.kind.external")}
             </span>
             <h1>
               <MathInline text={book?.bookTitle || post.title} />
@@ -11121,7 +11299,17 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 </em>
               </div>
             )}
-            {!isBookReadingPage && hasBookReader ? (
+            {bookPdfUrl ? (
+              <a
+                className="book-detail-read-action"
+                href={bookPdfUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="book" />
+                {t("detail.book.startReading")}
+              </a>
+            ) : hasBookReader ? (
               <Link
                 className="book-detail-read-action"
                 to={activeBookReadingPath}
@@ -11317,9 +11505,11 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           <strong>
             {book.kind === "markdown"
               ? t("detail.book.metadata.markdown")
-              : book.kind === "original"
-                ? t("detail.book.metadata.original")
-                : t("detail.book.metadata.reference")}
+              : book.kind === "typst"
+                ? t("detail.book.metadata.typst")
+                : book.kind === "original"
+                  ? t("detail.book.metadata.original")
+                  : t("detail.book.metadata.reference")}
           </strong>
         </div>
         <dl className="book-bibliography">
@@ -11370,7 +11560,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           <span>{t("detail.book.introduction")}</span>
           <strong>{t("detail.book.about")}</strong>
         </div>
-        <div className="detail-body book-intro-body">
+        <div className="detail-body book-intro-body" data-rin-primary-text="description">
           <MathText text={intro} />
         </div>
       </section>
@@ -12336,9 +12526,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
           <div className="blog-article-taxonomy">
             <TypeMetaCategory type={displayKind} label={displayKindLabel} />
             <div className="blog-header-tags dynamic-header-tags">
-              {tagsFor(post).map((tag) => (
-                <Link to={legacyTagPath(tag)} key={tag}>
-                  {tag}
+              {tagLinksFor(post).map((tag) => (
+                <Link to={tag.to} key={tag.key}>
+                  {tag.label}
                 </Link>
               ))}
             </div>
@@ -12452,33 +12642,30 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     const source =
       editorKind === "markdown"
         ? markdownSourceFile(activePost)
-        : rinWriterSourceFile(activePost.body) ||
-          rinWriterArchive(activePost.body) ||
-          rinWriterSourceFallbackFile(activePost.body);
+        : editorKind === "typst"
+          ? typstSourceFile(activePost)
+          : rinWriterSourceFile(activePost.body) ||
+            rinWriterArchive(activePost.body) ||
+            rinWriterSourceFallbackFile(activePost.body);
     if (!source) return null;
-    if (demoMode) {
-      return (
-        <div>
-          <dt>{editorKind === "markdown" ? "Markdown" : "LaTeX"}</dt>
-          <dd>
-            <span className="tex-source-link disabled-action" data-rin-demo-gitea-source="true">
-              <Icon name="git" />
-              <span>{t("detail.article.demoSourceUnavailable")}</span>
-            </span>
-          </dd>
-        </div>
-      );
-    }
+    const editorLabel =
+      editorKind === "markdown"
+        ? "Markdown"
+        : editorKind === "typst"
+          ? "Typst"
+          : "LaTeX";
     const repositoryUrl = articleGiteaSourcePath(activePost.id);
     const label = t("detail.article.giteaSource");
-    const sourceHref = repositoryUrl;
+    const sourceHref = editorKind === "markdown" && activePost.repositorySource
+      ? giteaSourceFilePageUrl(activePost.repositorySource.url) || repositoryUrl
+      : repositoryUrl;
     const sourceMeta = formatBytes(source.bytes);
     const sourceTitle = t("detail.article.openGiteaSource", {
       filename: source.filename,
     });
     return (
       <div>
-        <dt>{editorKind === "markdown" ? "Markdown" : "LaTeX"}</dt>
+        <dt>{editorLabel}</dt>
         <dd>
           <a
             className="tex-source-link"
@@ -12498,12 +12685,31 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
 
   return (
     <>
-      <Helmet title={title} />
+      <DocumentMetadataController metadata={{
+        title: `${title} - ${t('navigation:brandName')}`,
+        description: post?.searchDescription || post?.excerpt,
+        canonicalPath,
+        robots: isBookReadingPage ? 'noindex,follow' : 'index,follow',
+        openGraphType: 'article',
+        jsonLd: post && !isBookReadingPage ? detailSearchGraph(post, canonicalPath) : undefined,
+      }} />
       <SiteTopbar onSessionChange={refreshDetailSession} />
       <AnimateScrollProgress />
 
       <main
         className={`detail-shell detail-${kind}${kind === "question" ? " question-detail-shell" : ""}${isThreadLikeDetail ? " discussion-thread-shell" : ""}${isAnnouncementDetail ? " announcement-detail-shell" : ""}${isDynamicDetail ? " dynamic-detail-shell" : ""}${isBookReadingPage ? " book-reader-shell" : ""}${isBlogTypographyTest ? " detail-blog-typography-test" : ""}`}
+        data-rin-public-document={
+          kind === "blog" ? "article" : kind === "book" ? "book" : undefined
+        }
+        data-rin-object-id={
+          kind === "blog" || kind === "book" ? post?.id : undefined
+        }
+        data-rin-public-version={
+          kind === "blog" || kind === "book" ? post?.publicVersion : undefined
+        }
+        data-rin-content-digest={
+          kind === "blog" || kind === "book" ? post?.contentDigest : undefined
+        }
       >
         {showGenericDetailHeader ? (
           <section
@@ -12577,6 +12783,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                     bookReaderTargetId || currentBookReaderPage?.id || ""
                   }
                   pageId={currentBookReaderPage?.id || ""}
+                  pdfPageCount={bookPdfPageCount(post.book)}
                   onSelect={navigateBookReaderTarget}
                 />
               </aside>
@@ -12826,6 +13033,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                           const bodyNode = (
                             <div
                               className={bodyClassName}
+                              data-rin-primary-text={
+                                kind === "blog" ? "article" : undefined
+                              }
                               ref={
                                 isBookReadingPage
                                   ? bookAnnotationArticleRef
@@ -13738,7 +13948,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                     ) : null}
                   </section>
                 ) : null}
-                {!isThreadLikeDetail && kind !== "blog" && !question ? (
+                {!isThreadLikeDetail && kind !== "blog" && kind !== "book" && !question ? (
                   <section className="panel detail-report-panel">
                     <AnimateButton
                       unstyled
@@ -13818,6 +14028,14 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
         ) : null}
       </main>
 
+      <BookProfileDialog
+        open={quickEditOpen}
+        post={post}
+        user={currentUser}
+        variant={post?.type === "blog" ? "article" : "book"}
+        onClose={() => setQuickEditOpen(false)}
+        onSaved={applyPostMainDetail}
+      />
       {renderCollectionDialog()}
       {renderReportDialog()}
       {renderDynamicImageViewer()}
@@ -13829,5 +14047,8 @@ export {
   BlogTableOfContents,
   BookReaderTableOfContents,
   QuestionNetworkPanel,
+  RinWriterArticle,
+  bookPdfPageCount,
+  bookReaderPageCounts,
 };
 export default DetailPage;

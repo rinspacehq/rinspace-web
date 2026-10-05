@@ -1,0 +1,162 @@
+name: Fixed frontend candidate
+
+'on':
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Reviewed full public main SHA (must equal this workflow commit)
+        required: true
+        type: string
+      version:
+        description: Separately approved exact vMAJOR.MINOR.PATCH
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-fixed-candidate
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: frontend-candidate
+    outputs:
+      source_commit: ${{ steps.approve.outputs.source_commit }}
+      version: ${{ steps.approve.outputs.version }}
+      context_sha256: ${{ steps.approve.outputs.context_sha256 }}
+    env:
+      RINSPACE_CANDIDATE_ENABLED: ${{ vars.RINSPACE_FRONTEND_CANDIDATE_ENABLED }}
+      RINSPACE_ISOLATED_RUNNER: ${{ vars.RINSPACE_FRONTEND_ISOLATED_RUNNER_APPROVED }}
+      RINSPACE_DISTRIBUTION_APPROVED: ${{ vars.RINSPACE_FRONTEND_DISTRIBUTION_APPROVED }}
+      RINSPACE_REVIEWED_SOURCE: ${{ vars.RINSPACE_FRONTEND_REVIEWED_SOURCE }}
+      RINSPACE_REVIEWED_VERSION: ${{ vars.RINSPACE_FRONTEND_REVIEWED_VERSION }}
+      RINSPACE_PUBLIC_CONFIG: ${{ vars.RINSPACE_FRONTEND_PUBLIC_CONFIG }}
+      RINSPACE_COMPATIBILITY: ${{ vars.RINSPACE_FRONTEND_COMPATIBILITY }}
+      RINSPACE_SOURCE_COMMIT: ${{ inputs.source_commit }}
+      RINSPACE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Reject noncanonical dispatch before checkout
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            if (`${context.repo.owner}/${context.repo.repo}` !== 'rinspacehq/rinspace-web' || context.eventName !== 'workflow_dispatch' || context.ref !== 'refs/heads/main' || !/^[a-f0-9]{40}$/.test(process.env.RINSPACE_SOURCE_COMMIT) || process.env.RINSPACE_SOURCE_COMMIT !== context.sha) throw new Error('Only the exact reviewed public main dispatch is allowed.');
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Bind approvals and reject an existing release or tag
+        id: approve
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { releaseContext, sha256 } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/release/candidate.mjs`);
+            const main = await github.rest.repos.getBranch({ ...context.repo, branch: 'main' });
+            const input = {
+              repository: `${context.repo.owner}/${context.repo.repo}`, eventName: context.eventName,
+              ref: context.ref, sourceCommit: process.env.RINSPACE_SOURCE_COMMIT,
+              workflowCommit: context.sha, remoteMain: main.data.commit.sha,
+              version: process.env.RINSPACE_VERSION, enabled: process.env.RINSPACE_CANDIDATE_ENABLED,
+              isolatedRunner: process.env.RINSPACE_ISOLATED_RUNNER,
+              distributionApproved: process.env.RINSPACE_DISTRIBUTION_APPROVED,
+              reviewedSource: process.env.RINSPACE_REVIEWED_SOURCE, reviewedVersion: process.env.RINSPACE_REVIEWED_VERSION,
+              publicConfig: JSON.parse(process.env.RINSPACE_PUBLIC_CONFIG || 'null'),
+              compatibility: JSON.parse(process.env.RINSPACE_COMPATIBILITY || 'null'), runId: String(context.runId),
+            };
+            releaseContext(input);
+            for (const request of [
+              () => github.rest.repos.getReleaseByTag({ ...context.repo, tag: input.version }),
+              () => github.rest.git.getRef({ ...context.repo, ref: `tags/${input.version}` }),
+            ]) {
+              try { await request(); } catch (error) { if (error.status === 404) continue; throw error; }
+              throw new Error('Version already exists; immutable releases must not be overwritten.');
+            }
+            core.setOutput('source_commit', input.sourceCommit);
+            core.setOutput('version', input.version);
+            core.setOutput('context_sha256', sha256(JSON.stringify(input)));
+
+  build:
+    needs: authorize
+    # This extra label MUST belong only to a disposable public build runner.
+    # Never add it to private/production runners; see ../README.md.
+    runs-on: [self-hosted, linux, x64, rinspace-release-build, rinspace-public-frontend-isolated]
+    timeout-minutes: 60
+    environment: frontend-candidate
+    env:
+      RINSPACE_CANDIDATE_ENABLED: ${{ vars.RINSPACE_FRONTEND_CANDIDATE_ENABLED }}
+      RINSPACE_ISOLATED_RUNNER: ${{ vars.RINSPACE_FRONTEND_ISOLATED_RUNNER_APPROVED }}
+      RINSPACE_DISTRIBUTION_APPROVED: ${{ vars.RINSPACE_FRONTEND_DISTRIBUTION_APPROVED }}
+      RINSPACE_REVIEWED_SOURCE: ${{ vars.RINSPACE_FRONTEND_REVIEWED_SOURCE }}
+      RINSPACE_REVIEWED_VERSION: ${{ vars.RINSPACE_FRONTEND_REVIEWED_VERSION }}
+      RINSPACE_PUBLIC_CONFIG: ${{ vars.RINSPACE_FRONTEND_PUBLIC_CONFIG }}
+      RINSPACE_COMPATIBILITY: ${{ vars.RINSPACE_FRONTEND_COMPATIBILITY }}
+      RINSPACE_SOURCE_COMMIT: ${{ needs.authorize.outputs.source_commit }}
+      RINSPACE_VERSION: ${{ needs.authorize.outputs.version }}
+      RINSPACE_CONTEXT_SHA256: ${{ needs.authorize.outputs.context_sha256 }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.authorize.outputs.source_commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.22.3'
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: '9.7.0'
+          run_install: false
+      - name: Recheck the exact approval inputs before executing candidate code
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const { releaseContext, sha256 } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/release/candidate.mjs`);
+            const input = {
+              repository: `${context.repo.owner}/${context.repo.repo}`, eventName: context.eventName,
+              ref: context.ref, sourceCommit: process.env.RINSPACE_SOURCE_COMMIT,
+              workflowCommit: context.sha, remoteMain: context.sha,
+              version: process.env.RINSPACE_VERSION, enabled: process.env.RINSPACE_CANDIDATE_ENABLED,
+              isolatedRunner: process.env.RINSPACE_ISOLATED_RUNNER,
+              distributionApproved: process.env.RINSPACE_DISTRIBUTION_APPROVED,
+              reviewedSource: process.env.RINSPACE_REVIEWED_SOURCE, reviewedVersion: process.env.RINSPACE_REVIEWED_VERSION,
+              publicConfig: JSON.parse(process.env.RINSPACE_PUBLIC_CONFIG || 'null'),
+              compatibility: JSON.parse(process.env.RINSPACE_COMPATIBILITY || 'null'), runId: String(context.runId),
+            };
+            releaseContext(input);
+            if (sha256(JSON.stringify(input)) !== process.env.RINSPACE_CONTEXT_SHA256) throw new Error('Approval inputs changed between jobs; stop.');
+            fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'frontend-context.json'), JSON.stringify(input), { flag: 'wx', mode: 0o600 });
+      - name: Verify runner tools and canonical remote
+        run: |
+          command -v bwrap
+          git remote -v
+          test "$(git remote get-url origin)" = https://github.com/rinspacehq/rinspace-web
+          test "$(git remote get-url --push origin)" = https://github.com/rinspacehq/rinspace-web
+      - name: Install fixed dependencies without lifecycle scripts or pnpm hooks
+        env:
+          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: /dev/null
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+          pnpm licenses list --json > "$RUNNER_TEMP/frontend-licenses.json"
+      - name: Check and build the fixed candidate once without credentials or network
+        run: node scripts/release/run-isolated-checks.mjs --build --output "$RUNNER_TEMP/frontend-check-output"
+      - name: Package original site bytes and the reviewed shared input closure
+        run: |
+          node scripts/release/candidate.mjs \
+            --context "$RUNNER_TEMP/frontend-context.json" \
+            --site "$RUNNER_TEMP/frontend-check-output/build" \
+            --licenses "$RUNNER_TEMP/frontend-licenses.json" \
+            --checks "$RUNNER_TEMP/frontend-check-output/checks.json" \
+            --output "$RUNNER_TEMP/frontend-candidate-output"
+      - name: Preserve candidate for same-byte public/private review, not a release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-${{ needs.authorize.outputs.version }}-${{ github.sha }}
+          path: ${{ runner.temp }}/frontend-candidate-output/*
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 30

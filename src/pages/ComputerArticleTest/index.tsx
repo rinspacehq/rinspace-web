@@ -2,7 +2,7 @@ import { Icon } from 'components/ui';
 import { publicEnv } from '@/app/config/env';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
@@ -148,7 +148,7 @@ function ComputerArticleTestPage() {
 
   return (
     <>
-      <Helmet title="Computer Article Test">
+      <Helmet title={`Computer Article Test - ${t('brandName')}`}>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href={computerLocalFontStylesheet} />

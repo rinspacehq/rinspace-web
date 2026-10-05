@@ -8,7 +8,7 @@
   "detail": {
     "pageTitle": "{{type}}详情",
     "type": {
-      "blog": "博客",
+      "blog": "文章",
       "question": "问答",
       "discussion": "讨论",
       "announcement": "公告",
@@ -23,7 +23,6 @@
       "reportArticle": "举报文章",
       "giteaSource": "Gitea 源码",
       "openGiteaSource": "在 Gitea 中打开 {{filename}} 的源码仓库",
-      "demoSourceUnavailable": "演示中不连接 Gitea 源码",
       "renderUnavailable": "正文渲染产物暂不可用。",
       "noBrowserFallback": "页面不会在浏览器中重新解析源码，请稍后重试。"
     },
@@ -58,14 +57,20 @@
     },
     "toc": {
       "title": "目录",
-      "blogLabel": "博客目录",
+      "blogLabel": "文章目录",
       "bookLabel": "书籍目录",
       "expand": "展开 {{title}}",
       "collapse": "折叠 {{title}}",
       "itemCount_one": "{{displayCount}} 项",
       "itemCount_other": "{{displayCount}} 项",
       "pageCount_one": "{{displayCount}} 页",
-      "pageCount_other": "{{displayCount}} 页"
+      "pageCount_other": "{{displayCount}} 页",
+      "webPageCount_one": "{{displayCount}} 网页页",
+      "webPageCount_other": "{{displayCount}} 网页页",
+      "nodeCount_one": "{{displayCount}} 目录项",
+      "nodeCount_other": "{{displayCount}} 目录项",
+      "pdfPageCount_one": "PDF {{displayCount}} 页",
+      "pdfPageCount_other": "PDF {{displayCount}} 页"
     },
     "metrics": {
       "readCount_one": "{{displayCount}} 次阅读",
@@ -182,6 +187,10 @@
       "loginActionCount_one": "登录后喜欢，{{displayCount}} 次",
       "loginActionCount_other": "登录后喜欢，{{displayCount}} 次"
     },
+    "reports": {
+      "actionCount_one": "举报，{{displayCount}} 人",
+      "actionCount_other": "举报，{{displayCount}} 人"
+    },
     "reading": {
       "communityResponse": "社区回应",
       "viewMember": "查看成员",
@@ -212,10 +221,10 @@
       "interactionSummary": "动态互动概览",
       "reposts": "转发",
       "likes": "赞",
-      "syncingLikes": "正在同步点赞",
+      "syncingLikes": "正在同步喜欢",
       "peopleLiked_one": "{{displayCount}} 人赞了这条动态",
       "peopleLiked_other": "{{displayCount}} 人赞了这条动态",
-      "viewLikes": "查看点赞用户",
+      "viewLikes": "查看喜欢用户",
       "commentCount_one": "{{displayCount}} 条评论",
       "commentCount_other": "{{displayCount}} 条评论",
       "likeCount_one": "{{displayCount}} 个赞",
@@ -312,12 +321,14 @@
       "kind": {
         "markdown": "Markdown 书籍",
         "original": "原创书籍",
+        "typst": "Typst 书籍",
         "external": "站外书籍"
       },
       "metadata": {
         "title": "书目信息",
         "markdown": "Markdown",
         "original": "原创",
+        "typst": "Typst",
         "reference": "参考书",
         "bookTitle": "书名",
         "authors": "作者",
@@ -371,7 +382,7 @@
         "kind": {
           "discussion": "讨论",
           "question": "问题",
-          "blog": "博客",
+          "blog": "文章",
           "errata": "勘误"
         },
         "chapterContent": "章节内容",
@@ -620,8 +631,8 @@
     }
   },
   "tagWikiHistory": {
-    "documentTitle": "Gitea 修订历史",
-    "tagDocumentTitle": "{{tag}} · Gitea 修订历史",
+    "documentTitle": "Gitea 修订历史 · 芥子环",
+    "tagDocumentTitle": "{{tag}} · Gitea 修订历史 · 芥子环",
     "kicker": "Wiki 修订历史",
     "tagFallback": "标签",
     "redirecting": "正在跳转到 Gitea 仓库提交记录。",
@@ -630,20 +641,16 @@
   },
   "tagWiki": {
     "missing": "标签不存在。",
-    "documentTitle": "标签 Wiki",
-    "tagDocumentTitle": "{{tag}} · Wiki",
+    "documentTitle": "标签 Wiki · 芥子环",
+    "tagDocumentTitle": "{{tag}} · Wiki · 芥子环",
     "aliasesContext": "标签别名",
     "referencesContext": "站内引用",
     "tocLabel": "词条目录",
     "toc": "目录",
     "emptyToc": "暂无目录",
     "read": "阅读",
-    "opening": "打开中",
-    "edit": "编辑",
     "source": "源码",
-    "sourceUnavailable": "Gitea 源码与 Issue 在演示中不可用",
     "history": "查看历史",
-    "sourceUnavailable": "Gitea 源码在演示中不可用",
     "created": "创建 {{date}}",
     "updated": "更新 {{date}}",
     "outgoing": "本文引用的标签",
@@ -662,9 +669,9 @@
     "emptyAliases": "无别名"
   },
   "tagWikiEdit": {
-    "createDocumentTitle": "创建标签",
-    "documentTitle": "维护标签源码",
-    "tagDocumentTitle": "{{tag}} · 维护源码",
+    "createDocumentTitle": "创建标签 · 芥子环",
+    "documentTitle": "维护标签源码 · 芥子环",
+    "tagDocumentTitle": "{{tag}} · 维护源码 · 芥子环",
     "heading": "维护 Tag 源码",
     "stableId": "稳定 Tag ID",
     "repositoryState": "仓库状态",
@@ -676,7 +683,7 @@
     "back": "返回 Tag"
   },
   "linkedQuestions": {
-    "documentTitle": "被引用的题目",
+    "documentTitle": "被引用的题目 · 芥子环",
     "kicker": "题目网络",
     "referenceCount_one": "{{displayCount}} 条引用",
     "referenceCount_other": "{{displayCount}} 条引用",
@@ -711,6 +718,7 @@
     "book": "书籍",
     "externalBook": "站外书籍",
     "originalBook": "原创书籍",
+    "typstBook": "Typst 书籍",
     "score": "{{score}} 分",
     "unrated": "暂无评分",
     "reviewCount_one": "{{displayCount}} 条评价",
@@ -720,8 +728,8 @@
     "contextExcerpt_other": "作者 #{{id}}，关联 {{displayCount}} 本书。",
     "heading": "书籍作者",
     "relatedBooks": "关联书籍",
-    "authorDocumentTitle": "{{author}}",
-    "documentTitle": "书籍作者",
+    "authorDocumentTitle": "{{author}} · 芥子环",
+    "documentTitle": "书籍作者 · 芥子环",
     "authorId": "作者 #{{id}}",
     "loadingAuthor": "读取作者信息",
     "backToBooks": "返回书库",
@@ -733,7 +741,7 @@
   "bookActivity": {
     "bookFallback": "书籍",
     "titleFallback": "书籍相关内容",
-    "documentTitle": "{{title}} · 相关内容",
+    "documentTitle": "{{title}} · 相关内容 · 芥子环",
     "kicker": "书籍相关内容",
     "syncing": "同步中",
     "itemCount_one": "{{displayCount}} 条",
@@ -744,13 +752,13 @@
       "all": "全部",
       "discussion": "讨论",
       "question": "问题",
-      "blog": "博客",
+      "blog": "文章",
       "errata": "勘误"
     },
     "kind": {
       "discussion": "讨论",
       "question": "问题",
-      "blog": "博客",
+      "blog": "文章",
       "errata": "勘误"
     },
     "erratumFallback": "勘误",
@@ -771,6 +779,7 @@
     "copyFailed": "复制失败，请手动复制地址",
     "loadMoreFailed": "加载更多连接失败",
     "reportBody": "标签：{{tag}} (#{{id}})\n公开修订：{{revision}}\n页面：{{page}}\n\n请描述问题。",
+    "maintenanceTitle": "标签维护",
     "title": "标签关系",
     "actions": "标签操作",
     "reportIssue": "报告问题",
@@ -805,8 +814,7 @@
     "anchorUnavailable": "锚点引用不可用",
     "cite": "引用",
     "anchorCorrectionTitle": "勘误：{{tag}} #{{anchor}}",
-    "correction": "勘误",
-    "correctionUnavailable": "演示中不创建 Gitea Issue"
+    "correction": "勘误"
   },
   "tagGovernance": {
     "maintain": "维护标签",
@@ -859,12 +867,14 @@
     }
   },
   "tagDetail": {
-    "documentTitle": "标签",
-    "tagDocumentTitle": "{{tag}} · 标签",
+    "documentTitle": "标签 · 芥子环",
+    "tagDocumentTitle": "{{tag}} · 标签 · 芥子环",
     "tagFallback": "标签",
+    "searchDescription": "关于 {{tag}} 的知识实体、生命周期、关联内容与相关 Tag。",
+    "lifecycle": "生命周期：{{state}}",
     "wikiLabel": "标签 Wiki",
     "opening": "打开中",
-    "edit": "编辑",
+    "source": "源码",
     "details": "详情",
     "outgoing": "本文引用的标签",
     "uncreated": "（未创建）",
@@ -873,20 +883,24 @@
     "emptyIncoming": "暂无标签反向引用",
     "previous": "上一页",
     "next": "下一页",
+    "interactions": "标签互动",
+    "like": "喜欢",
+    "liked": "已喜欢",
     "followCount_one": "{{displayCount}} 人关注",
     "followCount_other": "{{displayCount}} 人关注",
     "following": "已关注",
     "follow": "关注",
     "followed": "已关注 {{tag}}。",
     "unfollowed": "已取消关注 {{tag}}。",
-    "repositoryPending": "标签仓库正在创建，Wiki 编辑将在仓库就绪后开放。",
+    "repositoryPending": "标签仓库正在创建，源码将在就绪后开放。",
     "repositoryFailed": "标签仓库创建尚未完成；系统会在下次保存时继续恢复。",
     "contentTypes": "标签内容类型",
     "sortLabel": "标签内容排序",
     "tabs": {
       "wiki": "Wiki",
       "all": "综合",
-      "blog": "博客",
+      "blog": "文章",
+      "book": "书籍",
       "question": "问答",
       "discussion": "讨论",
       "dynamic": "动态"
@@ -898,7 +912,8 @@
     },
     "type": {
       "announcement": "公告",
-      "blog": "博客",
+      "blog": "文章",
+      "book": "书籍",
       "discussion": "讨论",
       "dynamic": "动态",
       "question": "问答",
@@ -952,7 +967,7 @@
       "statistics": "标签统计",
       "totalContent": "总内容 {{displayCount}}",
       "questions": "问答 {{displayCount}}",
-      "blogs": "博客 {{displayCount}}",
+      "blogs": "文章 {{displayCount}}",
       "discussions": "讨论 {{displayCount}}",
       "dynamics": "动态 {{displayCount}}",
       "followers": "关注 {{displayCount}}",

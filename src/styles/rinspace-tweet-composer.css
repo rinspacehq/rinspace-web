@@ -1,0 +1,421 @@
+.rin-tweet-composer {
+  --rin-composer-surface: var(--surface, #fff);
+  --rin-composer-subtle: var(--surface-soft, #f4f7fa);
+  --rin-composer-ink: var(--ink, #17212b);
+  --rin-composer-muted: var(--ink-muted, #687785);
+  --rin-composer-border: var(--border, #d8e0e7);
+  --rin-composer-accent: var(--accent, #466b88);
+  --rin-composer-danger: var(--danger, #b42318);
+
+  box-sizing: border-box;
+  display: grid;
+  gap: 0.85rem;
+  width: min(680px, calc(100vw - 2rem));
+  max-height: min(82vh, 820px);
+  overflow: auto;
+  padding: 1rem;
+  color: var(--rin-composer-ink);
+  background: var(--rin-composer-surface);
+  border: 1px solid var(--rin-composer-border);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgb(24 39 53 / 20%);
+}
+
+.rin-tweet-composer *,
+.rin-tweet-composer *::before,
+.rin-tweet-composer *::after {
+  box-sizing: border-box;
+}
+
+.rin-tweet-composer button,
+.rin-tweet-composer input,
+.rin-tweet-composer select,
+.rin-tweet-composer textarea {
+  color: inherit;
+  font: inherit;
+}
+
+.rin-tweet-composer button {
+  cursor: pointer;
+}
+
+.rin-tweet-composer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rin-tweet-composer :focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--rin-composer-accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.rin-tweet-composer__header,
+.rin-tweet-composer__footer,
+.rin-tweet-composer__settings,
+.rin-tweet-composer__submit-row,
+.rin-tweet-composer__tools,
+.rin-tweet-composer__window-actions,
+.rin-tweet-composer__identity {
+  display: flex;
+  align-items: center;
+}
+
+.rin-tweet-composer__header,
+.rin-tweet-composer__footer {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.rin-tweet-composer__identity {
+  min-width: 0;
+  gap: 0.65rem;
+}
+
+.rin-tweet-composer__identity img,
+.rin-tweet-composer__identity > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  place-items: center;
+  object-fit: cover;
+  background: var(--rin-composer-subtle);
+  border-radius: 999px;
+}
+
+.rin-tweet-composer__identity h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.rin-tweet-composer__window-actions {
+  gap: 0.35rem;
+}
+
+.rin-tweet-composer__icon-button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font-size: 1.25rem;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+}
+
+.rin-tweet-composer__icon-button:hover {
+  background: var(--rin-composer-subtle);
+}
+
+.rin-tweet-composer__context {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  color: var(--rin-composer-muted);
+  background: var(--rin-composer-subtle);
+  border-inline-start: 3px solid var(--rin-composer-accent);
+  border-radius: 8px;
+}
+
+.rin-tweet-composer__context--quote {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.rin-tweet-composer__context div,
+.rin-tweet-composer__context span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rin-tweet-composer__context button,
+.rin-tweet-composer__state button,
+.rin-tweet-composer__poll button,
+.rin-tweet-composer__media button {
+  padding: 0.35rem 0.55rem;
+  color: var(--rin-composer-accent);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+}
+
+.rin-tweet-composer__state,
+.rin-tweet-composer__error {
+  margin: 0;
+  padding: 0.75rem;
+  background: var(--rin-composer-subtle);
+  border-radius: 10px;
+}
+
+.rin-tweet-composer__state--error,
+.rin-tweet-composer__error,
+.rin-tweet-composer__inline-error,
+.rin-tweet-composer__count--over {
+  color: var(--rin-composer-danger);
+}
+
+.rin-tweet-composer__settings {
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.rin-tweet-composer__settings label:not(.rin-tweet-composer__toggle) {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 10rem;
+}
+
+.rin-tweet-composer__settings label > span,
+.rin-tweet-composer__media label > span,
+.rin-tweet-composer__poll-settings label > span {
+  color: var(--rin-composer-muted);
+  font-size: 0.75rem;
+}
+
+.rin-tweet-composer__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.4rem;
+  padding-top: 1rem;
+}
+
+.rin-tweet-composer select,
+.rin-tweet-composer input:not([type="checkbox"]),
+.rin-tweet-composer textarea {
+  width: 100%;
+  padding: 0.58rem 0.65rem;
+  background: var(--rin-composer-surface);
+  border: 1px solid var(--rin-composer-border);
+  border-radius: 9px;
+}
+
+.rin-tweet-composer__editor {
+  position: relative;
+}
+
+.rin-tweet-composer textarea {
+  min-height: 9rem;
+  resize: vertical;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.rin-tweet-composer__suggestions {
+  position: absolute;
+  z-index: 3;
+  inset-inline: 0.5rem;
+  top: calc(100% - 0.35rem);
+  display: grid;
+  max-height: 14rem;
+  overflow: auto;
+  padding: 0.35rem;
+  background: var(--rin-composer-surface);
+  border: 1px solid var(--rin-composer-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgb(24 39 53 / 16%);
+}
+
+.rin-tweet-composer__suggestions button {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.5rem;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+}
+
+.rin-tweet-composer__suggestions button:hover {
+  background: var(--rin-composer-subtle);
+}
+
+.rin-tweet-composer__suggestions img {
+  width: 1.8rem;
+  height: 1.8rem;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
+.rin-tweet-composer__suggestions span,
+.rin-tweet-composer__suggestions small {
+  display: block;
+}
+
+.rin-tweet-composer__media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.rin-tweet-composer__media {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.55rem;
+  background: var(--rin-composer-subtle);
+  border-radius: 10px;
+}
+
+.rin-tweet-composer__media > img,
+.rin-tweet-composer__media-kind {
+  width: 100%;
+  height: 9rem;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--rin-composer-subtle) 75%, var(--rin-composer-border));
+  border-radius: 8px;
+}
+
+.rin-tweet-composer__media-kind {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.rin-tweet-composer__media label {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.rin-tweet-composer__poll {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--rin-composer-border);
+  border-radius: 10px;
+}
+
+.rin-tweet-composer__poll > div:not(.rin-tweet-composer__poll-settings) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+}
+
+.rin-tweet-composer__poll-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.rin-tweet-composer__poll-settings label {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.rin-tweet-composer__tools,
+.rin-tweet-composer__submit-row {
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.rin-tweet-composer__tools button {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  color: var(--rin-composer-accent);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+}
+
+.rin-tweet-composer__tools button:hover {
+  background: var(--rin-composer-subtle);
+}
+
+.rin-tweet-composer__icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.rin-tweet-composer__count {
+  color: var(--rin-composer-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rin-tweet-composer__submit {
+  min-width: 5.5rem;
+  padding: 0.55rem 0.9rem;
+  color: var(--rin-on-accent);
+  font-weight: 700;
+  background: var(--rin-composer-accent);
+  border: 0;
+  border-radius: 999px;
+}
+
+.rin-tweet-composer__emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+  gap: 0.25rem;
+  max-height: 12rem;
+  overflow: auto;
+  padding: 0.45rem;
+  background: var(--rin-composer-subtle);
+  border-radius: 10px;
+}
+
+.rin-tweet-composer__emoji-picker button {
+  display: grid;
+  place-items: center;
+  min-height: 2.25rem;
+  padding: 0.25rem;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+}
+
+.rin-tweet-composer__emoji-picker img {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+}
+
+@media (width <= 640px) {
+  .rin-tweet-composer {
+    width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1rem);
+    padding: 0.8rem;
+    border-radius: 14px;
+  }
+
+  .rin-tweet-composer__settings,
+  .rin-tweet-composer__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rin-tweet-composer__settings label:not(.rin-tweet-composer__toggle),
+  .rin-tweet-composer__media-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .rin-tweet-composer__toggle {
+    padding-top: 0.25rem;
+  }
+
+  .rin-tweet-composer__tools span:not(.rin-tweet-composer__icon) {
+    display: none;
+  }
+
+  .rin-tweet-composer__submit-row {
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rin-tweet-composer *,
+  .rin-tweet-composer *::before,
+  .rin-tweet-composer *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

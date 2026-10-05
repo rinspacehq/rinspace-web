@@ -24,9 +24,9 @@
 .rin-animate-button[data-size="sm"] { min-block-size: 2rem; border-radius: .5rem; padding: .4rem .68rem; font-size: .8125rem; }
 .rin-animate-button[data-size="lg"] { min-block-size: 2.875rem; padding-inline: 1.15rem; }
 .rin-animate-button[data-size="icon"] { inline-size: 2.5rem; padding: 0; }
-.rin-animate-button[data-variant="primary"] { background: var(--rin-accent); color: #fff; }
-.rin-animate-button[data-variant="destructive"] { background: var(--rin-destructive); color: #fff; }
-.rin-animate-button[data-variant="secondary"] { border-color: var(--rin-border); background: var(--rin-surface); }
+.rin-animate-button[data-variant="primary"] { background: var(--rin-accent); color: var(--rin-on-accent); }
+.rin-animate-button[data-variant="destructive"] { background: var(--rin-destructive); color: var(--rin-on-destructive); }
+.rin-animate-button[data-variant="secondary"] { border-color: var(--rin-border-strong); background: var(--rin-surface); }
 .rin-animate-button[data-variant="ghost"] { background: transparent; box-shadow: none; }
 .rin-animate-button[data-variant="quiet"] { background: var(--rin-surface-subtle); box-shadow: none; }
 .rin-animate-button:disabled { opacity: .48; cursor: not-allowed; transform: none !important; }
@@ -242,6 +242,62 @@
 .rin-animate-avatar-group { display: flex; min-inline-size: max-content; padding-inline-start: .4rem; }
 .rin-animate-avatar { display: inline-grid; inline-size: 2rem; block-size: 2rem; place-items: center; margin-inline-start: -.4rem; border: 2px solid var(--rin-surface); border-radius: 50%; background: var(--rin-avatar-tone); color: #fff; font-size: .66rem; font-weight: 750; box-shadow: 0 2px 7px rgb(44 62 80 / 14%); }
 
+.rin-user-presence-avatar-group {
+  display: flex;
+  min-inline-size: max-content;
+  align-items: center;
+  padding-block: .2rem .1rem;
+  padding-inline-start: .5rem;
+}
+.rin-user-presence-avatar-link {
+  position: relative;
+  display: inline-grid;
+  inline-size: 2.15rem;
+  block-size: 2.15rem;
+  place-items: center;
+  margin-inline-start: -.5rem;
+  border-radius: 50%;
+  color: inherit;
+  text-decoration: none;
+}
+.rin-user-presence-avatar-link:hover { z-index: 20 !important; }
+.rin-user-presence-avatar-link:focus-visible {
+  z-index: 21 !important;
+  outline: 2px solid var(--rin-signal);
+  outline-offset: 3px;
+}
+.rin-user-presence-avatar {
+  display: inline-grid;
+  inline-size: 2.15rem;
+  block-size: 2.15rem;
+  overflow: hidden;
+  place-items: center;
+  border: 2px solid var(--rin-surface);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--rin-accent) 82%, var(--rin-surface));
+  color: var(--rin-on-accent);
+  box-shadow: 0 3px 9px rgb(44 62 80 / 16%);
+}
+.rin-user-presence-avatar-image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.rin-user-presence-avatar-fallback {
+  font-size: .72rem;
+  font-weight: 780;
+  line-height: 1;
+}
+.rin-user-presence-avatar-tooltip {
+  max-inline-size: 14rem;
+  padding: .42rem .58rem;
+  border-radius: .5rem;
+  font-size: .75rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
 .rin-animate-checkbox svg { inline-size: .82rem; block-size: .82rem; }
 .rin-animate-progress { position: relative; overflow: hidden; block-size: .35rem; border-radius: 999px; background: var(--rin-surface-subtle); }
 .rin-animate-progress > span { display: block; block-size: 100%; border-radius: inherit; background: var(--rin-accent); }
@@ -270,6 +326,8 @@
 .rin-ui-overlay[data-state="closed"] { animation: rin-animate-fade-out var(--rin-motion-immediate) ease-in; }
 .rin-ui-panel[data-state="open"]:not([data-slot^="dropdown-menu-"]) { animation: rin-animate-panel-in var(--rin-motion-structural) var(--rin-ease-out); }
 .rin-ui-panel[data-state="closed"]:not([data-slot^="dropdown-menu-"]) { animation: rin-animate-panel-out var(--rin-motion-immediate) ease-in; }
+.rin-ui-panel[data-rin-stable-layout="true"][data-state="open"],
+.rin-ui-panel[data-rin-stable-layout="true"][data-state="closed"] { animation: none; }
 .topbar-search-preview {
   transform-origin: top center;
   animation: rin-animate-panel-in var(--rin-motion-structural) var(--rin-ease-out);
@@ -294,11 +352,20 @@
   .topbar-search-preview { animation: none !important; }
 }
 
+.github-stars-rail-link { display: grid; min-block-size: 112px; align-content: start; justify-items: start; gap: 16px; }
+.github-stars-rail-title { margin-block-end: 0; }
+.rin-animate-github-stars { display: inline-flex; min-inline-size: 9rem; align-items: center; justify-content: flex-start; gap: .65rem; color: var(--rin-ink, currentColor); font-family: var(--rin-font-mono, monospace); }
+.rin-animate-github-stars__github { inline-size: 1.35rem; block-size: 1.35rem; flex: 0 0 auto; }
+.rin-animate-github-stars__number { min-inline-size: 3ch; color: inherit; font-size: 1.45rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; text-align: center; }
+.rin-animate-github-stars__star { position: relative; display: grid; inline-size: 1.2rem; block-size: 1.2rem; place-items: center; color: #d8a718; }
+.rin-animate-github-stars__star > svg { inline-size: 100%; block-size: 100%; }
+.rin-animate-github-stars__star > i { position: absolute; inline-size: 4px; block-size: 4px; border-radius: 50%; background: currentColor; pointer-events: none; }
+
 .topbar-pill {
   position: relative;
   display: inline-grid;
-  inline-size: 34px;
-  block-size: 34px;
+  inline-size: var(--rin-topbar-compact-control-size);
+  block-size: var(--rin-topbar-compact-control-size);
   place-items: center;
   border: 1px solid var(--rin-border);
   border-radius: 999px;

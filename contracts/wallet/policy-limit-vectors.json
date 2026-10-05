@@ -1,0 +1,672 @@
+{
+  "version": 1,
+  "action": "policy.update",
+  "note": "Schema limits only. Valid values are not approved production defaults, adjustment ranges or activation authority.",
+  "cases": [
+    {
+      "name": "recharge_min_fen_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"10\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"9223372036854775800\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_min_fen_remainder",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_min_fen\":\"11\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"10\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"9223372036854775800\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_step_fen_remainder",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_step_fen\":\"11\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":\"9223372036854775807\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "ordinary_balance_limit_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"ordinary_balance_limit\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":\"9223372036854775807\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "bound_balance_limit_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"bound_balance_limit\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"9223372036854775807\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_single_limit_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":\"9223372036854775807\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_daily_limit_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_daily_limit\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"10\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"9223372036854775800\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_single_limit_remainder",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"11\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"10\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"9223372036854775800\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"9223372036854775808\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_daily_limit_remainder",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_daily_limit\":\"11\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":\"2147483647\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":\"2147483648\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "recharge_per_minute_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"recharge_per_minute\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":\"2147483647\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":\"2147483648\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_per_minute_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_per_minute\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":\"2147483647\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":\"2147483648\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_per_minute_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_per_minute\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":\"2147483647\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":\"2147483648\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "unresolved_order_limit_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"unresolved_order_limit\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":\"2147483647\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":\"2147483648\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "payment_ttl_seconds_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"payment_ttl_seconds\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_valid",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_maximum",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"2147483647\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_fraction",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"1.0\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_number",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":10},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_null",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":null},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_negative",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"-1\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_overflow",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"2147483648\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "preview_ttl_seconds_leading_zero",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"01\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "tip_cross_limit",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"tip_single_limit\":\"11\",\"tip_daily_limit\":\"10\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "conversion_cross_limit",
+      "valid": false,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"conversion_single_limit\":\"20\",\"conversion_daily_limit\":\"10\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    },
+    {
+      "name": "all_limits_order",
+      "valid": true,
+      "body": "{\"expected_version\":\"1\",\"patch\":{\"preview_ttl_seconds\":\"1\",\"payment_ttl_seconds\":\"1\",\"unresolved_order_limit\":\"1\",\"conversion_per_minute\":\"1\",\"tip_per_minute\":\"1\",\"recharge_per_minute\":\"1\",\"conversion_daily_limit\":\"10\",\"conversion_single_limit\":\"10\",\"tip_daily_limit\":\"1\",\"tip_single_limit\":\"1\",\"bound_balance_limit\":\"1\",\"ordinary_balance_limit\":\"1\",\"recharge_step_fen\":\"10\",\"recharge_min_fen\":\"10\"},\"reason\":\"合成契约测试，非生产批准\"}"
+    }
+  ]
+}

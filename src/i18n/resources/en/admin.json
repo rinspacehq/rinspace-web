@@ -1,15 +1,19 @@
 {
   "title": "Administration",
   "documentTitles": {
-    "home": "Administration",
-    "content": "Content management",
-    "review": "Review workbench",
-    "system": "System operations"
+    "home": "Administration - Rinspace",
+    "content": "Content management - Rinspace",
+    "review": "Review workbench - Rinspace",
+    "refunds": "Refund review - Rinspace",
+    "risk": "Money risk - Rinspace",
+    "system": "System operations - Rinspace"
   },
   "views": {
     "home": "Overview",
     "content": "Content management",
     "review": "Review workbench",
+    "refunds": "Refund review",
+    "risk": "Money risk",
     "system": "System operations"
   },
   "shared": {
@@ -39,6 +43,104 @@
     "roleReviewer": "Review member"
   },
   "home": { "title": "Administration" },
+  "refunds": {
+    "title": "Refund review",
+    "status": "Refund status",
+    "pending": "Awaiting manual review",
+    "approvedQueued": "Approved, awaiting submission",
+    "submitted": "Submitted to channel",
+    "resultUnknown": "Channel result pending verification",
+    "channelSucceeded": "Channel refund succeeded, posting locally",
+    "failedFinal": "Refund failed",
+    "cancelled": "Cancelled",
+    "exception": "Manual review required",
+    "empty": "No matching refund requests",
+    "loadFailed": "The refund queue is temporarily unavailable.",
+    "detailFailed": "The refund detail is temporarily unavailable.",
+    "reviewFailed": "The decision could not be confirmed. Refresh the same case before retrying.",
+    "reviewTitle": "Refund detail",
+    "amount": "Requested amount",
+    "originalOrder": "Original payment order",
+    "reserved": "Reserved Shangong",
+    "submittedAt": "Submitted",
+    "firstResponseAt": "Channel response",
+    "reason": "User reason",
+    "history": "Review history",
+    "decision": {
+      "approve": "Approved",
+      "reject": "Rejected",
+      "revoke": "Approval revoked"
+    },
+    "reviewReason": "Review or revocation reason",
+    "approve": "Approve refund",
+    "reject": "Reject refund",
+    "revoke": "Revoke approval"
+  },
+  "risk": {
+    "title": "Money risk",
+    "cases": "Risk cases",
+    "coverage": "Fund coverage",
+    "status": "Status",
+    "open": "Open",
+    "underReview": "Under review",
+    "resolved": "Resolved",
+    "empty": "No matching risk cases",
+    "loadFailed": "Risk data is temporarily unavailable.",
+    "reconciliation": "Channel reconciliation",
+    "noReconciliation": "No reconciliation runs",
+    "differences": "Differences",
+    "viewDifferences": "View",
+    "noDifferences": "No differences",
+    "expected": "Expected",
+    "actual": "Actual",
+    "assignee": "Assignee",
+    "claim": "Claim",
+    "evidenceAccepted": "Evidence accepted",
+    "channelCorrected": "Channel corrected",
+    "operationLinked": "Linked correction",
+    "caseLinked": "Linked case",
+    "evidenceReference": "Evidence reference",
+    "resolveDifference": "Complete",
+    "obligations": "Money obligations",
+    "refundablePrincipal": "Refundable principal",
+    "refundReserved": "Reserved for refunds",
+    "approvedUnpaid": "Approved unpaid",
+    "disputeExposure": "Dispute exposure",
+    "unresolvedPayments": "Unresolved payments",
+    "openCases": "Open cases",
+    "unmatchedRuns": "Unmatched runs",
+    "differenceItems": "Difference items",
+    "manage": "Review",
+    "reviewTitle": "Case review",
+    "reviewReason": "Reason",
+    "startReview": "Start review",
+    "resolve": "Resolve",
+    "sources": "Linked Shangong", "appeals": "Appeals", "appealSubject": "Account owner", "appealAffected": "Affected author",
+    "quantity": "Quantity",
+    "restrict": "Restrict",
+    "release": "Release",
+    "verifyFailed": "Security verification could not be started.",
+    "reviewFailed": "The result could not be confirmed. The case was reloaded.",
+    "code": "Six-digit code",
+    "confirm": "Confirm"
+  },
+  "policy": {
+    "title": "Recharge limit",
+    "currentLimit": "Current daily limit",
+    "version": "Policy version",
+    "rechargeState": "Real recharge",
+    "enabled": "Enabled",
+    "disabled": "Kept disabled",
+    "lastReason": "Last change reason",
+    "newLimit": "New daily limit (CNY)",
+    "changeReason": "Reason for this change",
+    "change": "Request change",
+    "loadFailed": "The recharge policy is temporarily unavailable.",
+    "invalidLimit": "Enter a positive CNY amount in 0.1-yuan increments.",
+    "verifyFailed": "This security verification could not be started.",
+    "updateUnknown": "The update result could not be confirmed. The current version was reloaded; verify it before acting again.",
+    "confirm": "Confirm change"
+  },
   "statuses": {
     "active": "Active",
     "available": "Public",
@@ -65,168 +167,466 @@
   "content": {
     "tabsLabel": "Management categories",
     "tabs": {
-      "blogs": "Blogs", "books": "Books", "questions": "Q&A", "answers": "Answers",
-      "discussions": "Discussions", "dynamics": "Updates", "users": "Users", "tags": "Tags",
+      "blogs": "Articles",
+      "books": "Books",
+      "questions": "Q&A",
+      "answers": "Answers",
+      "discussions": "Discussions",
+      "dynamics": "Updates",
+      "users": "Users",
+      "tags": "Tags",
       "cultivation": "Cultivation permissions"
     },
     "panels": {
-      "blogs": "Blog management", "books": "Book management", "questions": "Questions",
-      "answers": "Answers", "discussions": "Discussions", "dynamics": "Updates", "users": "Users",
-      "tags": "Tag management", "cultivation": "Cultivation permissions"
+      "blogs": "Article management",
+      "books": "Book management",
+      "questions": "Questions",
+      "answers": "Answers",
+      "discussions": "Discussions",
+      "dynamics": "Updates",
+      "users": "Users",
+      "tags": "Tag management",
+      "cultivation": "Cultivation permissions"
     },
     "kinds": {
-      "content": "Content", "blog": "Blog", "book": "Book", "question": "Question",
-      "answer": "Answer", "comment": "Comment", "discussion": "Discussion", "dynamic": "Update",
+      "content": "Content",
+      "blog": "Article",
+      "book": "Book",
+      "question": "Question",
+      "answer": "Answer",
+      "comment": "Comment",
+      "discussion": "Discussion",
+      "dynamic": "Update",
       "user": "User"
     },
     "filters": {
-      "searchQuestions": "Search questions", "questionStatus": "Question status", "allQuestions": "All questions",
-      "searchAnswers": "Search answers", "answerStatus": "Answer status", "allAnswers": "All answers",
-      "searchUsers": "Search users", "userStatus": "User status", "allUsers": "All users", "staffOnly": "Staff only"
+      "searchQuestions": "Search questions",
+      "questionStatus": "Question status",
+      "allQuestions": "All questions",
+      "searchAnswers": "Search answers",
+      "answerStatus": "Answer status",
+      "allAnswers": "All answers",
+      "searchUsers": "Search users",
+      "userStatus": "User status",
+      "allUsers": "All users",
+      "staffOnly": "Staff only"
     },
     "actions": {
-      "close": "Close", "delete": "Delete", "editTags": "Tags", "hide": "Hide", "pin": "Pin",
-      "publish": "Publish", "reopen": "Reopen", "show": "Show", "unpin": "Unpin"
+      "close": "Close",
+      "delete": "Delete",
+      "editTags": "Tags",
+      "hide": "Hide",
+      "pin": "Pin",
+      "publish": "Publish",
+      "reopen": "Reopen",
+      "show": "Show",
+      "unpin": "Unpin"
     },
     "labels": {
-      "accepted": "Accepted", "anonymous": "Anonymous user", "author": "Author",
-      "created": "Created {{date}}", "emailMissing": "No email", "notAccepted": "Not accepted",
-      "profile": "{{name}} user profile", "rank": "Cultivation", "registered": "Registered",
-      "role": "Role", "status": "Status", "suspendedUntil": "Suspended until",
-      "suspensionDuration": "Duration", "time": "Time", "unknownAuthor": "Unknown author",
-      "unknownTime": "Unknown time", "updated": "Updated {{date}}", "userActions": "Actions for {{name}}",
-      "userRole": "{{name}} role", "userStatus": "{{name}} status",
-      "userSuspensionDuration": "{{name}} suspension duration", "visibility": "{{title}} visibility",
-      "publicationState": "{{title}} publication state", "tags": "{{title}} tags",
+      "accepted": "Accepted",
+      "anonymous": "Anonymous user",
+      "author": "Author",
+      "created": "Created {{date}}",
+      "emailMissing": "No email",
+      "notAccepted": "Not accepted",
+      "profile": "{{name}} user profile",
+      "rank": "Cultivation",
+      "registered": "Registered",
+      "role": "Role",
+      "status": "Status",
+      "suspendedUntil": "Suspended until",
+      "suspensionDuration": "Duration",
+      "time": "Time",
+      "unknownAuthor": "Unknown author",
+      "unknownTime": "Unknown time",
+      "updated": "Updated {{date}}",
+      "userActions": "Actions for {{name}}",
+      "userRole": "{{name}} role",
+      "userStatus": "{{name}} status",
+      "userSuspensionDuration": "{{name}} suspension duration",
+      "visibility": "{{title}} visibility",
+      "publicationState": "{{title}} publication state",
+      "tags": "{{title}} tags",
       "managementActions": "Management actions for {{title}}"
     },
     "counts": {
-      "answers_one": "{{displayCount}} answer", "answers_other": "{{displayCount}} answers",
-      "followers_one": "{{displayCount}} follower", "followers_other": "{{displayCount}} followers",
-      "items_one": "{{displayCount}} item", "items_other": "{{displayCount}} items",
-      "questions_one": "{{displayCount}} question", "questions_other": "{{displayCount}} questions",
-      "votes_one": "{{displayCount}} vote", "votes_other": "{{displayCount}} votes"
+      "answers_one": "{{displayCount}} answer",
+      "answers_other": "{{displayCount}} answers",
+      "followers_one": "{{displayCount}} follower",
+      "followers_other": "{{displayCount}} followers",
+      "items_one": "{{displayCount}} item",
+      "items_other": "{{displayCount}} items",
+      "questions_one": "{{displayCount}} question",
+      "questions_other": "{{displayCount}} questions",
+      "votes_one": "{{displayCount}} vote",
+      "votes_other": "{{displayCount}} votes"
     },
-    "roles": { "admin": "Administrator", "member": "Member", "moderator": "Moderator" },
-    "durations": { "24h": "24 hours", "72h": "72 hours", "7d": "7 days", "1m": "1 month", "1y": "1 year" },
+    "roles": {
+      "admin": "Administrator",
+      "member": "Member",
+      "moderator": "Moderator"
+    },
+    "durations": {
+      "24h": "24 hours",
+      "72h": "72 hours",
+      "7d": "7 days",
+      "1m": "1 month",
+      "1y": "1 year"
+    },
     "empty": {
-      "blogs": "No blogs", "books": "No books", "questions": "No questions", "answers": "No answers",
-      "discussions": "No discussions", "dynamics": "No updates", "users": "No users", "tags": "No tags",
+      "blogs": "No articles",
+      "books": "No books",
+      "questions": "No questions",
+      "answers": "No answers",
+      "discussions": "No discussions",
+      "dynamics": "No updates",
+      "users": "No users",
+      "tags": "No tags",
       "permissions": "No permission configuration"
     },
     "notices": {
-      "permissionsUpdated": "Cultivation permissions updated.", "questionUpdated": "Question set to {{status}}.",
-      "answerUpdated": "Answer set to {{status}}.", "questionReopened": "Question reopened.",
-      "questionOperated": "Question {{operation}}.", "tagsUpdated": "Content tags updated.",
-      "contentUpdated": "{{type}} status updated.", "contentDeleted": "{{type}} deleted.",
+      "permissionsUpdated": "Cultivation permissions updated.",
+      "questionUpdated": "Question set to {{status}}.",
+      "answerUpdated": "Answer set to {{status}}.",
+      "questionReopened": "Question reopened.",
+      "questionOperated": "Question {{operation}}.",
+      "tagsUpdated": "Content tags updated.",
+      "contentUpdated": "{{type}} status updated.",
+      "contentDeleted": "{{type}} deleted.",
       "tagDeleted": "{{name}} deleted. Untagged content will be assigned to general.",
       "userUpdated": "User set to {{status}}."
     },
-    "tagEditor": { "title": "Edit tags", "placeholder": "Search or enter tags", "ariaLabel": "Administration content tags", "save": "Save tags" },
+    "tagEditor": {
+      "title": "Edit tags",
+      "placeholder": "Search or enter tags",
+      "ariaLabel": "Administration content tags",
+      "save": "Save tags"
+    },
     "user": { "removeContent": "Hide content too" },
     "delete": {
-      "title": "Confirm delete", "tagTitle": "Confirm tag deletion", "contentDescription": "Delete “{{title}}”?",
-      "questionDescription": "Delete question “{{title}}”?", "answerDescription": "Delete this answer under “{{title}}”?",
-      "tagDescription": "Delete tag “{{name}}”?", "contentRemoved": "{{type}} will be removed from public listings and Creator Center.",
+      "title": "Confirm delete",
+      "tagTitle": "Confirm tag deletion",
+      "contentDescription": "Delete “{{title}}”?",
+      "questionDescription": "Delete question “{{title}}”?",
+      "answerDescription": "Delete this answer under “{{title}}”?",
+      "tagDescription": "Delete tag “{{name}}”?",
+      "contentRemoved": "{{type}} will be removed from public listings and Creator Center.",
       "repositoryDeleted": "The source repository will also be marked deleted.",
       "interactionsUnavailable": "Related interaction entry points may no longer be available.",
       "questionImpact": "The question will be marked deleted; answers and references may be affected.",
       "answerImpact": "The answer will be marked deleted and removed from the question's answer list.",
-      "tagFallback": "Content left without a tag will be assigned to general.", "generalProtected": "The general tag cannot be deleted."
+      "tagFallback": "Content left without a tag will be assigned to general.",
+      "generalProtected": "The general tag cannot be deleted."
     },
     "permissionGroups": {
-      "create": "Creation and publishing", "question": "Q&A collaboration", "moderation": "Moderation cases",
-      "revision": "Revision review", "postReview": "Content review", "report": "Report handling",
-      "operations": "System operations", "other": "Other permissions"
+      "create": "Creation and publishing",
+      "question": "Q&A collaboration",
+      "moderation": "Moderation cases",
+      "revision": "Revision review",
+      "postReview": "Content review",
+      "report": "Report handling",
+      "operations": "System operations",
+      "other": "Other permissions"
     },
     "permissions": {
-      "minimumRank": "Minimum cultivation for {{label}}", "save": "Save permissions",
+      "minimumRank": "Minimum cultivation for {{label}}",
+      "save": "Save permissions",
       "rules": {
-        "blog.create": { "label": "Publish blogs", "description": "Create new long-form blog posts" },
-        "book.create": { "label": "Publish books", "description": "Create book projects or book records" },
-        "discussion.create": { "label": "Publish discussions", "description": "Create discussion posts" },
-        "dynamic.create": { "label": "Publish updates", "description": "Publish short updates" },
-        "question.create": { "label": "Ask questions", "description": "Create new Q&A questions" },
-        "answer.create": { "label": "Answer questions", "description": "Submit answers to questions" },
-        "question.edit": { "label": "Collaboratively edit questions", "description": "Edit questions asked by other users" },
-        "moderation.case.view": { "label": "View moderation cases", "description": "Open cases created from machine or AI signals" },
-        "moderation.case.review": { "label": "Decide moderation cases", "description": "Approve, reject, or defer machine or AI cases" },
-        "moderation.case.enforce": { "label": "Enforce moderation decisions", "description": "Run high-risk actions such as hiding or deleting targets" },
-        "review.revision.view": { "label": "View revision queue", "description": "View pending Wiki, Q&A, and discussion revisions" },
-        "review.revision.audit": { "label": "Review revisions", "description": "Approve or reject Wiki, Q&A, and discussion revisions" },
-        "review.post.view": { "label": "View pending publications", "description": "View the manual content-review queue" },
-        "review.post.audit": { "label": "Review pending publications", "description": "Approve or reject pending content" },
-        "review.report.view": { "label": "View reports", "description": "View user reports" },
-        "review.report.audit": { "label": "Handle reports", "description": "Resolve reports and record outcomes" },
-        "operations.control.view": { "label": "View system status", "description": "View redacted Control Plane and Renderer status" },
-        "operations.control.dry_run": { "label": "Run reconciliation checks", "description": "Generate a repair plan without writing changes" },
-        "operations.control.apply": { "label": "Apply reconciliation plans", "description": "Apply a generated plan while it remains valid" },
-        "operations.control.recover": { "label": "Run system recovery", "description": "Run a compatibility recovery command" },
-        "operations.control.event_replay": { "label": "Replay system events", "description": "Replay recoverable system events" },
-        "operations.control.renderer_operate": { "label": "Operate render jobs", "description": "Retry or cancel Renderer jobs in eligible states" },
-        "operations.control.knowledge_rollback": { "label": "Roll back knowledge publishing", "description": "Roll a knowledge project back to a verified release" },
-        "operations.audit.view": { "label": "View operations records", "description": "Search redacted append-only operations audit records" },
-        "review.revision": { "label": "Review revisions", "description": "Legacy broad permission for viewing and reviewing revisions" },
-        "review.post": { "label": "Review content", "description": "Legacy broad permission for viewing and reviewing pending content" },
-        "review.report": { "label": "Review reports", "description": "Legacy broad permission for viewing and handling reports" }
+        "blog.create": {
+          "label": "Publish articles",
+          "description": "Create new long-form articles"
+        },
+        "book.create": {
+          "label": "Publish books",
+          "description": "Create book projects or book records"
+        },
+        "discussion.create": {
+          "label": "Publish discussions",
+          "description": "Create discussion posts"
+        },
+        "dynamic.create": {
+          "label": "Publish updates",
+          "description": "Publish short updates"
+        },
+        "question.create": {
+          "label": "Ask questions",
+          "description": "Create new Q&A questions"
+        },
+        "answer.create": {
+          "label": "Answer questions",
+          "description": "Submit answers to questions"
+        },
+        "question.edit": {
+          "label": "Collaboratively edit questions",
+          "description": "Edit questions asked by other users"
+        },
+        "moderation.case.view": {
+          "label": "View moderation cases",
+          "description": "Open cases created from machine or AI signals"
+        },
+        "moderation.case.review": {
+          "label": "Decide moderation cases",
+          "description": "Approve, reject, or defer machine or AI cases"
+        },
+        "moderation.case.enforce": {
+          "label": "Enforce moderation decisions",
+          "description": "Run high-risk actions such as hiding or deleting targets"
+        },
+        "review.revision.view": {
+          "label": "View revision queue",
+          "description": "View pending Wiki, Q&A, and discussion revisions"
+        },
+        "review.revision.audit": {
+          "label": "Review revisions",
+          "description": "Approve or reject Wiki, Q&A, and discussion revisions"
+        },
+        "review.post.view": {
+          "label": "View pending publications",
+          "description": "View the manual content-review queue"
+        },
+        "review.post.audit": {
+          "label": "Review pending publications",
+          "description": "Approve or reject pending content"
+        },
+        "review.report.view": {
+          "label": "View reports",
+          "description": "View user reports"
+        },
+        "review.report.audit": {
+          "label": "Handle reports",
+          "description": "Resolve reports and record outcomes"
+        },
+        "operations.control.view": {
+          "label": "View system status",
+          "description": "View redacted Control Plane and Renderer status"
+        },
+        "operations.control.dry_run": {
+          "label": "Run reconciliation checks",
+          "description": "Generate a repair plan without writing changes"
+        },
+        "operations.control.apply": {
+          "label": "Apply reconciliation plans",
+          "description": "Apply a generated plan while it remains valid"
+        },
+        "operations.control.recover": {
+          "label": "Run system recovery",
+          "description": "Run a compatibility recovery command"
+        },
+        "operations.control.event_replay": {
+          "label": "Replay system events",
+          "description": "Replay recoverable system events"
+        },
+        "operations.control.renderer_operate": {
+          "label": "Operate render jobs",
+          "description": "Retry or cancel Renderer jobs in eligible states"
+        },
+        "operations.control.knowledge_rollback": {
+          "label": "Roll back knowledge publishing",
+          "description": "Roll a knowledge project back to a verified release"
+        },
+        "operations.audit.view": {
+          "label": "View operations records",
+          "description": "Search redacted append-only operations audit records"
+        },
+        "review.revision": {
+          "label": "Review revisions",
+          "description": "Legacy broad permission for viewing and reviewing revisions"
+        },
+        "review.post": {
+          "label": "Review content",
+          "description": "Legacy broad permission for viewing and reviewing pending content"
+        },
+        "review.report": {
+          "label": "Review reports",
+          "description": "Legacy broad permission for viewing and handling reports"
+        }
       }
     }
   },
   "review": {
-    "queue": "Review workbench", "caseCounts": "Case counts", "caseStatus": "Case status", "caseSource": "Case source", "caseId": "Case ID",
-    "counts": { "active": "Active {{displayCount}}", "deferred": "Deferred {{displayCount}}", "closed": "Closed {{displayCount}}" },
-    "sources": { "all": "All sources", "machine": "Machine review", "report": "User report", "hybrid": "Combined signals" },
-    "statuses": { "active": "Active", "pending": "Pending", "deferred": "Deferred", "closed": "Closed", "approved": "Approved", "rejected": "Blocked", "ignored": "Ignored", "completed": "Completed" },
-    "signals": { "reports_one": "{{displayCount}} report", "reports_other": "{{displayCount}} reports", "score": "score {{score}}", "error": "Review error" },
-    "queueLoadFailed": "Review queue failed to load", "caseLoadFailed": "Case failed to load", "empty": "No cases",
-    "completed": "The current queue is complete", "backToQueue": "Back to queue", "previous": "Previous case", "next": "Next case",
-    "conflict": "Case updated", "snapshot": "Target snapshot", "snapshotMissing": "Snapshot unavailable", "evidence": "Case evidence",
-    "evidenceTabs": { "machine": "Machine evidence", "reports": "Report evidence", "timeline": "Timeline" },
-    "technical": "Technical summary", "generatedAt": "Generated at", "requestId": "Request ID", "payloadSha256": "Payload SHA256", "version": "Version", "decisionPanel": "Review decision", "decision": "Decision",
-    "action": "Action", "basis": "Decision basis", "duration": "Suspension duration", "submit": "Submit decision",
-    "confirmTitle": "Confirm review decision", "confirm": "Confirm submission",
-    "confirmation": { "case": "Case", "decision": "Decision", "action": "Action", "impact": "Impact" },
-    "decisions": { "noViolation": "No violation", "violation": "Violation", "defer": "Defer" },
+    "queue": "Review workbench",
+    "caseCounts": "Case counts",
+    "caseStatus": "Case status",
+    "caseSource": "Case source",
+    "caseId": "Case ID",
+    "counts": {
+      "active": "Active {{displayCount}}",
+      "deferred": "Deferred {{displayCount}}",
+      "closed": "Closed {{displayCount}}"
+    },
+    "sources": {
+      "all": "All sources",
+      "machine": "Machine review",
+      "report": "User report",
+      "hybrid": "Combined signals"
+    },
+    "statuses": {
+      "active": "Active",
+      "pending": "Pending",
+      "deferred": "Deferred",
+      "closed": "Closed",
+      "approved": "Approved",
+      "rejected": "Blocked",
+      "ignored": "Ignored",
+      "completed": "Completed"
+    },
+    "signals": {
+      "reports_one": "{{displayCount}} report",
+      "reports_other": "{{displayCount}} reports",
+      "score": "score {{score}}",
+      "error": "Review error"
+    },
+    "queueLoadFailed": "Review queue failed to load",
+    "caseLoadFailed": "Case failed to load",
+    "empty": "No cases",
+    "completed": "The current queue is complete",
+    "backToQueue": "Back to queue",
+    "previous": "Previous case",
+    "next": "Next case",
+    "conflict": "Case updated",
+    "snapshot": "Target snapshot",
+    "snapshotMissing": "Snapshot unavailable",
+    "evidence": "Case evidence",
+    "evidenceTabs": {
+      "machine": "Machine evidence",
+      "reports": "Report evidence",
+      "timeline": "Timeline"
+    },
+    "technical": "Technical summary",
+    "generatedAt": "Generated at",
+    "requestId": "Request ID",
+    "payloadSha256": "Payload SHA256",
+    "version": "Version",
+    "decisionPanel": "Review decision",
+    "decision": "Decision",
+    "action": "Action",
+    "basis": "Decision basis",
+    "duration": "Suspension duration",
+    "submit": "Submit decision",
+    "confirmTitle": "Confirm review decision",
+    "confirm": "Confirm submission",
+    "confirmation": {
+      "case": "Case",
+      "decision": "Decision",
+      "action": "Action",
+      "impact": "Impact"
+    },
+    "decisions": {
+      "noViolation": "No violation",
+      "violation": "Violation",
+      "defer": "Defer"
+    },
     "operations": {
-      "approve": "Content is acceptable", "reject": "Block content", "defer": "Defer", "ignoreReport": "Dismiss report",
-      "hideQuestion": "Hide question", "hidePost": "Hide content", "deleteAnswer": "Delete answer", "hideComment": "Hide comment",
-      "hideBookAnnotation": "Hide annotation", "hideUser": "Hide user", "suspendUser": "Suspend user", "targetUnavailable": "Target unavailable"
+      "approve": "Content is acceptable",
+      "reject": "Block content",
+      "defer": "Defer",
+      "ignoreReport": "Dismiss report",
+      "hideQuestion": "Hide question",
+      "hidePost": "Hide content",
+      "deleteAnswer": "Delete answer",
+      "hideComment": "Hide comment",
+      "hideBookAnnotation": "Hide annotation",
+      "hideUser": "Hide user",
+      "suspendUser": "Suspend user",
+      "targetUnavailable": "Target unavailable"
     },
     "impacts": {
-      "userState": "The user account state will change.", "hideTarget": "The {{target}} will be hidden from public access.",
-      "deleteAnswer": "The answer will be marked deleted.", "reject": "The content will be blocked.",
+      "userState": "The user account state will change.",
+      "hideTarget": "The {{target}} will be hidden from public access.",
+      "deleteAnswer": "The answer will be marked deleted.",
+      "reject": "The content will be blocked.",
       "targetUnavailable": "The case will close because its target is unavailable."
     }
   },
   "system": {
-    "label": "System operations", "sectionsLabel": "System operations sections", "eventType": "Event type",
-    "sections": { "overview": "Overview", "events": "Events", "publishing": "Publishing", "consistency": "Consistency", "records": "Records" },
-    "health": { "healthy": "Healthy", "issues": "Issues", "controlPlane": "Control Plane", "available": "Available", "unknown": "Unknown" },
-    "eventKinds": { "inbox": "Inbox", "outbox": "Outbox", "gitea_effect": "Gitea Effect" },
+    "label": "System operations",
+    "sectionsLabel": "System operations sections",
+    "eventType": "Event type",
+    "sections": {
+      "overview": "Overview",
+      "events": "Events",
+      "publishing": "Publishing",
+      "consistency": "Consistency",
+      "records": "Records"
+    },
+    "health": {
+      "healthy": "Healthy",
+      "issues": "Issues",
+      "controlPlane": "Control Plane",
+      "available": "Available",
+      "unknown": "Unknown"
+    },
+    "eventKinds": {
+      "inbox": "Inbox",
+      "outbox": "Outbox",
+      "gitea_effect": "Gitea Effect"
+    },
     "metrics": {
-      "inboxPending": "Inbox pending", "inboxQuarantined": "Inbox quarantined", "inboxOldest": "Inbox oldest wait",
-      "outboxPending": "Outbox pending", "outboxDead": "Outbox dead letters", "outboxOldest": "Outbox oldest wait",
-      "giteaPending": "Gitea Effect pending", "giteaDead": "Gitea Effect dead letters", "provisionPending": "Provision pending",
-      "provisionFailed": "Provision failures in 24 hours", "publicationActive": "Active publications",
-      "publicationFailed": "Publication failures in 24 hours", "publicationDrift": "Publication drift", "queueP95": "Queue P95",
-      "renderP95": "Render P95", "activationP95": "Activation P95", "openFindings": "Open findings",
-      "manualFindings": "Manual action required", "reconciliationRequired": "Reconciliation required",
-      "branchPolicyDrift": "Branch policy drift", "repairRatio": "Repair ratio"
+      "inboxPending": "Inbox pending",
+      "inboxQuarantined": "Inbox quarantined",
+      "inboxOldest": "Inbox oldest wait",
+      "outboxPending": "Outbox pending",
+      "outboxDead": "Outbox dead letters",
+      "outboxOldest": "Outbox oldest wait",
+      "giteaPending": "Gitea Effect pending",
+      "giteaDead": "Gitea Effect dead letters",
+      "provisionPending": "Provision pending",
+      "provisionFailed": "Provision failures in 24 hours",
+      "publicationActive": "Active publications",
+      "publicationFailed": "Publication failures in 24 hours",
+      "publicationDrift": "Publication drift",
+      "queueP95": "Queue P95",
+      "renderP95": "Render P95",
+      "activationP95": "Activation P95",
+      "openFindings": "Open findings",
+      "manualFindings": "Manual action required",
+      "reconciliationRequired": "Reconciliation required",
+      "branchPolicyDrift": "Branch policy drift",
+      "repairRatio": "Repair ratio"
     },
     "duration": {
-      "seconds_one": "{{displayCount}} second", "seconds_other": "{{displayCount}} seconds",
-      "minutes_one": "{{displayCount}} minute", "minutes_other": "{{displayCount}} minutes",
-      "hours_one": "{{displayCount}} hour", "hours_other": "{{displayCount}} hours"
+      "seconds_one": "{{displayCount}} second",
+      "seconds_other": "{{displayCount}} seconds",
+      "minutes_one": "{{displayCount}} minute",
+      "minutes_other": "{{displayCount}} minutes",
+      "hours_one": "{{displayCount}} hour",
+      "hours_other": "{{displayCount}} hours"
     },
-    "empty": { "events": "No events", "findings": "No consistency findings", "records": "No operations records" },
+    "empty": {
+      "events": "No events",
+      "findings": "No consistency findings",
+      "records": "No operations records"
+    },
     "errors": {
-      "status": "System status failed to load", "records": "Operations records failed to load",
-      "events": "System events failed to load", "findings": "Consistency status failed to load",
-      "replay": "Event replay failed", "reconciliation": "Reconciliation failed"
+      "status": "System status failed to load",
+      "records": "Operations records failed to load",
+      "events": "System events failed to load",
+      "findings": "Consistency status failed to load",
+      "replay": "Event replay failed",
+      "reconciliation": "Reconciliation failed"
     },
-    "actions": { "replay": "Replay", "reconcile": "Reconcile", "confirmReplay": "Confirm replay", "runCheck": "Run check", "applyRepair": "Apply repair" },
-    "replay": { "title": "Replay quarantined event", "event": "Event", "type": "Type", "state": "State", "error": "Error" },
-    "reconciliation": { "title": "Project reconciliation", "project": "Project", "differences": "Differences", "recoverable": "Recoverable", "manual": "Manual action", "impactHash": "Impact hash" },
+    "actions": {
+      "replay": "Replay",
+      "reconcile": "Reconcile",
+      "confirmReplay": "Confirm replay",
+      "runCheck": "Run check",
+      "applyRepair": "Apply repair"
+    },
+    "replay": {
+      "title": "Replay quarantined event",
+      "event": "Event",
+      "type": "Type",
+      "state": "State",
+      "error": "Error"
+    },
+    "reconciliation": {
+      "title": "Project reconciliation",
+      "project": "Project",
+      "differences": "Differences",
+      "recoverable": "Recoverable",
+      "manual": "Manual action",
+      "impactHash": "Impact hash"
+    },
     "reason": "Operation reason"
   }
 }

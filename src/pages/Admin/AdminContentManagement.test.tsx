@@ -5,7 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { ToastProvider } from 'components/ui';
 import { ensureLocaleNamespaces, i18n } from '@/i18n';
-import type { AdminQuestionInfo } from '@/services/contracts';
+import type { AdminQuestionInfo, FeedItem } from '@/services/contracts';
 
 const adminApi = vi.hoisted(() => ({
   adminDeleteContent: vi.fn(),
@@ -43,6 +43,24 @@ const question: AdminQuestionInfo = {
   edit_time: 0,
   status: 'available',
   tags: ['projective morphism'],
+};
+
+const blog: FeedItem = {
+  id: 'blog-7',
+  type: 'blog',
+  title: '待删除文章',
+  author: 'Rin Author',
+  authorId: 'author-1',
+  createdAt: '2026-09-20T08:00:00Z',
+  updatedAt: '2026-09-20T08:00:00Z',
+  meta: '文章',
+  excerpt: '待删除正文摘要',
+  tags: ['analysis'],
+  interactions: '12 阅读',
+  heat: '',
+  publishStatus: 'published',
+  repositoryStatus: 'published',
+  sourceVisibility: 'open',
 };
 
 async function switchLanguage(language: 'en' | 'zh-CN') {
@@ -90,5 +108,31 @@ describe('AdminContentManagement localization', () => {
     expect(screen.getByRole('heading', { name: '作者保留题目标题' })).toBeTruthy();
     expect(screen.getByText((_, element) => element?.tagName === 'STRONG' && element.textContent?.includes('1,234 votes') === true)).toBeTruthy();
     expect(screen.getByText('projective morphism')).toBeTruthy();
+  });
+
+  it('deletes managed content after confirmation without opening step-up verification', async () => {
+    const user = userEvent.setup();
+    adminApi.loadAdminContentPage.mockResolvedValue({ count: 1, items: [blog] });
+    adminApi.adminDeleteContent.mockResolvedValue({
+      id: blog.id,
+      status: 'deleted',
+      repositoryStatus: 'deleted',
+      sourceVisibility: 'private',
+      item: blog,
+    });
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <AdminContentManagement isAdmin section="blogs" onSectionChange={vi.fn()} />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: '待删除文章' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: '删除' }));
+    await user.click(await screen.findByRole('button', { name: '确认删除' }));
+
+    expect(adminApi.adminDeleteContent).toHaveBeenCalledWith({ id: 'blog-7', type: 'blog' });
+    expect(screen.queryByRole('heading', { name: '待删除文章' })).toBeNull();
   });
 });

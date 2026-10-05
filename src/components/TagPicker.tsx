@@ -140,7 +140,6 @@ export default function TagPicker({
   const exactSuggestion = suggestions.find((item) =>
     [item.slug, item.name, item.displayName].some((candidate) => sameTag(candidate, query)),
   );
-  const hasExactSuggestion = Boolean(exactSuggestion);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -273,7 +272,7 @@ export default function TagPicker({
               ) : null}
             </AnimateButton>
           ))}
-          {!loading && normalizedQuery && !hasExactSuggestion && createMode === 'add' ? (
+          {!loading && normalizedQuery && createMode === 'add' ? (
             <AnimateButton unstyled
               type="button"
               disabled={disabled || !canAddMore}
@@ -282,7 +281,7 @@ export default function TagPicker({
               <strong>{t('tagPicker.newTag', { tag: query.trim() })}</strong>
             </AnimateButton>
           ) : null}
-          {!loading && normalizedQuery && !hasExactSuggestion && createMode === 'link' && createLink ? (
+          {!loading && normalizedQuery && createMode === 'link' && createLink ? (
             <Link to={createLink(query.trim())} target="_blank" rel="noreferrer">
               {t('tagPicker.createTag', { tag: query.trim() })}
             </Link>

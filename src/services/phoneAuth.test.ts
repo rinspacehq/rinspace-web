@@ -1,176 +1,365 @@
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import {
-  getAuthAccessToken,
-  getCurrentAuthUser,
-  getStoredSession,
-  replaceStoredSession,
-} from './phoneAuth';
-
-const sessionKey = 'rinspace-auth-session';
-
-function encodeBase64Url(value: string) {
-  return window.btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function tokenWithExp(exp: number) {
-  return [
-    encodeBase64Url(JSON.stringify({ alg: 'none' })),
-    encodeBase64Url(JSON.stringify({ exp })),
-    'signature',
-  ].join('.');
-}
-
-function saveSession(refreshToken: string, accessToken = tokenWithExp(1)) {
-  window.localStorage.setItem(
-    sessionKey,
-    JSON.stringify({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      expires_in: 3600,
-      sub: 'user-1',
-      issued_at: Date.now() - 7200_000,
+// The gateway is always intercepted by each test's fetch mock. Never require
+// private deployment env files or a real SMS provider to run this suite.
+vi.mock("@/app/config/env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/app/config/env")>();
+  return {
+    ...actual,
+    publicEnv: Object.freeze({
+      ...actual.publicEnv,
+      cloudbaseEnvId: "synthetic-auth-fixture",
+      cloudbaseAccessKey: "",
+      localRealClient: false,
     }),
-  );
+  };
+});
+
+const hintKey = "rinspace-auth-hint";
+const legacyKey = "rinspace-auth-session";
+const pendingLogoutKey = "rinspace-logout-pending";
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 beforeEach(() => {
+  vi.resetModules();
   window.localStorage.clear();
   window.sessionStorage.clear();
+  vi.stubGlobal("BroadcastChannel", undefined);
+  Object.defineProperty(window.navigator, "locks", {
+    configurable: true,
+    value: undefined,
+  });
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
-test('getAuthAccessToken shares one refresh request across concurrent callers', async () => {
-  const nextAccessToken = tokenWithExp(Math.floor(Date.now() / 1000) + 3600);
-  let refreshCount = 0;
-  saveSession('old-refresh');
-
-  globalThis.fetch = async () => {
-    refreshCount += 1;
-    return new Response(
-      JSON.stringify({
-        access_token: nextAccessToken,
-        refresh_token: 'new-refresh',
-        expires_in: 3600,
-        sub: 'user-1',
-      }),
-      { status: 200 },
-    );
-  };
-
-  const tokens = await Promise.all([
-    getAuthAccessToken(),
-    getAuthAccessToken(),
-    getAuthAccessToken(),
-  ]);
-
-  expect(refreshCount).toBe(1);
-  expect(tokens).toEqual([nextAccessToken, nextAccessToken, nextAccessToken]);
+test("legacy proof remains available until a managed session is established", async () => {
+  window.localStorage.setItem(legacyKey, JSON.stringify({ access_token: "legacy-proof" }));
+  await import("./phoneAuth");
+  expect(window.localStorage.getItem(legacyKey)).toContain("legacy-proof");
 });
 
-test('getAuthAccessToken keeps a newer stored session when a stale refresh token fails', async () => {
-  const nextAccessToken = tokenWithExp(Math.floor(Date.now() / 1000) + 3600);
-  let releaseRefresh: () => void = () => {};
-  saveSession('old-refresh');
+test("a valid legacy proof is exchanged once and removed only after managed recovery", async () => {
+  window.localStorage.setItem(legacyKey, JSON.stringify({ access_token: "legacy-proof" }));
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(jsonResponse({ status: "anonymous", csrfToken: "preauth-csrf" }))
+    .mockResolvedValueOnce(jsonResponse({ status: "authenticated", currentSession: { sid: "sid-new" } }))
+    .mockResolvedValueOnce(jsonResponse({ status: "authenticated", csrfToken: "managed-csrf", user: { id: "user-1" } }));
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
 
-  globalThis.fetch = async () => {
-    await new Promise<void>((resolve) => {
-      releaseRefresh = resolve;
+  await expect(auth.getCurrentAuthUser()).resolves.toMatchObject({ id: "user-1" });
+  expect(window.localStorage.getItem(legacyKey)).toBeNull();
+  expect(String(fetcher.mock.calls[1]?.[0])).toContain("/legacy/exchange");
+  expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body))).toMatchObject({ legacyToken: "legacy-proof" });
+});
+
+test("a rotated session adopts the CSRF token minted by the refresh response", async () => {
+  let sessionReads = 0;
+  const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path.endsWith("/session/refresh"))
+      return jsonResponse({
+        status: "authenticated",
+        generation: 2,
+        csrfToken: "csrf-rotated",
+      });
+    sessionReads += 1;
+    if (sessionReads === 1)
+      return jsonResponse({
+        status: "restoring",
+        canRefresh: true,
+        csrfToken: "csrf-stale",
+      });
+    // Deliberately omits csrfToken: the token adopted from the refresh response
+    // has to survive an envelope that does not repeat it.
+    return jsonResponse({
+      status: "authenticated",
+      user: { id: "user-1", username: "rin" },
     });
-    return new Response(
-      JSON.stringify({
-        code: 'INVALID_REFRESH_TOKEN',
-        message: 'invalid refresh token',
-      }),
-      { status: 401 },
-    );
-  };
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
 
-  const tokenRequest = getAuthAccessToken();
-  await Promise.resolve();
-  saveSession('new-refresh', nextAccessToken);
-  releaseRefresh();
-
-  const token = await tokenRequest;
-  expect(token).toBe(nextAccessToken);
-  expect(JSON.parse(window.localStorage.getItem(sessionKey) || '{}').refresh_token).toBe('new-refresh');
+  await expect(auth.forceRefreshAuthSession()).resolves.toMatchObject({ sub: "user-1" });
+  expect(auth.authHeaders()["X-Rinspace-CSRF"]).toBe("csrf-rotated");
 });
 
-test('getCurrentAuthUser times out a stalled request without clearing the session', async () => {
-  vi.useFakeTimers();
-  saveSession(
-    'current-refresh',
-    tokenWithExp(Math.floor(Date.now() / 1000) + 3600),
-  );
-  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(
-    (_input, init) =>
-      new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener(
-          'abort',
-          () => reject(new DOMException('Aborted', 'AbortError')),
-          { once: true },
-        );
-      }),
-  );
-
-  const stalledRequest = getCurrentAuthUser();
-  const stalledExpectation = expect(stalledRequest).rejects.toThrow(
-    'CloudBase Auth 请求超时。',
-  );
-  await vi.advanceTimersByTimeAsync(8_000);
-
-  await stalledExpectation;
-  expect(getStoredSession()?.refresh_token).toBe('current-refresh');
-
-  fetchMock.mockResolvedValueOnce(
-    new Response(JSON.stringify({ sub: 'user-1', username: 'reader' }), {
-      status: 200,
+test("five callers share one cookie refresh and no browser credential is persisted", async () => {
+  window.localStorage.setItem(
+    legacyKey,
+    JSON.stringify({
+      access_token: "old-access",
+      refresh_token: "old-refresh",
     }),
   );
-  await expect(getCurrentAuthUser()).resolves.toMatchObject({
-    id: 'user-1',
-    username: 'reader',
+  let sessionReads = 0;
+  let refreshes = 0;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith("/session/refresh")) {
+        refreshes += 1;
+        return jsonResponse({ status: "authenticated", generation: 2 });
+      }
+      sessionReads += 1;
+      if (sessionReads < 3) {
+        return jsonResponse({
+          status: "restoring",
+          canRefresh: true,
+          csrfToken: "csrf-refresh",
+        });
+      }
+      return jsonResponse({
+        status: "authenticated",
+        csrfToken: "csrf-current",
+        user: {
+          id: "user-1",
+          role: "author",
+          sessionEpoch: 4,
+          identityVersion: 8,
+        },
+      });
+    }),
+  );
+
+  const auth = await import("./phoneAuth");
+  const tokens = await Promise.all(
+    Array.from({ length: 5 }, () => auth.getAuthAccessToken()),
+  );
+
+  expect(tokens).toEqual(["", "", "", "", ""]);
+  expect(refreshes).toBe(1);
+  expect(window.localStorage.getItem(legacyKey)).toBeNull();
+  expect(window.localStorage.getItem(hintKey)).toContain('"sub":"user-1"');
+  expect(window.localStorage.getItem(hintKey)).not.toContain("access");
+  expect(window.localStorage.getItem(hintKey)).not.toContain("refresh");
+  expect(auth.getStoredSession()).toMatchObject({
+    sub: "user-1",
+    managed: true,
   });
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(auth.authHeaders()).toMatchObject({
+    "X-Rinspace-CSRF": "csrf-current",
+  });
+  expect(auth.authHeaders()).not.toHaveProperty("Authorization");
 });
 
-test('session persistence falls back to sessionStorage when localStorage is full', () => {
-  const originalSetItem = Storage.prototype.setItem;
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function setItem(this: Storage, key, value) {
-    if (this === window.localStorage && key === sessionKey) {
-      throw new DOMException('quota exceeded', 'QuotaExceededError');
+test("refresh reuses the browser-wide request id and clears it after confirmation", async () => {
+  window.localStorage.setItem("rinspace-refresh-request-id", "refresh-shared-id");
+  let reads = 0;
+  const fetcher = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+    if (String(input).endsWith("/session/refresh")) return jsonResponse({ status: "authenticated" });
+    reads += 1;
+    return reads < 3
+      ? jsonResponse({ status: "restoring", canRefresh: true, csrfToken: "csrf-refresh" })
+      : jsonResponse({ status: "authenticated", csrfToken: "csrf-current", user: { id: "user-1" } });
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
+
+  await expect(auth.getCurrentAuthUser()).resolves.toMatchObject({ id: "user-1" });
+  const refresh = fetcher.mock.calls.find(([input]) => String(input).endsWith("/session/refresh"));
+  expect(JSON.parse(String(refresh?.[1]?.body))).toMatchObject({ requestId: "refresh-shared-id" });
+  expect(window.localStorage.getItem("rinspace-refresh-request-id")).toBeNull();
+});
+
+test("HTTP 401 clears the local hint and enters the revoked state", async () => {
+  window.localStorage.setItem(hintKey, JSON.stringify({ sub: "user-1" }));
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue(jsonResponse({ code: "session.revoked" }, 401));
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
+
+  await expect(auth.getCurrentAuthUser()).resolves.toBeNull();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(auth.getStoredSession()).toBeNull();
+  expect(auth.getSessionPresentation()).toBe("revoked");
+});
+
+test("a transient session 401 is confirmed for a cookie-only recoverable session", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse({ status: "anonymous" }, 401))
+    .mockResolvedValueOnce(
+      jsonResponse({
+        status: "authenticated",
+        csrfToken: "csrf-current",
+        user: { id: "user-1", username: "rin" },
+      }),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
+
+  await expect(auth.getCurrentAuthUser()).resolves.toMatchObject({
+    id: "user-1",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(auth.getStoredSession()?.sub).toBe("user-1");
+  expect(auth.getSessionPresentation()).toBe("authenticated");
+});
+
+test("a stale anonymous read does not discard a newly rotated browser session", async () => {
+  window.localStorage.setItem(hintKey, JSON.stringify({ sub: "user-1" }));
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(jsonResponse({ status: "anonymous", csrfToken: "preauth-csrf" }))
+    .mockResolvedValueOnce(jsonResponse({ status: "authenticated", csrfToken: "session-csrf", user: { id: "user-1" } }));
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
+
+  await expect(auth.getCurrentAuthUser()).resolves.toMatchObject({ id: "user-1" });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(auth.getStoredSession()?.sub).toBe("user-1");
+  expect(auth.getSessionPresentation()).toBe("authenticated");
+});
+
+test("two unconfirmed session 401 responses preserve the session hint for retry", async () => {
+  window.localStorage.setItem(hintKey, JSON.stringify({ sub: "user-1" }));
+  const fetcher = vi
+    .fn()
+    .mockImplementation(() =>
+      Promise.resolve(jsonResponse({ status: "anonymous" }, 401)),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
+
+  await expect(auth.getCurrentAuthUser()).resolves.toBeNull();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(auth.getStoredSession()?.sub).toBe("user-1");
+  expect(auth.getSessionPresentation()).toBe("temporarily_unavailable");
+});
+
+test.each([403, 503])(
+  "HTTP %s preserves the non-secret user hint and reports a retryable state",
+  async (status) => {
+    window.localStorage.setItem(
+      hintKey,
+      JSON.stringify({ sub: "user-1", sessionEpoch: 2 }),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(jsonResponse({ code: `http.${status}` }, status)),
+    );
+    const auth = await import("./phoneAuth");
+
+    await expect(auth.getCurrentAuthUser()).rejects.toThrow(
+      "Rinspace Identity 请求失败",
+    );
+    expect(auth.getStoredSession()?.sub).toBe("user-1");
+    expect(auth.getSessionPresentation()).toBe("temporarily_unavailable");
+  },
+);
+
+test("a failed logout stays pending and is completed before session recovery", async () => {
+  window.localStorage.setItem(hintKey, JSON.stringify({ sub: "user-1" }));
+  let failLogout = true;
+  const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path.endsWith("/session/logout")) {
+      if (failLogout) throw new TypeError("offline");
+      return new Response(null, { status: 204 });
     }
-    originalSetItem.call(this, key, value);
+    return jsonResponse({
+      status: "authenticated",
+      csrfToken: "csrf-logout",
+      user: { id: "user-1", sessionEpoch: 1 },
+    });
   });
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
 
-  replaceStoredSession({
-    access_token: 'access-token',
-    refresh_token: 'refresh-token',
-    sub: 'user-1',
-  });
+  await expect(auth.logoutCurrentSession()).rejects.toThrow("offline");
+  expect(auth.getStoredSession()).toBeNull();
+  expect(window.localStorage.getItem(pendingLogoutKey)).toBeTruthy();
 
-  expect(window.localStorage.getItem(sessionKey)).toBeNull();
-  expect(getStoredSession()).toMatchObject({
-    access_token: 'access-token',
-    refresh_token: 'refresh-token',
-    sub: 'user-1',
-  });
-  expect(window.sessionStorage.length).toBe(1);
+  failLogout = false;
+  await expect(auth.getCurrentAuthUser()).resolves.toBeNull();
+  expect(window.localStorage.getItem(pendingLogoutKey)).toBeNull();
+  expect(
+    fetcher.mock.calls.filter(([input]) =>
+      String(input).endsWith("/session/logout"),
+    ),
+  ).toHaveLength(2);
 });
 
-test('session persistence reports a recoverable capacity error when both stores are full', () => {
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-    throw new DOMException('quota exceeded', 'QuotaExceededError');
-  });
+test("OTP requests use the configured CloudBase service without creating a CloudBase browser session", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(
+      jsonResponse({ status: "anonymous", csrfToken: "preauth-csrf" }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({ verification_id: "verification-1", is_user: true }),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
 
-  expect(() => replaceStoredSession({
-    access_token: 'access-token',
-    refresh_token: 'refresh-token',
-    sub: 'user-1',
-  })).toThrow('浏览器本地存储空间不足，无法保存登录会话。请清理本站缓存后重试。');
-  expect(getStoredSession()).toBeNull();
+  const challenge = await auth.sendPhoneOtp("13700000000");
+  expect(challenge).toMatchObject({
+    verificationId: "verification-1",
+    phoneNumber: "+8613700000000",
+  });
+  const [, init] = fetcher.mock.calls[1] as [string, RequestInit];
+  expect(JSON.parse(String(init.body))).toMatchObject({
+    phone_number: "+86 13700000000",
+    target: "ANY",
+  });
+  expect(String(fetcher.mock.calls[1]?.[0])).toContain("/auth/v1/verification");
+  expect(String(fetcher.mock.calls[1]?.[0])).toBe(
+    "https://synthetic-auth-fixture.api.tcloudbasegateway.com/auth/v1/verification?client_id=synthetic-auth-fixture",
+  );
+  expect(new Headers(init.headers).get("x-device-id")).toBeTruthy();
+  expect(window.localStorage.getItem(legacyKey)).toBeNull();
+});
+
+test("verified CloudBase UID creates an independent Rinspace browser session", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(
+      jsonResponse({ status: "anonymous", csrfToken: "preauth-csrf" }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({ verification_id: "verification-1", is_user: true }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({ verification_token: "one-time-proof" }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({
+        status: "authenticated",
+        currentSession: { sid: "sid-new" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({
+        status: "authenticated",
+        csrfToken: "session-csrf",
+        user: { id: "user-1" },
+      }),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  const auth = await import("./phoneAuth");
+  const challenge = await auth.sendPhoneOtp("13700000000");
+  await expect(auth.completePhoneOtp(challenge, "123456")).resolves.toMatchObject({
+    id: "user-1",
+  });
+  expect(String(fetcher.mock.calls[2]?.[0])).toContain("/verification/verify");
+  expect(String(fetcher.mock.calls[3]?.[0])).toContain("/cloudbase/exchange");
+  expect(JSON.parse(String(fetcher.mock.calls[3]?.[1]?.body))).toMatchObject({
+    verificationToken: "one-time-proof", isUser: true,
+  });
+  expect(window.localStorage.getItem(legacyKey)).toBeNull();
 });

@@ -1,8 +1,5 @@
-import { AnimateTabs, AnimateTabsList, AnimateTabsTrigger, Icon, useNoticeToasts } from 'components/ui';
+import { AnimateGithubStars, AnimateTabs, AnimateTabsList, AnimateTabsTrigger, Icon, UserPresenceAvatar, type UserPresenceAvatarItem, useNoticeToasts } from 'components/ui';
 import { publicEnv } from '@/app/config/env';
-import { useOptionalBootstrap } from '@/app/bootstrap/context';
-import { canonicalSiteUrl } from '@/app/config/siteMetadata';
-import { useAuthSnapshot } from '@/platform/auth/context';
 import type { TFunction } from 'i18next';
 import {
   type PointerEvent,
@@ -15,20 +12,20 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Alert, Container } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Alert, Container, Form } from '@/components/ui/compat';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { hrefInWorld, type WorldState } from '@rinspace/world-shell';
 
 import AvatarImage from '@/components/AvatarImage';
 import AvatarName from '@/components/AvatarName';
 import CultivationBadge from '@/components/CultivationBadge';
+import DocumentMetadataController from '@/components/DocumentMetadataController';
 import LoadingState from '@/components/LoadingState';
 import { MathInline } from '@/components/MathText';
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
 import UserIdentity from '@/components/UserIdentity';
-import { getCurrentAuthUser, type CloudUser } from '@/services/phoneAuth';
+import { getCurrentAuthUser, type RinspaceUser } from '@/services/phoneAuth';
 import { messageFromError } from '@/services/errors';
 import { formatDate, formatList, formatNumber } from '@/i18n/format';
 import {
@@ -40,15 +37,20 @@ import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import type { LocaleId } from '@/i18n/types';
 import { emptyHomeFeed, fallbackHomeFeed, loadHomeFeed, loadHomeSidebar, loadKnowledgeGraph, queryReactions, readCachedHomeFeed, updateReaction } from '@/services/domains/activity';
 import { loadBookFeed } from '@/services/domains/book';
-import { recordContentShare, switchCollection } from '@/services/domains/discussion';
+import { followTarget, likePost, recordContentShare, switchCollection } from '@/services/domains/discussion';
 import { loadPersonalCollectionPage, loadPersonalUserInfo } from '@/services/domains/identity';
 import { loadFollowingTags, loadTagActivity } from '@/services/domains/tag';
+import { loadRinspaceOpenSourceStars } from '@/services/githubStars';
+import { loadSponsorSupporters, type SponsorSupporter } from '@/services/sponsor';
 import type { CompactItem, CollectionFolder, ContentType, FeedItem, FollowingTag, HomeFeed, HomeFeedMode, HomeSidebar, KnowledgeGraphEdge, KnowledgeGraphNode, KnowledgeGraphResponse, PublishContentType, ReactionItem } from '@/services/contracts';
 import {
   contentPath,
   profilePath as routeProfilePath,
   tagReadOrLegacyPath,
 } from '@/utils/routes';
+import { contentTypeMetaChar } from '@/utils/contentTypeMeta';
+import { requestAuthDialog } from '@/utils/authDialog';
+import { subscribeToMediaQuery } from '@/utils/mediaQuery';
 import { useRinPageContext } from '@/utils/rinPageContext';
 import {
   BookRatingDialog,
@@ -79,7 +81,7 @@ type HomeTagLink = {
 };
 
 type FeedMode = HomeFeedMode;
-type CommunityView = 'reading' | 'stream' | 'tags' | 'books' | 'graph';
+type CommunityView = 'stream' | 'tags' | 'books' | 'graph';
 type BookMode = 'hot' | 'latest' | 'following' | 'shelf';
 type SocialTargetType = Exclude<ContentType, 'task' | 'tag'>;
 type SocialApiTargetType = Exclude<PublishContentType, 'announcement' | 'book'> | 'post';
@@ -88,7 +90,7 @@ type DynamicReactionState = {
   isActive: boolean;
 };
 
-const feedModes: readonly FeedMode[] = ['hot', 'latest', 'following', 'unanswered'];
+const feedModes: readonly FeedMode[] = ['hot', 'latest', 'following'];
 
 function normalizeFeedMode(value: string | null) {
   return feedModes.find((mode) => mode === value) ?? 'hot';
@@ -100,23 +102,13 @@ function normalizeBookMode(value: string | null) {
   return bookModes.find((mode) => mode === value) ?? 'hot';
 }
 
-const communityViews: readonly CommunityView[] = ['reading', 'books', 'tags', 'graph', 'stream'];
+const communityViews: readonly CommunityView[] = ['stream', 'tags', 'books', 'graph'];
 
 function normalizeCommunityView(value: string | null) {
   const matched = communityViews.find((view) => view === value);
   if (matched) return matched;
-  return 'reading';
+  return 'stream';
 }
-
-const typeMetaChar: Record<string, string> = {
-  blog: 'b',
-  question: 'q',
-  discussion: 'd',
-  announcement: 'a',
-  dynamic: 's',
-  book: 'k',
-  tag: 't',
-};
 
 const cardNavigationInteractiveSelector = [
   'a',
@@ -137,28 +129,31 @@ function shouldIgnoreCardNavigation(target: EventTarget | null) {
   return !(target instanceof Element) || Boolean(target.closest(cardNavigationInteractiveSelector));
 }
 
-function ResilientContentImage({ src, label }: { src: string; label: string }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [src]);
-  if (failed) {
-    return (
-      <span
-        className="content-media-fallback"
-        data-content-media-state="broken"
-        role="img"
-        aria-label={label}
-      >
-        <Icon name="image" />
-        <span>{label}</span>
-      </span>
-    );
-  }
-  return <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />;
-}
-
 function shortInitialsFor(name: string) {
   const letters = Array.from(name.trim().replace(/\s+/g, ''));
   return letters.slice(0, 1).join('').toUpperCase() || 'R';
+}
+
+function sponsorIdentityKey(supporter: SponsorSupporter) {
+  return supporter.userId.trim() || supporter.uid.trim();
+}
+
+function uniqueSponsorAvatars(supporters: SponsorSupporter[], limit = 6): UserPresenceAvatarItem[] {
+  const seen = new Set<string>();
+  const avatars: UserPresenceAvatarItem[] = [];
+  for (const supporter of supporters) {
+    const id = sponsorIdentityKey(supporter);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    avatars.push({
+      id,
+      name: supporter.nickname.trim() || id,
+      imageUrl: supporter.avatarUrl,
+      profilePath: routeProfilePath(id),
+    });
+    if (avatars.length >= limit) break;
+  }
+  return avatars;
 }
 
 function orderedStream(feed: HomeFeed) {
@@ -190,8 +185,7 @@ function useMediaQuery(query: string) {
     const media = window.matchMedia(query);
     const updateMatches = () => setMatches(media.matches);
     updateMatches();
-    media.addEventListener('change', updateMatches);
-    return () => media.removeEventListener('change', updateMatches);
+    return subscribeToMediaQuery(media, updateMatches);
   }, [query]);
 
   return matches;
@@ -389,7 +383,6 @@ function bookAuthorNodes(
   t: TFunction<'discovery'>,
   imageUrl?: string,
   rank?: number,
-  currentWorld: WorldState = 'outer',
 ) {
   const identity = item.authorId || item.authorUid;
   if (identity) {
@@ -399,14 +392,13 @@ function bookAuthorNodes(
         userId={identity}
         imageUrl={imageUrl}
         rank={rank}
-        href={hrefInWorld(routeProfilePath(identity), currentWorld)}
       />
     );
   }
   return <AvatarName name={bookAuthorText(item, t)} imageUrl={imageUrl} rank={rank} />;
 }
 
-function authMetadataText(user: CloudUser, keys: string[]) {
+function authMetadataText(user: RinspaceUser, keys: string[]) {
   for (const key of keys) {
     const value = user.user_metadata?.[key];
     if (typeof value === 'string' && value.trim()) return value.trim();
@@ -414,7 +406,7 @@ function authMetadataText(user: CloudUser, keys: string[]) {
   return '';
 }
 
-function authMetadataNumber(user: CloudUser, keys: string[]) {
+function authMetadataNumber(user: RinspaceUser, keys: string[]) {
   for (const key of keys) {
     const value = user.user_metadata?.[key];
     if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -427,7 +419,7 @@ function authMetadataNumber(user: CloudUser, keys: string[]) {
 }
 
 function homeCommentViewer(
-  user: CloudUser | null,
+  user: RinspaceUser | null,
   t: TFunction<'discovery'>,
 ): HomeCommentViewer | undefined {
   if (!user) return undefined;
@@ -860,11 +852,9 @@ function KnowledgeGraphPanel({
 function KnowledgeGraphInspector({
   graph,
   selectedNode,
-  currentWorld,
 }: {
   graph: KnowledgeGraphResponse | null;
   selectedNode: KnowledgeGraphNode | null;
-  currentWorld: WorldState;
 }) {
   const { t } = useFeatureTranslation('discovery');
   const locale = useResolvedLocale();
@@ -913,7 +903,7 @@ function KnowledgeGraphInspector({
       </div>
       <span>{graphContentLabel(selected, t)}</span>
       <h2>
-        <Link to={hrefInWorld(selected.url, currentWorld)}>
+        <Link to={selected.url}>
           <MathInline text={selected.label} />
         </Link>
       </h2>
@@ -931,7 +921,7 @@ function KnowledgeGraphInspector({
           {selected.tags.slice(0, 5).map((tag) => {
             const path = tagNodePathBySlug.get(tag) || tagReadOrLegacyPath(tag, tag);
             return (
-              <Link to={hrefInWorld(path, currentWorld)} key={tag}>
+              <Link to={path} key={tag}>
                 {tag}
               </Link>
             );
@@ -945,7 +935,7 @@ function KnowledgeGraphInspector({
             <Link
               className={`knowledge-related-item knowledge-related-item-${graphNodeTone(node)}`}
               key={node.id}
-              to={hrefInWorld(node.url, currentWorld)}
+              to={node.url}
             >
               <span>{graphContentLabel(node, t)}</span>
               <strong>
@@ -1001,7 +991,7 @@ function TypeMetaCategory({
     <span className={`meta-category content-type-meta content-type-meta-${displayType}`} title={label}>
       <Link to={itemTypePath(displayType)}>
         <span className="char" aria-hidden="true">
-          {typeMetaChar[displayType] || label.slice(0, 1).toLowerCase()}
+          {contentTypeMetaChar(displayType, label.slice(0, 1).toLowerCase())}
         </span>
         <span className="label">{label}</span>
       </Link>
@@ -1091,35 +1081,32 @@ function isWindowNearBottom(margin = homeFeedNearBottomMargin) {
 
 function HomePage() {
   const { t } = useFeatureTranslation('discovery');
-  const bootstrap = useOptionalBootstrap();
-  const site = bootstrap?.config.site;
+  const { t: tNavigation } = useTranslation('navigation');
   const locale = useResolvedLocale();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentWorld: WorldState = searchParams.get('world') === 'inner' ? 'inner' : 'outer';
-  const homeSeoTitle = site?.name ?? t('home.seo.title');
-  const homeSeoDescription = site?.description ?? t('home.seo.description');
-  const homeSeoSiteName = site?.name ?? t('home.seo.title');
-  const homeCanonical = bootstrap ? canonicalSiteUrl(bootstrap.config, '/') : '/';
+  const homeSeoTitle = t('home.seo.title');
+  const homeSeoDescription = t('home.seo.description');
+  const homeSeoSiteName = tNavigation('brandName');
   const homeSeoJsonLd = useMemo(() => ({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: homeSeoSiteName,
-    url: homeCanonical,
+    url: 'https://rinspace.com/',
     description: homeSeoDescription,
     inLanguage: locale,
-    ...(site?.legalEntity ? { publisher: {
+    publisher: {
       '@type': 'Organization',
-      name: site.legalEntity,
-      url: homeCanonical,
-      ...(site.contactEmail ? { email: site.contactEmail } : {}),
-    } } : {}),
+      name: t('home.seo.publisher'),
+      url: 'https://rinspace.com/',
+      email: 'lunifans@outlook.com',
+    },
     potentialAction: {
       '@type': 'SearchAction',
-      target: `${homeCanonical}search?q={search_term_string}`,
+      target: 'https://rinspace.com/search?q={search_term_string}',
       'query-input': 'required name=search_term_string',
     },
-  }), [homeCanonical, homeSeoDescription, homeSeoSiteName, locale, site]);
+  }), [homeSeoDescription, homeSeoSiteName, locale, t]);
   const [initialFeedMode] = useState<FeedMode>(() =>
     normalizeFeedMode(searchParams.get('feed')),
   );
@@ -1132,20 +1119,7 @@ function HomePage() {
   const [initialHomeFeedSnapshot] = useState(() =>
     readCachedHomeFeed(initialFeedMode),
   );
-  const authSnapshot = useAuthSnapshot();
-  const [legacyUser, setUser] = useState<CloudUser | null>(null);
-  const runtimeUser = useMemo<CloudUser | null>(() => {
-    if (authSnapshot.status !== 'authenticated' || !authSnapshot.user) return null;
-    return {
-      id: authSnapshot.user.id,
-      username: authSnapshot.user.username,
-      user_metadata: {
-        display_name: authSnapshot.user.displayName,
-        avatar: authSnapshot.user.avatarUrl,
-      },
-    };
-  }, [authSnapshot.status, authSnapshot.user]);
-  const user = bootstrap?.config.mode === 'demo' ? runtimeUser : runtimeUser ?? legacyUser;
+  const [user, setUser] = useState<RinspaceUser | null>(null);
   const [homeFeed, setHomeFeed] = useState<HomeFeed>(
     () => initialHomeFeedSnapshot?.data ?? emptyHomeFeed,
   );
@@ -1171,6 +1145,8 @@ function HomePage() {
   const [homeSidebar, setHomeSidebar] = useState<HomeSidebar>(emptyHomeSidebar);
   const [homeSidebarLoading, setHomeSidebarLoading] = useState(true);
   const [homeSidebarError, setHomeSidebarError] = useState('');
+  const [sponsorSupporters, setSponsorSupporters] = useState<SponsorSupporter[]>([]);
+  const [openSourceStars, setOpenSourceStars] = useState<number | null>(null);
   const [commentTarget, setCommentTarget] = useState<FeedItem | null>(null);
   const [bookReviewTarget, setBookReviewTarget] = useState<FeedItem | null>(null);
   const overlayTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -1197,6 +1173,7 @@ function HomePage() {
     Record<string, DynamicReactionState>
   >({});
   const [reactionBusyKey, setReactionBusyKey] = useState('');
+  const [tagActionBusyKey, setTagActionBusyKey] = useState('');
   const [knowledgeGraph, setKnowledgeGraph] = useState<KnowledgeGraphResponse | null>(null);
   const [knowledgeGraphLoading, setKnowledgeGraphLoading] = useState(false);
   const [knowledgeGraphError, setKnowledgeGraphError] = useState('');
@@ -1219,15 +1196,7 @@ function HomePage() {
       ),
     [tagActivityItems],
   );
-  const readingItems = useMemo(
-    () => visibleStream.filter((item) => item.type === 'blog' || item.type === 'book'),
-    [visibleStream],
-  );
-  const boardItems = communityView === 'tags'
-    ? visibleTagActivityItems
-    : communityView === 'reading'
-      ? readingItems
-      : visibleStream;
+  const boardItems = communityView === 'tags' ? visibleTagActivityItems : visibleStream;
   const streamUsesTwoColumns = useMediaQuery('(min-width: 721px)');
   const boardColumns = useMemo(
     () => distributeItemsAcrossColumns(boardItems, streamUsesTwoColumns ? 2 : 1),
@@ -1241,6 +1210,22 @@ function HomePage() {
     () => homeFeed.announcements,
     [homeFeed.announcements],
   );
+  const sponsorAvatars = useMemo(
+    () => uniqueSponsorAvatars(sponsorSupporters),
+    [sponsorSupporters],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadRinspaceOpenSourceStars(controller.signal)
+      .then(setOpenSourceStars)
+      .catch((starsError: unknown) => {
+        if (!(starsError instanceof DOMException && starsError.name === 'AbortError')) {
+          setOpenSourceStars(0);
+        }
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     homeFeedStreamRef.current = homeFeed.stream;
@@ -1261,7 +1246,7 @@ function HomePage() {
     setCommunityView(nextCommunityView);
     setSearchParams((current) => {
       const nextParams = new URLSearchParams(current);
-      if (nextCommunityView === 'reading') {
+      if (nextCommunityView === 'stream') {
         nextParams.delete('view');
       } else {
         nextParams.set('view', nextCommunityView);
@@ -1329,8 +1314,6 @@ function HomePage() {
           ? {
               title: communityView === 'tags'
                 ? t('home.assistant.tagActivityTitle')
-                : communityView === 'reading'
-                  ? t('home.assistant.readingTitle')
                 : t('home.assistant.streamTitle'),
               body: boardItems
                 .slice(0, 12)
@@ -1519,6 +1502,20 @@ function HomePage() {
   }, [user]);
 
   useEffect(() => {
+    let cancelled = false;
+    void loadSponsorSupporters(24)
+      .then(({ items }) => {
+        if (!cancelled) setSponsorSupporters(items);
+      })
+      .catch(() => {
+        if (!cancelled) setSponsorSupporters([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (communityView !== 'graph' || knowledgeGraph) {
       return undefined;
     }
@@ -1544,10 +1541,6 @@ function HomePage() {
 
   const refreshSession = useCallback(async () => {
     setError('');
-    if (bootstrap?.config.mode === 'demo') {
-      setUser(null);
-      return;
-    }
     try {
       const nextUser = await getCurrentAuthUser();
       setUser(nextUser);
@@ -1560,7 +1553,7 @@ function HomePage() {
     } catch (sessionError) {
       setError(messageFromError(sessionError, 'home.sessionLoadFailed'));
     }
-  }, [bootstrap?.config.mode]);
+  }, []);
 
   useEffect(() => {
     void refreshSession();
@@ -1674,7 +1667,9 @@ function HomePage() {
     );
     const feedStateEntries = reactionItems
       .map((item) => {
-        const state = heartReactionState(item.reaction_summary);
+        const state = item.likeSource === 'repository'
+          ? { count: item.likeCount ?? 0, isActive: Boolean(item.liked) }
+          : heartReactionState(item.reaction_summary);
         return state ? ([item.id, state] as const) : null;
       })
       .filter(
@@ -1698,7 +1693,7 @@ function HomePage() {
       });
     }
     const missing = reactionItems.filter(
-      (item) => !item.reaction_summary && !(item.id in dynamicReactionStates),
+      (item) => item.likeSource !== 'repository' && !item.reaction_summary && !(item.id in dynamicReactionStates),
     );
     if (!missing.length) return undefined;
 
@@ -1968,7 +1963,9 @@ function HomePage() {
       setError(t('home.errors.signInSave'));
       return;
     }
-    const isCollected = collectedItems.has(item.id);
+    const isCollected = item.likeSource === 'repository'
+      ? Boolean(item.collectionActive)
+      : collectedItems.has(item.id);
     if (!isCollected) {
       setStatus('');
       setError('');
@@ -1997,7 +1994,7 @@ function HomePage() {
       });
       const updateItem = (candidate: FeedItem) =>
         candidate.id === item.id && candidate.type === item.type
-          ? { ...candidate, favoriteCount: result.collectionCount }
+          ? { ...candidate, favoriteCount: result.collectionCount, collectionActive: result.bookmarked }
           : candidate;
       setBookItems((current) => current.map(updateItem));
       setHomeFeed((current) => ({
@@ -2047,7 +2044,7 @@ function HomePage() {
       });
       const updateItem = (candidate: FeedItem) =>
         candidate.id === item.id && candidate.type === item.type
-          ? { ...candidate, favoriteCount: result.collectionCount }
+          ? { ...candidate, favoriteCount: result.collectionCount, collectionActive: result.bookmarked }
           : candidate;
       setBookItems((current) => current.map(updateItem));
       setHomeFeed((current) => ({
@@ -2068,7 +2065,7 @@ function HomePage() {
   };
 
   const shareItem = async (item: FeedItem) => {
-    if (!isSocialTargetType(item.type)) {
+    if (item.type === 'task') {
       return;
     }
     setError('');
@@ -2084,10 +2081,11 @@ function HomePage() {
         requestId,
       });
       const updateItem = (candidate: FeedItem) =>
-        candidate.id === item.id
+        candidate.id === item.id && candidate.type === item.type
           ? { ...candidate, shareCount: result.shareCount }
           : candidate;
       setBookItems((current) => current.map(updateItem));
+      setTagActivityItems((current) => current.map(updateItem));
       setHomeFeed((current) => ({
         ...current,
         featuredBlog: updateItem(current.featuredBlog),
@@ -2096,6 +2094,79 @@ function HomePage() {
       setStatus(t('home.status.copied', { title: item.title }));
     } catch (shareError) {
       setError(messageFromError(shareError, 'home.shareFailed'));
+    }
+  };
+
+  const updateTagActivityItem = (
+    item: FeedItem,
+    update: (candidate: FeedItem) => FeedItem,
+  ) => {
+    setTagActivityItems((current) =>
+      current.map((candidate) =>
+        candidate.type === 'tag' && candidate.id === item.id
+          ? update(candidate)
+          : candidate,
+      ),
+    );
+  };
+
+  const toggleTagLike = async (item: FeedItem) => {
+    if (item.type !== 'tag') return;
+    if (!user) {
+      requestAuthDialog();
+      return;
+    }
+    const busyKey = `like:${item.id}`;
+    setTagActionBusyKey(busyKey);
+    setError('');
+    setStatus('');
+    try {
+      const result = await likePost({
+        targetType: 'tag',
+        targetId: item.id,
+        slug: item.tagItems?.[0]?.slugName || item.tags?.[0],
+        bookmark: !item.liked,
+        isCancel: Boolean(item.liked),
+      });
+      updateTagActivityItem(item, (candidate) => ({
+        ...candidate,
+        likeCount: result.likeCount,
+        liked: result.liked,
+      }));
+    } catch (likeError) {
+      setError(messageFromError(likeError, 'home.reactionFailed'));
+    } finally {
+      setTagActionBusyKey('');
+    }
+  };
+
+  const toggleTagFollow = async (item: FeedItem) => {
+    if (item.type !== 'tag') return;
+    if (!user) {
+      requestAuthDialog();
+      return;
+    }
+    const busyKey = `follow:${item.id}`;
+    setTagActionBusyKey(busyKey);
+    setError('');
+    setStatus('');
+    try {
+      const slug = item.tagItems?.[0]?.slugName || item.tags?.[0] || item.id;
+      const result = await followTarget({
+        targetType: 'tag',
+        targetId: slug,
+        slug,
+        isCancel: Boolean(item.isFollowed),
+      });
+      updateTagActivityItem(item, (candidate) => ({
+        ...candidate,
+        followCount: result.followerCount,
+        isFollowed: result.following,
+      }));
+    } catch (followError) {
+      setError(messageFromError(followError, 'home.followFailed'));
+    } finally {
+      setTagActionBusyKey('');
     }
   };
 
@@ -2110,6 +2181,30 @@ function HomePage() {
     setError('');
     setStatus('');
     try {
+      if (item.likeSource === 'repository') {
+        const result = await likePost({
+          targetType: socialTargetType(item.type),
+          ...collectionTargetRef(item),
+          bookmark: !current?.isActive,
+          isCancel: Boolean(current?.isActive),
+        });
+        setDynamicReactionStates((states) => ({
+          ...states,
+          [item.id]: { count: result.likeCount, isActive: result.liked },
+        }));
+        const updateItem = (candidate: FeedItem) =>
+          candidate.id === item.id && candidate.type === item.type
+            ? { ...candidate, likeCount: result.likeCount, liked: result.liked }
+            : candidate;
+        setBookItems((items) => items.map(updateItem));
+        setHomeFeed((feed) => ({
+          ...feed,
+          featuredBlog: updateItem(feed.featuredBlog),
+          stream: feed.stream.map(updateItem),
+        }));
+        setStatus(result.liked ? t('home.status.liked') : t('home.status.unliked'));
+        return;
+      }
       const result = await updateReaction({
         object_id: item.id,
         object_type: reactionTargetType(item.type),
@@ -2151,7 +2246,9 @@ function HomePage() {
 
   const renderSocialActions = (item: FeedItem) => {
     if (!isSocialTargetType(item.type)) return null;
-    const isCollected = collectedItems.has(item.id);
+    const isCollected = item.likeSource === 'repository'
+      ? Boolean(item.collectionActive)
+      : collectedItems.has(item.id);
     const reaction = dynamicReactionStates[item.id] || {
       count: item.likeCount || 0,
       isActive: Boolean(item.liked),
@@ -2202,6 +2299,40 @@ function HomePage() {
     );
   };
 
+  const renderTagSocialActions = (item: FeedItem) => {
+    if (item.type !== 'tag') return null;
+    return (
+      <div className="home-card-actions" aria-label={t('home.actions.interactions')}>
+        <CardActionButton
+          icon={item.liked ? 'heart-fill' : 'heart'}
+          label={t('home.actions.like')}
+          value={item.likeCount ?? 0}
+          active={Boolean(item.liked)}
+          toggle
+          tone="like"
+          disabled={tagActionBusyKey === `like:${item.id}`}
+          onClick={() => void toggleTagLike(item)}
+        />
+        <CardActionButton
+          icon={item.isFollowed ? 'bookmark-check' : 'bookmark'}
+          label={t('pages.tag.follow')}
+          value={item.followCount ?? 0}
+          active={Boolean(item.isFollowed)}
+          toggle
+          disabled={tagActionBusyKey === `follow:${item.id}`}
+          onClick={() => void toggleTagFollow(item)}
+        />
+        <CardActionButton
+          icon="share"
+          label={t('home.actions.share')}
+          value={item.shareCount ?? 0}
+          disabled={busy}
+          onClick={() => void shareItem(item)}
+        />
+      </div>
+    );
+  };
+
   const renderSidebarCompactItem = (item: CompactItem) => {
     const displayType = displayTypeClass(item.type);
     return (
@@ -2215,7 +2346,10 @@ function HomePage() {
         >
           <span className="sidebar-meta-label">
             <span className="char" aria-hidden="true">
-              {typeMetaChar[displayType] || contentTypeLabel(item.type, t).slice(0, 1).toLowerCase()}
+              {contentTypeMetaChar(
+                displayType,
+                contentTypeLabel(item.type, t).slice(0, 1).toLowerCase(),
+              )}
             </span>
           </span>
         </span>
@@ -2272,7 +2406,7 @@ function HomePage() {
       {homeSidebar.recommendedUsers.length ? (
         <div className="home-follow-list">
           {homeSidebar.recommendedUsers.map((item) => (
-            <Link className="home-follow-user" key={item.id} to={hrefInWorld(routeProfilePath(item.username), currentWorld)}>
+            <Link className="home-follow-user" key={item.id} to={routeProfilePath(item.username)}>
               <AvatarImage
                 className="home-follow-avatar"
                 src={item.avatar}
@@ -2305,7 +2439,9 @@ function HomePage() {
     const readMetric = footerMetrics[2];
     const itemTags = tagsFor(item);
     const hasRated = Boolean(item.bookRating?.myReview);
-    const isCollected = collectedItems.has(item.id);
+    const isCollected = item.likeSource === 'repository'
+      ? Boolean(item.collectionActive)
+      : collectedItems.has(item.id);
     const reaction = dynamicReactionStates[item.id] || {
       count: item.likeCount || 0,
       isActive: Boolean(item.liked),
@@ -2327,7 +2463,7 @@ function HomePage() {
       >
         <Link className="home-book-cover" to={itemPath(item)} aria-label={t('home.actions.viewBook', { title: item.title })}>
           {item.coverUrl ? (
-            <ResilientContentImage src={item.coverUrl} label={t('home.mediaUnavailable')} />
+            <img src={item.coverUrl} alt="" loading="lazy" />
           ) : (
             <Icon name="book" />
           )}
@@ -2345,7 +2481,7 @@ function HomePage() {
                   <Link
                     aria-label={t('home.actions.viewTag', { tag: tag.label })}
                     key={tag.key}
-                    to={hrefInWorld(tag.path, currentWorld)}
+                    to={tag.path}
                   >
                     {tag.label}
                   </Link>
@@ -2360,7 +2496,7 @@ function HomePage() {
             </Link>
           </h2>
           <p className="stream-meta stream-author-meta book-author-links home-book-author">
-            {bookAuthorNodes(item, t, avatarForItem(item), rankForItem(item), currentWorld)}
+            {bookAuthorNodes(item, t, avatarForItem(item), rankForItem(item))}
           </p>
           <div className="home-book-meta">
             {book?.seriesTitle ? <span>{book.seriesTitle}</span> : null}
@@ -2442,7 +2578,7 @@ function HomePage() {
     }
     const footerMetrics = metricsForItem(item);
     const visibleFooterMetrics = (() => {
-      if (displayType === 'blog' || displayType === 'dynamic') {
+      if (displayType === 'blog' || displayType === 'dynamic' || displayType === 'tag') {
         return footerMetrics.filter((metric) => metric.kind === 'read').slice(0, 1);
       }
       if (displayType === 'discussion') {
@@ -2465,7 +2601,7 @@ function HomePage() {
             <Link
               aria-label={t('home.actions.viewTag', { tag: tag.label })}
               key={tag.key}
-              to={hrefInWorld(tag.path, currentWorld)}
+              to={tag.path}
             >
               {tag.label}
             </Link>
@@ -2492,7 +2628,7 @@ function HomePage() {
               <CardExactTime item={item} />
             </div>
             <div className="stream-dynamic-lead">
-              <Link className="stream-author-lead" to={hrefInWorld(authorProfilePath(item), currentWorld)}>
+              <Link className="stream-author-lead" to={authorProfilePath(item)}>
                 <span className="stream-dynamic-avatar" aria-hidden="true">
                   <AvatarImage src={avatarForItem(item)} fallback={shortInitialsFor(item.author)} />
                 </span>
@@ -2531,10 +2667,9 @@ function HomePage() {
                 userId={item.authorId}
                 imageUrl={avatarForItem(item)}
                 rank={rankForItem(item)}
-                href={hrefInWorld(authorProfilePath(item), currentWorld)}
               />
             ) : (
-              <Link className="identity-link" to={hrefInWorld(authorProfilePath(item), currentWorld)}>
+              <Link className="identity-link" to={authorProfilePath(item)}>
               <AvatarName
                 name={item.author}
                 imageUrl={avatarForItem(item)}
@@ -2546,7 +2681,7 @@ function HomePage() {
         ) : null}
         {isBook ? (
           <p className="stream-meta stream-author-meta book-author-links">
-            {bookAuthorNodes(item, t, avatarForItem(item), rankForItem(item), currentWorld)}
+            {bookAuthorNodes(item, t, avatarForItem(item), rankForItem(item))}
           </p>
         ) : null}
         {!isDynamic ? (
@@ -2556,7 +2691,7 @@ function HomePage() {
         ) : null}
         {displayType === 'blog' && item.coverUrl ? (
           <figure className="stream-blog-cover">
-            <ResilientContentImage src={item.coverUrl} label={t('home.mediaUnavailable')} />
+            <img src={item.coverUrl} alt="" loading="lazy" />
           </figure>
         ) : null}
         {displayType === 'discussion' && discussionImagesFor(item).length ? (
@@ -2569,7 +2704,7 @@ function HomePage() {
                 className="stream-discussion-image"
                 key={`${image}-${index}`}
               >
-                <ResilientContentImage src={image} label={t('home.mediaUnavailable')} />
+                <img src={image} alt="" loading="lazy" />
               </Link>
             ))}
           </div>
@@ -2585,26 +2720,46 @@ function HomePage() {
               </span>
             ))}
           </div>
-          {renderSocialActions(item)}
+          {item.type === 'tag' ? renderTagSocialActions(item) : renderSocialActions(item)}
         </div>
       </article>
     );
   };
 
+  const communitySummary = communityView === 'graph'
+    ? knowledgeGraph
+      ? t('home.graph.summary', {
+        nodes: formatNumber(locale, knowledgeGraph.nodes.length),
+        edges: formatNumber(locale, knowledgeGraph.edges.length),
+      })
+      : knowledgeGraphLoading
+        ? t('home.graph.syncing')
+        : t('home.graph.fallback')
+    : communityView === 'books'
+      ? bookLoading
+        ? t('home.graph.syncing')
+        : t('home.book.count', {
+          count: bookItems.length,
+          displayCount: formatNumber(locale, bookItems.length),
+        })
+      : communityView === 'tags'
+        ? tagActivityLoading
+          ? t('home.graph.syncing')
+          : t('home.book.tagActivityCount', {
+            count: visibleTagActivityItems.length,
+            displayCount: formatNumber(locale, visibleTagActivityItems.length),
+          })
+        : '';
+
   return (
     <>
-      <Helmet title={homeSeoTitle} titleTemplate="%s">
-        <meta name="description" content={homeSeoDescription} />
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content={homeSeoSiteName} />
-        <meta property="og:title" content={homeSeoTitle} />
-        <meta property="og:description" content={homeSeoDescription} />
-        <meta property="og:url" content={homeCanonical} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={homeSeoTitle} />
-        <meta name="twitter:description" content={homeSeoDescription} />
-        <script type="application/ld+json">{JSON.stringify(homeSeoJsonLd)}</script>
-      </Helmet>
+      <DocumentMetadataController metadata={{
+        title: homeSeoTitle,
+        description: homeSeoDescription,
+        canonicalPath: '/',
+        openGraphType: 'website',
+        jsonLd: homeSeoJsonLd,
+      }} />
       <SiteTopbar onSessionChange={handleSessionChange} />
       {status || error ? (
         <div aria-live="polite" aria-atomic="true">
@@ -2672,9 +2827,13 @@ function HomePage() {
           id="feed"
           aria-label={t('home.board.landmark')}
         >
-          <div className="panel-heading large">
+          <div className="panel-heading large home-community-toolbar">
             <div className="community-view-head">
-              <AnimateTabs value={communityView} onValueChange={(value) => handleCommunityViewChange(value as CommunityView)}>
+              <AnimateTabs
+                className="community-view-tabs-scroll"
+                value={communityView}
+                onValueChange={(value) => handleCommunityViewChange(value as CommunityView)}
+              >
                 <AnimateTabsList className="community-view-tabs" aria-label={t('home.board.views')}>
                 {communityViews.map((view) => (
                   <AnimateTabsTrigger
@@ -2686,40 +2845,14 @@ function HomePage() {
                 ))}
                 </AnimateTabsList>
               </AnimateTabs>
-              <strong>
-                {communityView === 'graph'
-                  ? knowledgeGraph
-                    ? t('home.graph.summary', {
-                      nodes: formatNumber(locale, knowledgeGraph.nodes.length),
-                      edges: formatNumber(locale, knowledgeGraph.edges.length),
-                    })
-                    : knowledgeGraphLoading
-                      ? t('home.graph.syncing')
-                      : t('home.graph.fallback')
-                  : communityView === 'books'
-                    ? bookLoading
-                      ? t('home.graph.syncing')
-                      : t('home.book.count', {
-                        count: bookItems.length,
-                        displayCount: formatNumber(locale, bookItems.length),
-                      })
-                  : communityView === 'tags'
-                    ? tagActivityLoading
-                      ? t('home.graph.syncing')
-                      : t('home.book.tagActivityCount', {
-                        count: visibleTagActivityItems.length,
-                        displayCount: formatNumber(locale, visibleTagActivityItems.length),
-                      })
-                  : feedLoading
-                    ? t('home.graph.syncing')
-                    : t('home.book.contentCount', {
-                      count: boardItems.length,
-                      displayCount: formatNumber(locale, boardItems.length),
-                    })}
-              </strong>
+              {communitySummary ? <strong>{communitySummary}</strong> : null}
             </div>
             {communityView === 'stream' ? (
-              <AnimateTabs value={feedMode} onValueChange={(value) => handleFeedModeChange(value as FeedMode)}>
+              <AnimateTabs
+                className="home-desktop-mode-tabs"
+                value={feedMode}
+                onValueChange={(value) => handleFeedModeChange(value as FeedMode)}
+              >
                 <AnimateTabsList className="feed-tabs" aria-label={t('home.board.feedFilter')}>
                 {feedModes.map((mode) => (
                   <AnimateTabsTrigger
@@ -2732,7 +2865,11 @@ function HomePage() {
                 </AnimateTabsList>
               </AnimateTabs>
             ) : communityView === 'books' ? (
-              <AnimateTabs value={bookMode} onValueChange={(value) => handleBookModeChange(value as BookMode)}>
+              <AnimateTabs
+                className="home-desktop-mode-tabs"
+                value={bookMode}
+                onValueChange={(value) => handleBookModeChange(value as BookMode)}
+              >
                 <AnimateTabsList className="feed-tabs" aria-label={t('home.board.bookFilter')}>
                 {bookModes.map((mode) => (
                   <AnimateTabsTrigger
@@ -2744,6 +2881,33 @@ function HomePage() {
                 ))}
                 </AnimateTabsList>
               </AnimateTabs>
+            ) : null}
+            {communityView === 'stream' ? (
+              <Form.Select
+                aria-label={t('home.board.feedFilter')}
+                className="home-mobile-mode-select"
+                value={feedMode}
+                onChange={(event) => handleFeedModeChange(event.currentTarget.value as FeedMode)}
+              >
+                {feedModes.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {t(`home.modes.${mode}`)}
+                  </option>
+                ))}
+              </Form.Select>
+            ) : communityView === 'books' ? (
+              <Form.Select
+                aria-label={t('home.board.bookFilter')}
+                className="home-mobile-mode-select"
+                value={bookMode}
+                onChange={(event) => handleBookModeChange(event.currentTarget.value as BookMode)}
+              >
+                {bookModes.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {t(`home.modes.${mode}`)}
+                  </option>
+                ))}
+              </Form.Select>
             ) : null}
           </div>
           {communityView === 'graph' ? (
@@ -2848,8 +3012,6 @@ function HomePage() {
                 </div>
               ) : null}
             </>
-          ) : communityView === 'reading' && !feedLoading ? (
-            <div className="state-strip">{t('home.board.emptyReading')}</div>
           ) : null}
             </>
           )}
@@ -2864,27 +3026,12 @@ function HomePage() {
             <KnowledgeGraphInspector
               graph={knowledgeGraph}
               selectedNode={selectedGraphNode}
-              currentWorld={currentWorld}
             />
           ) : (
             <>
-              {communityView === 'stream' && user ? renderTodayMetricsCard() : null}
-              {communityView === 'stream' ? renderHotDiscussionCard() : null}
-              {communityView === 'stream' ? renderFollowRecommendationCard() : null}
-              {communityView === 'reading' ? (
-                <section className="panel forum-panel outer-legacy-panel">
-                  <div className="panel-heading">
-                    <span>{t('home.rail.legacyTitle')}</span>
-                    <strong>{t('home.rail.legacyStatus')}</strong>
-                  </div>
-                  <p>{t('home.rail.legacyDescription')}</p>
-                  <nav aria-label={t('home.rail.legacyTitle')}>
-                    <Link to="/discussions">{t('home.rail.discussions')}</Link>
-                    <Link to="/questions">{t('home.rail.questions')}</Link>
-                    <Link to="/dynamics">{t('home.rail.dynamics')}</Link>
-                  </nav>
-                </section>
-              ) : null}
+              {user ? renderTodayMetricsCard() : null}
+              {renderHotDiscussionCard()}
+              {renderFollowRecommendationCard()}
               <section className="panel forum-panel announcement-panel">
                 <div className="panel-heading">
                   <span>{t('home.rail.announcements')}</span>
@@ -2914,7 +3061,7 @@ function HomePage() {
                 </div>
                 <div className="tag-cloud">
                   {sidebarFollowedTags.map((tag) => (
-                    <Link key={tag.tagId || tag.slugName} to={hrefInWorld(followedTagPath(tag), currentWorld)}>
+                    <Link key={tag.tagId || tag.slugName} to={followedTagPath(tag)}>
                       {tag.displayName}
                     </Link>
                   ))}
@@ -2925,12 +3072,27 @@ function HomePage() {
                   </div>
                 ) : null}
               </section>
-              <Link className="panel sponsor-rail-panel sponsor-rail-link" to="/sponsor" aria-label={t('home.rail.sponsor')}>
-                <div className="panel-heading">
+              <section className="panel sponsor-rail-panel">
+                <Link className="panel-heading sponsor-rail-heading-link" to="/sponsor" aria-label={t('home.rail.sponsor')}>
                   <span>{t('home.rail.sponsor')}</span>
                   <strong>{t('home.rail.support')}</strong>
-                </div>
-              </Link>
+                </Link>
+                <UserPresenceAvatar users={sponsorAvatars} label={t('home.rail.supporters')} />
+              </section>
+              <a
+                className="panel sponsor-rail-link github-stars-rail-link"
+                href="https://github.com/orgs/rinspacehq/repositories?type=source"
+                target="_blank"
+                rel="noreferrer"
+                aria-label={t('home.rail.openSourceStars')}
+              >
+                <span className="panel-heading github-stars-rail-title">GITHUB</span>
+                <AnimateGithubStars
+                  value={openSourceStars ?? 0}
+                  loading={openSourceStars === null}
+                  label={t('home.rail.openSourceStars')}
+                />
+              </a>
               <SiteIcpLink />
             </>
           )}

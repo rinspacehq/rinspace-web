@@ -1,15 +1,15 @@
 import { AnimateButton } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import SiteTopbar from '@/components/SiteTopbarShell';
 import { messageFromError } from '@/services/errors';
 import { getStoredSession } from '@/services/phoneAuth';
-import { loadRecentGiteaRepositories, syncGiteaSession } from '@/services/gitea';
+import { syncGiteaSession } from '@/services/gitea';
 import {
-  getGiteaBasePath,
+  giteaBasePath,
   giteaPath,
   safeGiteaRedirectPath,
 } from '@/utils/giteaPaths';
@@ -22,6 +22,7 @@ type GitAuthState =
   | 'opening'
   | 'error';
 
+const recentGiteaReposEndpoint = `${giteaBasePath}api/v1/user/repos?limit=1&sort=updated`;
 const repositoryRedirectDelayMs = 3000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,7 +34,7 @@ function optionalString(value: unknown) {
 }
 
 function safeGitRedirect(value: string | null) {
-  const fallback = `${getGiteaBasePath()}user/login`;
+  const fallback = `${giteaBasePath}user/login`;
   return safeGiteaRedirectPath(value || fallback, fallback);
 }
 
@@ -69,9 +70,14 @@ function giteaRepoPathFromApiRecord(value: unknown) {
 }
 
 async function loadRecentGiteaRepositoryPath() {
-  const payload = await loadRecentGiteaRepositories().catch(() => null);
-  if (!Array.isArray(payload) || payload.length === 0) return getGiteaBasePath();
-  return giteaRepoPathFromApiRecord(payload[0]) || getGiteaBasePath();
+  const response = await fetch(recentGiteaReposEndpoint, {
+    headers: { Accept: 'application/json' },
+    credentials: 'same-origin',
+  });
+  if (!response.ok) return giteaBasePath;
+  const payload = (await response.json().catch(() => null)) as unknown;
+  if (!Array.isArray(payload) || payload.length === 0) return giteaBasePath;
+  return giteaRepoPathFromApiRecord(payload[0]) || giteaBasePath;
 }
 
 function GitAuthPage() {
@@ -122,7 +128,7 @@ function GitAuthPage() {
               .catch(() => {
                 if (cancelled) return;
                 setState('opening');
-                window.location.replace(getGiteaBasePath());
+                window.location.replace(giteaBasePath);
               });
           }, repositoryRedirectDelayMs);
         }
@@ -143,7 +149,7 @@ function GitAuthPage() {
 
   return (
     <>
-      <Helmet title="Git 授权" />
+      <Helmet title={`Git 授权 - ${t('brandName')}`} />
       <SiteTopbar />
       <main className="git-auth-shell">
         <section className="panel git-auth-panel">
@@ -180,7 +186,7 @@ function GitAuthPage() {
                 当前 Rinspace 身份已同步到 Gitea。稍后会打开最近更新的仓库。
               </p>
               <div className="git-auth-actions">
-                <a href={getGiteaBasePath()}>打开 Gitea</a>
+                <a href={giteaBasePath}>打开 Gitea</a>
                 <Link to="/">返回 Rinspace</Link>
               </div>
             </div>

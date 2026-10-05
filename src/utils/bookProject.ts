@@ -4,7 +4,6 @@ import {
   type RinProject,
   type RinProjectFile,
 } from '@/utils/rinWriter';
-import { importRinProject } from '@/services/rinIntegration';
 
 export type BookMatter = 'front' | 'main' | 'appendix' | 'back';
 
@@ -691,7 +690,17 @@ export async function importBookProjectArchive(archive: RinArchiveInfo): Promise
   const file = await fileFromRinArchiveInfo(archive, 'rin-source.tar.gz');
   const form = new FormData();
   form.append('source', file, file.name || archive.filename || 'rin-source.tar.gz');
-  const payload = await importRinProject(form);
+  const response = await fetch('/rin/api/projects/import', {
+    method: 'POST',
+    body: form,
+  });
+  const payload: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = isRecord(payload) && typeof payload.error === 'string'
+      ? payload.error
+      : '无法解析 Rin 源包。';
+    throw new Error(message);
+  }
   const parsed = parseImportResponse(payload);
   return {
     title: parsed.title,

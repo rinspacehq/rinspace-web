@@ -1,0 +1,67 @@
+/* Shared presentation source for the outer and inner mobile topbars. */
+@media (width <= 900px) {
+  :where(.rin-app-shell, .ui) > .topbar.rin-topbar-shell {
+    --rin-topbar-compact-control-size: 34px;
+  }
+
+  :where(.rin-app-shell, .ui)
+    > .topbar.rin-topbar-shell
+    .account-menu-trigger {
+    inline-size: var(--rin-topbar-compact-control-size);
+    max-inline-size: var(--rin-topbar-compact-control-size);
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  :where(.rin-app-shell, .ui)
+    > .topbar.rin-topbar-shell
+    .account-menu-trigger
+    .avatar-name {
+    inline-size: 100%;
+    block-size: 100%;
+    justify-content: center;
+  }
+
+  :where(.rin-app-shell, .ui)
+    > .topbar.rin-topbar-shell
+    .account-menu-trigger
+    .avatar-name-mark {
+    inline-size: 100%;
+    block-size: 100%;
+    flex-basis: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (width <= 620px) {
+  :where(.rin-app-shell, .ui) > .topbar.rin-topbar-shell {
+    grid-template-columns: max-content minmax(36px, 1fr) auto;
+  }
+
+  :where(.rin-app-shell, .ui)
+    > .topbar.rin-topbar-shell
+    :is(.rinspace-topbar-search, .topbar-search)
+    > button {
+    inline-size: var(--rin-topbar-compact-control-size);
+    block-size: var(--rin-topbar-compact-control-size);
+    flex: 0 0 var(--rin-topbar-compact-control-size);
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+  }
+
+  :where(.rin-app-shell, .ui)
+    > .topbar.rin-topbar-shell
+    :is(.rinspace-topbar-search, .topbar-search).mobile-search-open[role="search"] {
+    position: absolute;
+    grid-column: auto;
+    grid-row: auto;
+    inset-block-start: calc(100% + 8px);
+    inset-inline-start: max(10px, env(safe-area-inset-left));
+    inset-inline-end: max(10px, env(safe-area-inset-right));
+    inline-size: auto;
+    justify-self: stretch;
+  }
+}

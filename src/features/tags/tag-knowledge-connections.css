@@ -1,4 +1,5 @@
 .tag-knowledge-panel,
+.tag-knowledge-maintenance-panel,
 .tag-governance-directory {
   --tag-knowledge-border: color-mix(in srgb, currentColor 14%, transparent);
   --tag-knowledge-muted: color-mix(in srgb, currentColor 76%, transparent);
@@ -19,19 +20,38 @@
 
 .tag-knowledge-actions {
   align-items: center;
+  flex: 0 0 auto;
+  width: 100%;
   max-width: 100%;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: .3rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
 }
 
+.tag-knowledge-maintenance-panel {
+  display: grid;
+  gap: .7rem;
+}
+
+.tag-knowledge-maintenance-panel > .panel-heading,
 .tag-knowledge-panel > .panel-heading {
-  align-items: flex-start;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
 }
 
-.tag-knowledge-actions a,
-.tag-knowledge-actions button,
+.tag-knowledge-maintenance-panel .tag-knowledge-actions {
+  gap: .55rem;
+  justify-content: flex-start;
+  padding-top: .05rem;
+}
+
+.tag-knowledge-actions::-webkit-scrollbar { display: none; }
+
 .tag-directory-create,
 .tag-governance-toolbar button,
 .tag-directory-more button {
@@ -49,15 +69,21 @@
 }
 
 .tag-knowledge-actions .tag-knowledge-icon-action {
-  width: 2.15rem;
-  min-width: 2.15rem;
-  min-height: 2.15rem;
+  display: inline-flex;
+  width: 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
   padding: 0;
-  border-radius: 50%;
+  border: 0;
+  border-radius: .4rem;
+  background: transparent;
+  box-shadow: none;
+  color: var(--tag-knowledge-muted);
+  text-decoration: none;
 }
 
-.tag-knowledge-actions a:hover,
-.tag-knowledge-actions button:hover,
 .tag-directory-create:hover,
 .tag-governance-toolbar button:hover,
 .tag-governance-toolbar button.active {
@@ -65,16 +91,15 @@
   background: color-mix(in srgb, currentColor 9%, transparent);
 }
 
-.tag-knowledge-actions button[data-variant="primary"] {
-  border-color: transparent;
-  background: var(--green, #2b577a);
-  color: var(--white, #fff);
+.tag-knowledge-actions .tag-knowledge-icon-action:is(:hover, :active),
+.tag-knowledge-actions .tag-knowledge-icon-action[data-variant] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.tag-knowledge-actions .tag-knowledge-source {
-  border-color: transparent;
-  background: transparent;
-  color: var(--tag-knowledge-muted);
+.tag-knowledge-actions .tag-knowledge-icon-action:hover {
+  color: var(--green, #2b577a);
 }
 
 .tag-knowledge-actions :is(a, button):focus-visible,

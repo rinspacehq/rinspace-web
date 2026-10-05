@@ -25,10 +25,7 @@ export function useFeatureTranslation(namespace: TranslationNamespace) {
         if (active) setReady(true);
       })
       .catch((error: unknown) => {
-        if (active) {
-          const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-          console.error(`Failed to load ${namespace} translations: ${detail}`);
-        }
+        console.error(`Failed to load ${namespace} translations`, error);
       });
     return () => {
       active = false;

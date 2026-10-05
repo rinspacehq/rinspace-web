@@ -1,7 +1,7 @@
 import { Icon, AnimateButton, useNoticeToasts } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from '@/components/ui/compat';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import {
@@ -58,7 +58,7 @@ function bookMetricClass(metric: BookMetric) {
 }
 
 function isOriginalStyleBook(item: FeedItem) {
-  return item.book?.kind === 'original' || item.book?.kind === 'markdown';
+  return item.book?.kind === 'original' || item.book?.kind === 'markdown' || item.book?.kind === 'typst';
 }
 
 function bookAuthorText(item: FeedItem, missingAuthor: string) {
@@ -166,7 +166,13 @@ function BookCard({ item, isCollected, collectionBusy, onCollect }: BookCardProp
       <div className="home-book-main">
         <div className="stream-card-topline home-book-topline">
           <DirectoryTypeMetaCategory type="book" />
-          <span>{book?.kind === 'copyrighted' ? t('pages.book.external') : t('pages.book.original')}</span>
+          <span>
+            {book?.kind === 'copyrighted'
+              ? t('pages.book.external')
+              : book?.kind === 'typst'
+                ? t('pages.book.typst')
+                : t('pages.book.original')}
+          </span>
           {book?.pdfUrl ? (
             <a className="home-book-resource-badge" href={book.pdfUrl} target="_blank" rel="noreferrer">
               PDF

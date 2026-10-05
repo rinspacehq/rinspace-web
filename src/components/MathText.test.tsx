@@ -1,11 +1,5 @@
 import { render, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
 
-vi.mock('@/services/httpClient', () => ({
-  requestJson: vi.fn(),
-}));
-
-import { requestJson } from '@/services/httpClient';
 import MathText from './MathText';
 
 declare function test(name: string, callback: () => void): void;
@@ -53,25 +47,39 @@ test('hides quiver metadata comments before diagram images', () => {
 });
 
 test('renders tikzcd environments through the diagram API', async () => {
-  vi.mocked(requestJson).mockResolvedValue({
-    type: 'tikzcd',
-    svg: '<svg viewBox="0 0 10 10"><path stroke="#000"/></svg>',
-  });
-  const { container } = render(
-    <MathText text={'\\begin{tikzcd}[column sep=large]\nA \\arrow[r] & B\n\\end{tikzcd}'} />,
-  );
+  const previousFetch = global.fetch;
+  let requestedUrl = '';
+  let requestedBody = '';
+  global.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrl = String(input);
+    requestedBody = String(init?.body || '');
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          type: 'tikzcd',
+          svg: '<svg viewBox="0 0 10 10"><path stroke="#000"/></svg>',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+  }) as typeof fetch;
 
-  await waitFor(() => {
-    expect(container.querySelector('.math-diagram-svg')).not.toBeNull();
-  });
+  try {
+    const { container } = render(
+      <MathText text={'\\begin{tikzcd}[column sep=large]\nA \\arrow[r] & B\n\\end{tikzcd}'} />,
+    );
 
-  const [path, options] = vi.mocked(requestJson).mock.calls[0];
-  const body = options?.body as { body?: string; options?: string };
-  expect(path).toBe('diagrams/tikzcd');
-  expect(options?.method).toBe('POST');
-  expect(options?.auth).toBe('none');
-  expect(body.body).toBe('A \\arrow[r] & B');
-  expect(body.options).toBe('column sep=large');
+    await waitFor(() => {
+      expect(container.querySelector('.math-diagram-svg')).not.toBeNull();
+    });
+
+    const payload = JSON.parse(requestedBody) as { body?: string; options?: string };
+    expect(requestedUrl.endsWith('/api/diagrams/tikzcd')).toBe(true);
+    expect(payload.body?.includes('\\arrow[r]')).toBe(true);
+    expect(payload.options).toBe('column sep=large');
+  } finally {
+    global.fetch = previousFetch;
+  }
 });
 
 test('renders explicit user mentions with uid links only', () => {
@@ -81,7 +89,7 @@ test('renders explicit user mentions with uid links only', () => {
 
   const link = container.querySelector('.mention-link') as HTMLAnchorElement | null;
   expect(link).not.toBeNull();
-  expect(link?.getAttribute('href')).toBe('/@rin-user-206');
+  expect(link?.getAttribute('href')).toBe('/rinspace/@rin-user-206');
   expect(link?.textContent).toBe('@Rin 用户');
 });
 

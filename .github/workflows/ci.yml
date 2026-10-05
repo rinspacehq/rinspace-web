@@ -1,180 +1,41 @@
-name: Public CI
+name: Frontend PR checks
 
-"on":
+'on':
   pull_request:
+    branches: [main]
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: public-ci-${{ github.workflow }}-${{ github.ref }}
+  group: frontend-pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  CI: "true"
-  NODE_VERSION: 22.22.3
-  PNPM_VERSION: 9.7.0
-  PLAYWRIGHT_WORKERS: "1"
-
 jobs:
-  quality:
-    name: Types, lint, contracts, tests, and policy
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
+  frontend:
+    # External PR code never runs on private or production self-hosted runners.
+    # Pin the supported image compatible with unprivileged bubblewrap namespaces.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
-      - name: Checkout exact source
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Install pinned pnpm
-        uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-      - name: Install pinned Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - name: Install frozen dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Check publication and dependency boundaries
-        env:
-          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
-        run: |
-          pnpm check:publication-boundary
-          pnpm check:dependencies
-          pnpm check:lockfile-diff
-          pnpm check:release-readiness
-          pnpm check:readme
-          pnpm check:release-budgets
-          pnpm check:publication-ci
-          pnpm test:dco
-          pnpm test:integration-dev
-          pnpm test:release-shell
-          pnpm test:world-release
-      - name: Check generated contracts and source boundaries
-        run: |
-          pnpm check:env-boundary
-          pnpm check:direct-fetch
-          pnpm check:api-contract
-          pnpm check:route-contracts
-          pnpm test:route-contracts
-          pnpm check:demo-seed
-          pnpm check:i18n
-      - name: Typecheck and lint
-        run: |
-          pnpm check
-          pnpm lint
-      - name: Run Vitest with coverage
-        run: pnpm test:coverage -- --pool forks --maxWorkers 1
-      - name: Build and check translation bundle budget
-        env:
-          GENERATE_SOURCEMAP: "false"
-          RINSPACE_BUILD_COMMIT: ${{ github.sha }}
-          RINSPACE_BUILD_TIME: "1970-01-01T00:00:00.000Z"
-        run: |
-          pnpm build
-          pnpm check:i18n:bundles
-      - name: Upload coverage for review
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: coverage-${{ github.sha }}
-          path: coverage/
-          if-no-files-found: error
-          retention-days: 7
-
-  package:
-    name: Reproducible static packages
-    needs: quality
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, linux, x64, rinspace-release-build]
-    timeout-minutes: 45
-    steps:
-      - name: Checkout exact source
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - name: Install pinned pnpm
-        uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          version: ${{ env.PNPM_VERSION }}
+          node-version: '22.22.3'
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: '9.7.0'
           run_install: false
-      - name: Install pinned Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - name: Install frozen dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Build one runtime-neutral core
+      - name: Install isolation tooling
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends bubblewrap
+      - name: Install fixed dependencies without scripts or pnpm hooks
         env:
-          GENERATE_SOURCEMAP: "false"
-          RINSPACE_BUILD_COMMIT: ${{ github.sha }}
-          RINSPACE_BUILD_TIME: "1970-01-01T00:00:00.000Z"
-        run: pnpm build
-      - name: Assemble root and subpath demo shells
-        run: |
-          pnpm package -- --config config/runtime.demo.json --out package-preview-root --base-path /
-          pnpm package -- --config config/runtime.demo.subpath.json --out package-preview-subpath --base-path /rinspace-demo/
-          pnpm test:static-package
-          pnpm check:vite-artifact -- --core build --package package-preview-root
-          pnpm check:release-budgets -- --core build --package package-preview-root
-      - name: Upload browser-test packages
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: static-packages-${{ github.sha }}
-          path: |
-            package-preview-root/
-            package-preview-subpath/
-          if-no-files-found: error
-          retention-days: 7
-
-  browser:
-    name: Playwright routes and accessibility
-    needs: package
-    runs-on: [self-hosted, linux, x64, rinspace-release-build]
-    timeout-minutes: 60
-    steps:
-      - name: Checkout exact source
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - name: Install pinned pnpm
-        uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-      - name: Install pinned Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - name: Install frozen dependencies and browsers
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec playwright install --with-deps chromium firefox webkit
-      - name: Download exact static packages
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: static-packages-${{ github.sha }}
-          path: .
-      - name: Validate all-browser route matrix
-        run: pnpm test:demo-routes:browser
-      - name: Validate browser-visible production boundaries and WCAG A/AA
-        env:
-          RINSPACE_DEMO_BOUNDARY_BROWSERS: chromium
-        run: pnpm test:demo-production-boundaries:browser
-      - name: Validate two-world demo, stable post routes, and degradation
-        run: pnpm test:world-demo:browser
-      - name: Validate packaged root and subpath deep refresh
-        run: |
-          RINSPACE_ARTIFACT_DIR=package-preview-root pnpm exec playwright test tests/e2e/static-package.spec.ts --project=desktop-light --workers=1
-          RINSPACE_ARTIFACT_DIR=package-preview-subpath RINSPACE_PREVIEW_BASE_PATH=/rinspace-demo/ pnpm exec playwright test tests/e2e/static-package.spec.ts --project=desktop-light --workers=1
+          NPM_CONFIG_USERCONFIG: /dev/null
+          NPM_CONFIG_GLOBALCONFIG: /dev/null
+        run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+      - name: Check frontend with no parent tree, credentials or network
+        run: node scripts/release/run-isolated-checks.mjs

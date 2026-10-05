@@ -21,6 +21,7 @@ const objectTypeKeys: Record<string, string> = {
   moderation_submission: 'objects.moderationSubmission',
   user: 'objects.user',
   report: 'objects.report',
+  wallet: 'objects.wallet',
 };
 
 const activityKeys: Record<string, string> = {
@@ -52,12 +53,18 @@ const notificationActionKeys: Record<string, string> = {
   question: 'notifications.actions.question',
   repost: 'notifications.actions.repost',
   vote: 'notifications.actions.vote',
+  like: 'notifications.actions.like',
+  collection: 'notifications.actions.collection',
+  publication_failed: 'notifications.actions.publicationFailed',
   moderation_first_review: 'notifications.actions.moderation',
   moderation_second_review_passed: 'notifications.actions.moderation',
   moderation_second_review_manual: 'notifications.actions.moderation',
   moderation_manual_review_approved: 'notifications.actions.moderation',
   moderation_manual_review_rejected: 'notifications.actions.moderation',
   report_resolved: 'notifications.actions.reportResolved',
+  wallet_tip_received: 'notifications.actions.walletTip',
+  wallet_recharge_completed: 'notifications.actions.walletRecharge',
+  wallet_conversion_completed: 'notifications.actions.walletConversion',
 };
 
 export function identityObjectTypeLabel(t: IdentityTranslation, value: string) {

@@ -38,35 +38,27 @@
   text-decoration: none;
 }
 
-.rin-app-shell > .topbar .brand :where(.brand-mark, .brand-word) {
+.rin-app-shell > .topbar .brand-word {
+  display: grid;
+  inline-size: 3em;
+  block-size: 38px;
+  place-items: center;
   color: inherit;
+  line-height: 1;
   text-decoration: none;
 }
 
-.rin-app-shell > .topbar .brand-word {
-  display: inline-flex;
-  block-size: 1.75em;
-  align-items: center;
-  line-height: 1.2;
-  transform: translateY(2px);
+.rin-app-shell > .topbar .brand-word-text {
+  display: block;
+  line-height: 1;
 }
 
-.rin-app-shell > .topbar .brand-word-motion {
-  display: inline-flex;
-  block-size: 1.2em;
-  align-items: center;
-}
-
-.rin-app-shell > .topbar .brand-word-motion > span {
-  display: inline-flex !important;
-  block-size: 1.2em;
-  align-items: center;
+html:lang(en) .rin-app-shell > .topbar .brand-word {
+  inline-size: 4em;
 }
 
 .rin-app-shell > .topbar .brand .brand-word,
-.rin-app-shell > .topbar .brand .brand-word-motion,
-.rin-app-shell > .topbar .brand .brand-word-motion > span,
-.rin-app-shell > .topbar .brand .brand-word-motion > span > span {
+.rin-app-shell > .topbar .brand .brand-word-text {
   overflow: visible;
   text-overflow: clip;
 }
@@ -80,15 +72,10 @@
   border: 0;
   background: transparent;
   color: currentcolor;
+  text-decoration: none;
 }
 
-.rin-app-shell > .topbar .brand-mark .rin-world-shell__logo-content {
-  inline-size: 100%;
-  block-size: 100%;
-  border: 0;
-}
-
-.rin-app-shell > .topbar .brand-mark img {
+.rin-app-shell > .topbar .brand-mark > img {
   display: block;
   inline-size: 100%;
   block-size: 100%;
@@ -97,7 +84,7 @@
   user-select: none;
 }
 
-[data-theme="dark"] .rin-app-shell > .topbar .brand-mark img {
+[data-theme="dark"] .rin-app-shell > .topbar .brand-mark > img {
   filter: invert(1);
 }
 
@@ -136,12 +123,30 @@
   border: 0;
   border-radius: 999px;
   background: var(--rin-accent);
-  color: #fff;
+  color: var(--rin-on-accent);
 }
 
 .rin-app-shell > .topbar .account-nav {
   min-inline-size: 0;
   justify-self: end;
+}
+
+.rin-app-shell > .topbar .topbar-desktop-actions,
+.rin-app-shell > .topbar .topbar-compact-actions {
+  align-items: center;
+  gap: 10px;
+}
+
+.rin-app-shell > .topbar .topbar-desktop-actions {
+  display: inline-flex;
+}
+
+.rin-app-shell > .topbar .topbar-compact-actions {
+  display: none;
+}
+
+.rin-app-shell > .topbar .topbar-auth-icon {
+  display: none;
 }
 
 .rin-app-shell > .topbar .topbar-auth-button {
@@ -177,9 +182,9 @@
 .rin-app-shell > .topbar .notification-pill {
   position: relative;
   display: inline-grid;
-  inline-size: 34px;
-  block-size: 34px;
-  flex: 0 0 34px;
+  inline-size: var(--rin-topbar-compact-control-size);
+  block-size: var(--rin-topbar-compact-control-size);
+  flex: 0 0 var(--rin-topbar-compact-control-size);
   place-items: center;
   border: 1px solid var(--rin-border);
   border-radius: 999px;
@@ -200,17 +205,53 @@
   border: 1px solid var(--rin-canvas);
   border-radius: 999px;
   background: var(--rin-accent);
-  color: #fff;
+  color: var(--rin-on-accent);
   font-family: var(--rin-font-mono);
   font-size: 0.64rem;
   font-weight: 700;
 }
 
+.rin-app-shell > .topbar .topbar-more-trigger {
+  position: relative;
+}
+
+.rin-app-shell > .topbar .topbar-more-count {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-end: -7px;
+  display: grid;
+  min-inline-size: 18px;
+  block-size: 18px;
+  place-items: center;
+  padding: 0 5px;
+  border: 1px solid var(--rin-canvas);
+  border-radius: 999px;
+  background: var(--rin-accent);
+  color: var(--rin-on-accent);
+  font-family: var(--rin-font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.topbar-menu-count {
+  min-inline-size: 18px;
+  margin-inline-start: auto;
+  padding-inline: 5px;
+  border-radius: 999px;
+  background: var(--rin-accent);
+  color: var(--rin-on-accent);
+  font-family: var(--rin-font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
 .rin-app-shell > .topbar .account-menu-trigger {
   display: inline-flex;
   max-inline-size: 168px;
-  block-size: 34px;
-  min-block-size: 34px;
+  block-size: var(--rin-topbar-compact-control-size);
+  min-block-size: var(--rin-topbar-compact-control-size);
   align-items: center;
   gap: 6px;
   padding: 3px 8px 3px 4px;
@@ -326,586 +367,118 @@
   min-block-size: calc(100dvh - 64px);
 }
 
-.rin-demo-control {
-  position: fixed;
-  inset-inline-end: max(18px, env(safe-area-inset-right));
-  inset-block-end: max(18px, env(safe-area-inset-bottom));
-  z-index: 96;
-  display: grid;
-  inline-size: min(380px, calc(100vw - 32px));
-  justify-items: end;
-  gap: 10px;
-  color: var(--rin-ink);
-  font-family: var(--rin-font-interface);
-}
-
-.rin-demo-badge,
-.rin-demo-control-icon,
-.rin-demo-persona-control button,
-.rin-demo-reset {
-  border: 1px solid var(--rin-border);
-  background: var(--rin-surface);
-  color: var(--rin-ink);
-  font: inherit;
-  cursor: pointer;
-}
-
-.rin-demo-badge {
-  display: inline-flex;
-  min-block-size: 36px;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  box-shadow: var(--rin-shadow-raised);
-  font-family: var(--rin-font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.01em;
-}
-
-.rin-demo-badge:hover,
-.rin-demo-badge:focus-visible,
-.rin-demo-control-icon:hover,
-.rin-demo-control-icon:focus-visible,
-.rin-demo-persona-control button:hover,
-.rin-demo-persona-control button:focus-visible,
-.rin-demo-reset:hover,
-.rin-demo-reset:focus-visible {
-  border-color: var(--rin-accent);
-  outline: 0;
-  box-shadow: var(--rin-focus-ring);
-}
-
-.rin-demo-badge > svg,
-.rin-demo-reset > svg,
-.rin-demo-control-icon > svg {
-  inline-size: 16px;
-  block-size: 16px;
-  flex: 0 0 16px;
-}
-
-.rin-demo-badge > strong {
-  color: var(--rin-accent);
-  font-size: 0.68rem;
-}
-
-.rin-demo-control-panel {
-  display: grid;
-  inline-size: 100%;
-  max-block-size: min(680px, calc(100dvh - 78px));
-  gap: 14px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 18px;
-  border: 1px solid var(--rin-border);
-  border-radius: var(--rin-radius-lg) var(--rin-radius-lg) var(--rin-radius-sm)
-    var(--rin-radius-lg);
-  background: color-mix(in srgb, var(--rin-elevated) 97%, transparent);
-  box-shadow: var(--rin-shadow-floating);
-  backdrop-filter: blur(18px);
-}
-
-.rin-demo-control-panel > header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.rin-demo-control-panel > header span,
-.rin-demo-scenario-control > span,
-.rin-demo-persona-control legend {
-  color: var(--rin-ink-muted);
-  font-family: var(--rin-font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.rin-demo-control-panel h2 {
-  margin: 3px 0 0;
-  color: var(--rin-ink);
-  font-family: var(--rin-font-editorial);
-  font-size: 1.25rem;
-  line-height: 1.2;
-}
-
-.rin-demo-control-icon {
-  display: grid;
-  inline-size: 32px;
-  block-size: 32px;
-  flex: 0 0 32px;
-  place-items: center;
-  padding: 0;
-  border-radius: 999px;
-}
-
-.rin-demo-control-description,
-.rin-demo-control-status {
-  margin: 0;
-  color: var(--rin-ink-muted);
-  font-size: 0.82rem;
-  line-height: 1.55;
-}
-
-.rin-demo-persona-control {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-  padding: 4px;
-  border: 1px solid var(--rin-border);
-  border-radius: var(--rin-radius-md);
-  background: var(--rin-surface-subtle);
-}
-
-.rin-demo-persona-control legend {
-  padding: 0 4px;
-}
-
-.rin-demo-persona-control button {
-  min-block-size: 36px;
-  border-color: transparent;
-  border-radius: calc(var(--rin-radius-md) - 4px);
-  font-family: var(--rin-font-mono);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.rin-demo-persona-control button[aria-pressed="true"] {
-  border-color: var(--rin-accent);
-  background: var(--rin-surface);
-  color: var(--rin-accent);
-}
-
-.rin-demo-scenario-control {
-  display: grid;
-  gap: 6px;
-}
-
-.rin-demo-scenario-control select {
-  inline-size: 100%;
-  min-block-size: 38px;
-  padding: 0 10px;
-  border: 1px solid var(--rin-border);
-  border-radius: var(--rin-radius-sm);
-  background: var(--rin-surface);
-  color: var(--rin-ink);
-  font: 0.78rem/1.4 var(--rin-font-mono);
-}
-
-.rin-demo-reset {
-  display: inline-flex;
-  min-block-size: 38px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: var(--rin-radius-sm);
-  font-family: var(--rin-font-mono);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.rin-demo-reset:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.rin-demo-diagnostics {
-  padding-block-start: 2px;
-  border-block-start: 1px solid var(--rin-border);
-}
-
-.rin-demo-capabilities {
-  padding-block-start: 2px;
-  border-block-start: 1px solid var(--rin-border);
-}
-
-.rin-demo-capabilities summary {
-  padding-block: 10px 2px;
-  color: var(--rin-accent);
-  font-family: var(--rin-font-mono);
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.rin-demo-capabilities > p {
-  margin: 6px 0 10px;
-  color: var(--rin-ink-muted);
-  font-size: 0.74rem;
-  line-height: 1.5;
-}
-
-.rin-demo-capabilities ul {
-  display: grid;
-  gap: 7px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.rin-demo-capabilities li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 10px;
-  padding: 8px 9px;
-  border: 1px solid var(--rin-border);
-  border-radius: var(--rin-radius-sm);
-  background: var(--rin-surface-subtle);
-}
-
-.rin-demo-capabilities li > strong,
-.rin-demo-capabilities li > span,
-.rin-demo-capabilities li > small {
-  font-family: var(--rin-font-mono);
-  font-size: 0.67rem;
-  line-height: 1.45;
-}
-
-.rin-demo-capabilities li > span {
-  color: var(--rin-accent);
-}
-
-.rin-demo-capabilities li > small {
-  grid-column: 1 / -1;
-  color: var(--rin-ink-muted);
-}
-
-.rin-demo-capability-page {
-  display: grid;
-  min-block-size: min(72dvh, 680px);
-  place-items: center;
-  padding: clamp(24px, 7vw, 84px) max(16px, env(safe-area-inset-right))
-    clamp(80px, 10vw, 120px) max(16px, env(safe-area-inset-left));
-}
-
-.rin-demo-capability-card {
-  display: grid;
-  inline-size: min(680px, 100%);
-  gap: 16px;
-  padding: clamp(24px, 5vw, 48px);
-}
-
-.rin-demo-capability-kicker {
-  color: var(--rin-accent);
-  font-family: var(--rin-font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.rin-demo-capability-card h1,
-.rin-demo-capability-card p,
-.rin-demo-capability-card dl {
-  margin: 0;
-}
-
-.rin-demo-capability-card h1 {
-  font-family: var(--rin-font-editorial);
-  font-size: clamp(1.7rem, 5vw, 2.7rem);
-}
-
-.rin-demo-capability-card > p {
-  color: var(--rin-ink-muted);
-  line-height: 1.7;
-}
-
-.rin-demo-capability-card dl {
-  display: grid;
-  gap: 10px;
-}
-
-.rin-demo-capability-card dl > div {
-  display: grid;
-  grid-template-columns: minmax(96px, 0.35fr) minmax(0, 1fr);
-  gap: 12px;
-  padding-block: 9px;
-  border-block-start: 1px solid var(--rin-border);
-}
-
-.rin-demo-capability-card dt {
-  color: var(--rin-ink-muted);
-  font-family: var(--rin-font-mono);
-  font-size: 0.74rem;
-}
-
-.rin-demo-capability-card dd {
-  margin: 0;
-  line-height: 1.55;
-}
-
-.rin-demo-diagnostics summary {
-  padding-block: 10px 2px;
-  color: var(--rin-accent);
-  font-family: var(--rin-font-mono);
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.rin-demo-diagnostics dl {
-  display: grid;
-  gap: 7px;
-  margin: 4px 0 10px;
-}
-
-.rin-demo-diagnostics dl > div {
-  display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  gap: 10px;
-}
-
-.rin-demo-diagnostics dt,
-.rin-demo-diagnostics dd,
-.rin-demo-diagnostics nav {
-  margin: 0;
-  font-family: var(--rin-font-mono);
-  font-size: 0.68rem;
-  line-height: 1.5;
-}
-
-.rin-demo-diagnostics dt {
-  color: var(--rin-ink-muted);
-}
-
-.rin-demo-diagnostics dd {
-  min-inline-size: 0;
-  overflow-wrap: anywhere;
-}
-
-.rin-demo-diagnostics nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-}
-
-.rin-demo-diagnostics a {
-  color: var(--rin-accent);
-  text-underline-offset: 3px;
-}
-
-.rin-demo-control-status {
-  padding: 9px 10px;
-  border-inline-start: 3px solid var(--rin-accent);
-  background: var(--rin-surface-subtle);
-}
-
-.rin-demo-world-page {
-  display: grid;
-  grid-template-columns: minmax(0, 680px) minmax(240px, 320px);
-  align-items: start;
-  justify-content: center;
-  gap: clamp(20px, 4vw, 48px);
-  min-block-size: calc(100dvh - 64px);
-  padding: clamp(32px, 6vw, 76px) max(18px, env(safe-area-inset-right)) 110px
-    max(18px, env(safe-area-inset-left));
-  background: var(--rin-canvas);
-  color: var(--rin-ink);
-}
-
-.rin-demo-world-intro,
-.rin-demo-world-feed,
-.rin-demo-world-post-page > .rin-demo-world-post,
-.rin-demo-world-post-page > .rin-demo-world-state,
-.rin-demo-world-post-page > .rin-demo-world-back {
-  grid-column: 1;
-}
-
-.rin-demo-world-intro {
-  display: grid;
-  gap: 10px;
-}
-
-.rin-demo-world-intro > span,
-.rin-demo-world-lab > div > span {
-  color: var(--rin-accent);
-  font-family: var(--rin-font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.rin-demo-world-intro h1,
-.rin-demo-world-lab h2 {
-  margin: 0;
-  font-family: var(--rin-font-editorial);
-  line-height: 1.15;
-}
-
-.rin-demo-world-intro h1 {
-  font-size: clamp(2rem, 6vw, 3.8rem);
-}
-
-.rin-demo-world-intro p {
-  max-inline-size: 62ch;
-  margin: 0;
-  color: var(--rin-ink-muted);
-  line-height: 1.75;
-}
-
-.rin-demo-world-feed {
-  display: grid;
-  gap: 12px;
-}
-
-.rin-demo-world-post {
-  display: grid;
-  gap: 13px;
-  padding: clamp(18px, 3vw, 26px);
-  border: 1px solid var(--rin-border);
-  border-radius: var(--rin-radius-lg);
-  background: var(--rin-surface);
-  box-shadow: var(--rin-shadow-raised);
-}
-
-.rin-demo-world-post header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  font-family: var(--rin-font-mono);
-  font-size: 0.78rem;
-}
-
-.rin-demo-world-post header a,
-.rin-demo-world-post-body,
-.rin-demo-world-tag,
-.rin-demo-world-lab a,
-.rin-demo-world-state a,
-.rin-demo-world-back {
-  color: inherit;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-}
-
-.rin-demo-world-post header span {
-  color: var(--rin-ink-muted);
-}
-
-.rin-demo-world-post-body {
-  font-family: var(--rin-font-editorial);
-  font-size: clamp(1.05rem, 2.4vw, 1.28rem);
-  line-height: 1.65;
-  text-decoration: none;
-}
-
-.rin-demo-world-post-body:hover,
-.rin-demo-world-post-body:focus-visible,
-.rin-demo-world-lab a:hover,
-.rin-demo-world-lab a:focus-visible {
-  color: var(--rin-accent);
-}
-
-.rin-demo-world-tag {
-  inline-size: fit-content;
-  color: var(--rin-accent);
-  font-family: var(--rin-font-mono);
-  font-size: 0.76rem;
-}
-
-.rin-demo-world-post footer {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-  padding-block-start: 12px;
-  border-block-start: 1px solid var(--rin-border);
-  color: var(--rin-ink-muted);
-  font-family: var(--rin-font-mono);
-  font-size: 0.68rem;
-}
-
-.rin-demo-world-post footer span {
-  display: grid;
-  gap: 2px;
-}
-
-.rin-demo-world-post footer strong {
-  color: var(--rin-ink);
-}
-
-.rin-demo-world-lab {
-  position: sticky;
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  inset-block-start: 88px;
-  display: grid;
-  gap: 18px;
-  padding: 20px;
-  border: 1px solid var(--rin-border);
-  border-radius: var(--rin-radius-lg);
-  background: var(--rin-surface-subtle);
-}
-
-.rin-demo-world-lab h2 {
-  margin-block-start: 5px;
-  font-size: 1.35rem;
-}
-
-.rin-demo-world-lab nav {
-  display: grid;
-  gap: 0;
-}
-
-.rin-demo-world-lab a {
-  padding-block: 10px;
-  border-block-start: 1px solid var(--rin-border);
-  font-family: var(--rin-font-mono);
-  font-size: 0.75rem;
-}
-
-.rin-demo-world-state {
-  display: grid;
-  gap: 10px;
-  padding: 18px 20px;
-  border: 1px solid var(--rin-border);
-  border-inline-start: 4px solid var(--rin-accent);
-  border-radius: var(--rin-radius-md);
-  background: var(--rin-surface-subtle);
-}
-
-.rin-demo-world-state p {
-  margin: 0;
-  color: var(--rin-ink-muted);
-  line-height: 1.65;
-}
-
-.rin-demo-world-state a,
-.rin-demo-world-back {
-  inline-size: fit-content;
-  color: var(--rin-accent);
-  font-family: var(--rin-font-mono);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.rin-demo-world-post-page {
-  grid-template-columns: minmax(0, 760px);
-}
-
-.rin-demo-world-post-page > .rin-demo-world-post {
-  margin-block-start: 12px;
+@media (max-width: 900px) {
+  .rin-app-shell > .topbar {
+    grid-template-columns: max-content minmax(140px, 1fr) auto;
+    gap: 10px;
+    block-size: 64px;
+    min-block-size: 64px;
+    padding: 0 16px;
+  }
+
+  .rin-app-shell > .topbar.rin-topbar-shell .brand {
+    min-inline-size: max-content;
+    max-inline-size: none;
+    flex: 0 0 auto;
+  }
+
+  .rin-app-shell > .topbar.rin-topbar-shell .brand > .brand-word,
+  .rin-app-shell > .topbar.rin-topbar-shell .brand .brand-word-text {
+    max-inline-size: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  .rin-app-shell > .topbar .topbar-search {
+    grid-column: 2;
+    grid-row: 1;
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  .rin-app-shell > .topbar .account-nav {
+    grid-column: 3;
+    grid-row: 1;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .rin-app-shell > .topbar .topbar-desktop-actions {
+    display: none;
+  }
+
+  .rin-app-shell > .topbar .topbar-compact-actions {
+    display: inline-flex;
+  }
+
+  .rin-app-shell > .topbar .account-menu-trigger {
+    inline-size: var(--rin-topbar-compact-control-size);
+    max-inline-size: var(--rin-topbar-compact-control-size);
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .rin-app-shell > .topbar .account-menu-trigger .avatar-name {
+    inline-size: 100%;
+    block-size: 100%;
+    justify-content: center;
+  }
+
+  .rin-app-shell > .topbar .account-menu-trigger .avatar-name-mark {
+    inline-size: 100%;
+    block-size: 100%;
+    flex-basis: 100%;
+  }
+
+  .rin-app-shell
+    > .topbar
+    .account-menu-trigger
+    :where(.avatar-name-text, .cultivation-badge, .account-menu-chevron) {
+    display: none;
+  }
+
+  .rin-app-shell > .topbar .topbar-auth-control {
+    display: inline-grid;
+    inline-size: var(--rin-topbar-compact-control-size);
+    block-size: var(--rin-topbar-compact-control-size);
+    flex: 0 0 var(--rin-topbar-compact-control-size);
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--rin-border);
+    border-radius: 999px;
+    background: var(--rin-surface);
+    color: var(--rin-ink);
+    text-decoration: none;
+  }
+
+  .rin-app-shell > .topbar .topbar-auth-label {
+    display: none;
+  }
+
+  .rin-app-shell > .topbar .topbar-auth-icon {
+    display: inline-grid;
+    place-items: center;
+  }
+
+  .topbar-session-placeholder {
+    gap: 8px;
+  }
+
+  .topbar-session-placeholder-account {
+    min-inline-size: var(--rin-topbar-compact-control-size);
+  }
+
+  .topbar-session-placeholder-name {
+    display: none;
+  }
 }
 
 @media (max-width: 620px) {
-  .rin-demo-control {
-    inset-inline: max(10px, env(safe-area-inset-left))
-      max(10px, env(safe-area-inset-right));
-    inset-block-end: max(10px, env(safe-area-inset-bottom));
-    inline-size: auto;
-  }
-
-  .rin-demo-control-panel {
-    max-block-size: min(72dvh, 620px);
-    padding: 15px;
-    border-radius: var(--rin-radius-lg) var(--rin-radius-lg)
-      var(--rin-radius-sm) var(--rin-radius-lg);
-  }
-
   .rin-app-shell > .topbar {
-    grid-template-columns: minmax(0, 1fr) 38px auto;
+    grid-template-columns: max-content 36px auto;
     justify-items: stretch;
     gap: 8px;
     block-size: 54px;
@@ -916,21 +489,8 @@
   }
 
   .rin-app-shell > .topbar .brand {
-    min-inline-size: 0;
-    max-inline-size: 100%;
-    gap: 6px;
-    font-size: 1.08rem;
-  }
-
-  .rin-app-shell > .topbar .brand-mark {
-    inline-size: 34px;
-    block-size: 34px;
-    flex-basis: 34px;
-  }
-
-  .rin-app-shell > .topbar .brand-word {
-    font-size: 0.9rem;
-    white-space: nowrap;
+    min-inline-size: max-content;
+    max-inline-size: none;
   }
 
   .rin-app-shell > .topbar .topbar-search {
@@ -989,66 +549,14 @@
     gap: 8px;
   }
 
-  .rin-app-shell > .topbar .account-menu-trigger {
-    max-inline-size: 58px;
-    padding-inline-end: 7px;
-  }
-
-  .rin-app-shell
-    > .topbar
-    .account-menu-trigger
-    :where(.avatar-name-text, .cultivation-badge),
-  .topbar-session-placeholder-name {
-    display: none;
-  }
-
-  .topbar-session-placeholder-account {
-    min-inline-size: 42px;
-  }
-
   .rin-app-shell .rin-app-frame {
     min-block-size: calc(100dvh - 54px);
-  }
-
-  .rin-demo-world-page {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-    min-block-size: calc(100dvh - 54px);
-    padding-block-start: 26px;
-  }
-
-  .rin-demo-world-intro,
-  .rin-demo-world-feed,
-  .rin-demo-world-lab,
-  .rin-demo-world-post-page > .rin-demo-world-post,
-  .rin-demo-world-post-page > .rin-demo-world-state,
-  .rin-demo-world-post-page > .rin-demo-world-back {
-    grid-column: 1;
-  }
-
-  .rin-demo-world-lab {
-    position: static;
-    grid-row: auto;
-  }
-
-  .rin-demo-world-post footer {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rin-demo-control *,
-  .rin-demo-control *::before,
-  .rin-demo-control *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0s !important;
-    animation-duration: 0s !important;
   }
 }
 
 @media (max-width: 360px) {
   .rin-app-shell > .topbar {
-    grid-template-columns: minmax(0, 1fr) 34px auto;
+    grid-template-columns: max-content 34px auto;
     gap: 4px;
     padding-inline-start: max(6px, env(safe-area-inset-left));
     padding-inline-end: max(6px, env(safe-area-inset-right));
@@ -1057,9 +565,16 @@
   .rin-app-shell > .topbar .account-nav {
     gap: 4px;
   }
-
-  .rin-app-shell > .topbar[data-session-state="authenticated"] .brand-word,
-  .rin-app-shell > .topbar[data-session-state="restoring"] .brand-word {
-    display: none;
-  }
+}
+.typst-menu-mark {
+  display: inline-grid;
+  inline-size: 1.2em;
+  block-size: 1.2em;
+  place-items: center;
+  border-radius: 0.2em;
+  background: var(--ink, #1b1b18);
+  color: var(--paper, #fff);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8em;
+  font-weight: 700;
 }

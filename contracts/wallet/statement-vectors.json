@@ -1,0 +1,627 @@
+{
+  "schema": "wallet.statement.v2",
+  "note": "Synthetic contract fixtures, not production balances or limits.",
+  "cases": [
+    {
+      "name": "recharge",
+      "valid": true,
+      "value": {
+        "sequence": "5",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "100",
+        "refundable_fen": "100"
+      }
+    },
+    {
+      "name": "spend",
+      "valid": true,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "book",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        }
+      }
+    },
+    {
+      "name": "received",
+      "valid": true,
+      "value": {
+        "sequence": "3",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000003",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "received",
+        "unit": "SG_BOUND",
+        "quantity": "23",
+        "content": {
+          "content_type": "blog",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        }
+      }
+    },
+    {
+      "name": "conversion",
+      "valid": true,
+      "value": {
+        "sequence": "2",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000004",
+          "kind": "conversion",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "conversion",
+        "unit": "SG_BOUND",
+        "quantity": "20",
+        "received_quantity": "14"
+      }
+    },
+    {
+      "name": "refund",
+      "valid": true,
+      "value": {
+        "sequence": "1",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000005",
+          "kind": "refund",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "refund",
+        "unit": "SG",
+        "quantity": "2",
+        "amount_fen": "20",
+        "original_operation_id": "10000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "name": "large_exact",
+      "valid": true,
+      "value": {
+        "sequence": "9223372036854775807",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "9007199254740993",
+        "amount_fen": "90071992547409930",
+        "refundable_fen": "90071992547409930"
+      }
+    },
+    {
+      "name": "large_conversion",
+      "valid": true,
+      "value": {
+        "sequence": "2",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000004",
+          "kind": "conversion",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "conversion",
+        "unit": "SG_BOUND",
+        "quantity": "9223372036854775800",
+        "received_quantity": "6456360425798343060"
+      }
+    },
+    {
+      "name": "number_quantity",
+      "valid": false,
+      "value": {
+        "sequence": "5",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": 10,
+        "amount_fen": "100"
+      }
+    },
+    {
+      "name": "fractional_coin",
+      "valid": false,
+      "value": {
+        "sequence": "5",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "1.5",
+        "amount_fen": "100"
+      }
+    },
+    {
+      "name": "wrong_recharge_ratio",
+      "valid": false,
+      "value": {
+        "sequence": "5",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "101"
+      }
+    },
+    {
+      "name": "number_sequence",
+      "valid": false,
+      "value": {
+        "sequence": 5,
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "100"
+      }
+    },
+    {
+      "name": "zero_sequence",
+      "valid": false,
+      "value": {
+        "sequence": "0",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "100"
+      }
+    },
+    {
+      "name": "unknown_perspective",
+      "valid": false,
+      "value": {
+        "sequence": "5",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "withdrawal",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "100"
+      }
+    },
+    {
+      "name": "missing_operation",
+      "valid": false,
+      "value": {
+        "sequence": "5",
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "100"
+      }
+    },
+    {
+      "name": "wrong_state",
+      "valid": false,
+      "value": {
+        "sequence": "5",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "100"
+      }
+    },
+    {
+      "name": "wrong_kind",
+      "valid": false,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "conversion",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "book",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        }
+      }
+    },
+    {
+      "name": "missing_content",
+      "valid": false,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23"
+      }
+    },
+    {
+      "name": "unknown_content",
+      "valid": false,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "external_book",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        }
+      }
+    },
+    {
+      "name": "received_wrong_unit",
+      "valid": false,
+      "value": {
+        "sequence": "3",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000003",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "received",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "blog",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        }
+      }
+    },
+    {
+      "name": "spend_rmb_leak",
+      "valid": false,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "book",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        },
+        "amount_fen": "230"
+      }
+    },
+    {
+      "name": "received_rmb_leak",
+      "valid": false,
+      "value": {
+        "sequence": "3",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000003",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "received",
+        "unit": "SG_BOUND",
+        "quantity": "23",
+        "content": {
+          "content_type": "blog",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        },
+        "amount_fen": "230"
+      }
+    },
+    {
+      "name": "conversion_rmb_leak",
+      "valid": false,
+      "value": {
+        "sequence": "2",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000004",
+          "kind": "conversion",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "conversion",
+        "unit": "SG_BOUND",
+        "quantity": "20",
+        "received_quantity": "14",
+        "amount_fen": "140"
+      }
+    },
+    {
+      "name": "conversion_not_whole_group",
+      "valid": false,
+      "value": {
+        "sequence": "2",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000004",
+          "kind": "conversion",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "conversion",
+        "unit": "SG_BOUND",
+        "quantity": "23",
+        "received_quantity": "14"
+      }
+    },
+    {
+      "name": "conversion_wrong_rate",
+      "valid": false,
+      "value": {
+        "sequence": "2",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000004",
+          "kind": "conversion",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "conversion",
+        "unit": "SG_BOUND",
+        "quantity": "20",
+        "received_quantity": "15"
+      }
+    },
+    {
+      "name": "conversion_missing_output",
+      "valid": false,
+      "value": {
+        "sequence": "2",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000004",
+          "kind": "conversion",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "conversion",
+        "unit": "SG_BOUND",
+        "quantity": "20"
+      }
+    },
+    {
+      "name": "refund_missing_original",
+      "valid": false,
+      "value": {
+        "sequence": "1",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000005",
+          "kind": "refund",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "refund",
+        "unit": "SG",
+        "quantity": "2",
+        "amount_fen": "20"
+      }
+    },
+    {
+      "name": "refund_self_original",
+      "valid": false,
+      "value": {
+        "sequence": "1",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000005",
+          "kind": "refund",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "refund",
+        "unit": "SG",
+        "quantity": "2",
+        "amount_fen": "20",
+        "original_operation_id": "10000000-0000-4000-8000-000000000005"
+      }
+    },
+    {
+      "name": "refund_wrong_ratio",
+      "valid": false,
+      "value": {
+        "sequence": "1",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000005",
+          "kind": "refund",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "refund",
+        "unit": "SG",
+        "quantity": "2",
+        "amount_fen": "30",
+        "original_operation_id": "10000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "name": "recharge_content_leak",
+      "valid": false,
+      "value": {
+        "sequence": "5",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000001",
+          "kind": "recharge",
+          "state": "CREDIT_POSTED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "recharge",
+        "unit": "SG",
+        "quantity": "10",
+        "amount_fen": "100",
+        "content": {
+          "content_type": "book",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        }
+      }
+    },
+    {
+      "name": "tip_original_reference",
+      "valid": false,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "book",
+          "post_id": "9007199254740993",
+          "title": "原创 Typst 书籍"
+        },
+        "original_operation_id": "10000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "name": "number_post_id",
+      "valid": false,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "book",
+          "post_id": 1,
+          "title": "原创 Typst 书籍"
+        }
+      }
+    },
+    {
+      "name": "blank_title",
+      "valid": false,
+      "value": {
+        "sequence": "4",
+        "operation": {
+          "operation_id": "10000000-0000-4000-8000-000000000002",
+          "kind": "tip",
+          "state": "COMPLETED",
+          "version": "1",
+          "created_at": "2026-09-19T15:00:00Z"
+        },
+        "perspective": "spend",
+        "unit": "SG",
+        "quantity": "23",
+        "content": {
+          "content_type": "book",
+          "post_id": "9007199254740993",
+          "title": " "
+        }
+      }
+    }
+  ]
+}

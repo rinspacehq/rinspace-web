@@ -270,10 +270,6 @@
   padding-block-start: 0;
 }
 
-[data-rin-ui="v2"] .creator-row-time {
-  color: var(--rin-ink-muted);
-}
-
 [data-rin-ui="v2"] .creator-content-toolbar {
   position: sticky;
   z-index: 12;

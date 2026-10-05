@@ -1,4 +1,4 @@
-import { getStoredSession, type CloudUser } from './phoneAuth';
+import { getStoredSession, type RinspaceUser } from './phoneAuth';
 
 export type TopbarUserProfile = {
   nickname?: string;
@@ -6,16 +6,13 @@ export type TopbarUserProfile = {
 };
 
 export type TopbarSessionSnapshot = {
-  authorizationSource: 'backend-identity-v1';
-  user: CloudUser;
+  user: RinspaceUser;
   profile: TopbarUserProfile | null;
   nickname: string;
   avatarDataUrl: string;
   publicUserId: string;
   isAdmin: boolean;
   isModerator: boolean;
-  language?: string;
-  colorScheme?: string;
   cachedAt: number;
 };
 
@@ -29,7 +26,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function cachedCloudUser(value: unknown): CloudUser | null {
+function cachedRinspaceUser(value: unknown): RinspaceUser | null {
   if (!isRecord(value) || typeof value.id !== 'string' || !value.id) {
     return null;
   }
@@ -57,6 +54,15 @@ function cachedUserProfile(value: unknown): TopbarUserProfile | null {
   };
 }
 
+export function topbarSessionDisplayName(snapshot: TopbarSessionSnapshot) {
+  return (
+    snapshot.profile?.nickname?.trim() ||
+    snapshot.nickname.trim() ||
+    optionalString(snapshot.user.username).trim() ||
+    snapshot.publicUserId.trim()
+  );
+}
+
 export function readTopbarSessionSnapshot(): TopbarSessionSnapshot | null {
   const session = getStoredSession();
   if (!session) return null;
@@ -65,15 +71,10 @@ export function readTopbarSessionSnapshot(): TopbarSessionSnapshot | null {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed)) return null;
-    if (parsed.authorizationSource !== 'backend-identity-v1') {
-      window.localStorage.removeItem(topbarSessionCacheKey);
-      return null;
-    }
-    const user = cachedCloudUser(parsed.user);
+    const user = cachedRinspaceUser(parsed.user);
     if (!user) return null;
     if (session.sub && user.id !== session.sub) return null;
-    return {
-      authorizationSource: 'backend-identity-v1',
+    const snapshot = {
       user,
       profile: cachedUserProfile(parsed.profile),
       nickname: optionalString(parsed.nickname),
@@ -81,13 +82,16 @@ export function readTopbarSessionSnapshot(): TopbarSessionSnapshot | null {
       publicUserId: optionalString(parsed.publicUserId),
       isAdmin: parsed.isAdmin === true,
       isModerator: parsed.isModerator === true,
-      language: optionalString(parsed.language),
-      colorScheme: optionalString(parsed.colorScheme),
       cachedAt:
         typeof parsed.cachedAt === 'number'
           ? parsed.cachedAt
           : Date.now(),
     };
+    if (!topbarSessionDisplayName(snapshot)) {
+      window.localStorage.removeItem(topbarSessionCacheKey);
+      return null;
+    }
+    return snapshot;
   } catch {
     window.localStorage.removeItem(topbarSessionCacheKey);
     return null;
@@ -95,6 +99,10 @@ export function readTopbarSessionSnapshot(): TopbarSessionSnapshot | null {
 }
 
 export function writeTopbarSessionSnapshot(snapshot: TopbarSessionSnapshot) {
+  if (!topbarSessionDisplayName(snapshot)) {
+    clearTopbarSessionSnapshot();
+    return;
+  }
   try {
     window.localStorage.setItem(topbarSessionCacheKey, JSON.stringify(snapshot));
   } catch {

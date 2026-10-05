@@ -1,39 +1,78 @@
-# Instructions for coding agents
+# Instructions for frontend migration agents
 
-These instructions apply to the entire Rinspace Web repository.
+These instructions apply to the existing `rinspace-web` repository. Read
+`/home/ubuntu/WORKSPACE.md` and `/home/ubuntu/AGENTS.md` first when working in this workspace.
 
-## Start here
+## Repository status
 
-1. Read `README.md` (or `README.zh-CN.md`) and `CONTRIBUTING.md` before changing files.
-2. Inspect `package.json`, nearby tests, and the current `git diff`; do not assume commands or architecture.
-3. Restate the requested outcome, acceptance criteria, and files you expect to touch before a broad change.
+- This repository remains canonically located at `rinspacehq/rinspace-web`. `lunifans` is
+  the maintainer's personal identity, not an alternative `origin`, authoritative fork or release
+  namespace. Do not redirect fetch, push or releases to `lunifans/*` without an explicit
+  written ownership migration.
+- On 2026-10-04 the sole maintainer approved reuse of this existing repository for frontend
+  migration preparation. The former experiment's exclusion from the product chain is not a
+  deletion or GitHub archive operation; preserve Git history, issues/PRs and contribution credit.
+- Preparation is not source cutover: private `/home/ubuntu/rinspace/ui` remains the only editable
+  product frontend until the documented gates pass. Product requirements, backend identity,
+  contracts, integration decisions, release and operations remain in the private product repository.
+- Rebuild only from its reviewed clean source commit and approved file list. Historical UI, demos,
+  packages and workflows are not the migration baseline or current release inputs; never copy
+  this old UI into the private product or infer live behavior from it.
+- After an explicitly accepted cutover, this repository owns the only editable outer-world frontend
+  and fixed frontend releases. Private consumption locks exact version and integrity and requires
+  public/private checks of the same immutable candidate; never synchronize PRs automatically.
+- A request to open-source a standalone Rinspace module (for example the Milkdown editor) does not
+  expand this whole-frontend migration or authorize placing that module here. Such work starts with
+  a specification in `/home/ubuntu/rinspace/specs/` and requires a separately approved public
+  repository/package identity before any export or publication.
 
-## Repository boundaries
+## Allowed changes
 
-- This repository is the public browser frontend and deterministic local demo. It does not contain the private Rinspace backend or production credentials.
-- Demo mode must use synthetic data, remain deterministic, and fail closed. Never add a production endpoint or an unspecified external request as a fallback.
-- Browser runtime configuration is public. Never place a password, token, private key, database URL, internal address, personal information, or production data in source, fixtures, logs, screenshots, examples, or `runtime-config.json`.
-- Do not weaken origin validation, authorization boundaries, secret scanning, third-party inventory, license notices, DCO checks, or release checks to make a test pass.
-- Ask before adding/upgrading a dependency, changing a public API or license boundary, deleting data, using `sudo`, accessing a cloud account, changing DNS/firewall settings, or pushing/merging/publishing anything.
+The 2026-10-04 approval permits coordinated local policy maintenance and migration preparation; it does
+not authorize source export/publication, build dispatch, commits, pushes, releases or deployment.
+Frontend export waits for complete source/input, license/notice and sensitive-content review,
+approved export scope and a clean private commit. Do not operate a parallel daily product UI here.
 
-## Toolchain and verification
+The maintainer separately confirmed on 2026-10-05 that the current 1036-file private candidate is
+the accepted migration baseline. Named-branch local task commits and local reconstruction here
+are permitted after remaining export reviews pass, bound to the digest in WORKSPACE.md.
+This does not authorize push, build dispatch, publication, deployment or source/production cutover.
+Preserve unrelated edits in the original public working tree; use a named linked worktree for
+the replacement candidate, retaining this repository's history and contribution credit.
 
-- Use Node.js 22.x and pnpm 9.7.0. Install dependencies with `pnpm install --frozen-lockfile`; do not use `npm install` for project dependencies.
-- Prefer the smallest relevant test while iterating. Before handing off a normal code change, run:
+Source cutover additionally requires independent public checks and private integration against the
+same candidate, fixed provenance/compatibility/version/digests, an explicit maintainer acceptance
+and removal of duplicate editable private frontend code with a verified rollback artifact.
+The existing private-main-only deployment and production guards stay intact until that reviewed
+integration change. Ordinary requests or newer public tags do not bypass any of these gates.
 
-```bash
-pnpm check
-pnpm lint
-pnpm test
-```
+If `/home/ubuntu/WORKSPACE.md`, root and both repository instructions, private README or release
+policy disagree, stop before export, cutover or release. The private decision record is
+`specs/rinspace-web-real-client-open-source/repository-policy.md`; it does not supersede WORKSPACE.
 
-- For browser-visible, packaging, container, translation, API, or routing changes, also run the matching commands documented in `README.md` and `package.json`.
-- Report the exact commands run and whether each passed. If a check could not run, say why; never claim it passed.
+Before changes, inspect branch/status, fetch and push URLs and the current diff. Use a named branch,
+preserve unrelated work and keep English/Chinese status notices consistent when changing them.
+Do not commit, push, publish, release or deploy unless explicitly authorized.
 
-## Changes and contribution
+Future independent development uses complete current page source and necessary public inputs, not
+a replacement demo or local business database. Own-account login supports protected page viewing;
+Gitea and inner-world navigation go to their official webpages, not locally hosted runtimes.
+Browser configuration is public; never include credentials, private user content or internal
+operations. Public PR checks use isolated runners without private/production secrets, and unreviewed
+candidate code must not execute on a private production runner. License, origin, authorization,
+secret scanning, attribution and release safeguards must not be weakened to make checks pass.
 
-- Keep changes focused, preserve unrelated work, and review `git diff --check` plus `git status --short` before handoff.
-- Update English and Simplified Chinese documentation together when their shared behavior changes.
-- Add tests for fixes and new behavior. Disclose copied/generated material and every new third-party input with its source and license.
-- Do not commit, push, open a pull request, deploy, or publish unless the user explicitly asks. When asked to commit, use a DCO sign-off: `git commit -s`.
-- AI output is only a draft: the human contributor remains responsible for reviewing correctness, security, licenses, tests, and the DCO certification.
+## Historical content
+
+README files, contribution guides, specs, route contracts, demo instructions, `world-shell`, release
+workflows and legal-document copies below the old tree describe the previous experiment. During
+preparation they remain historical, not current Rinspace instructions. Approved replacement notices
+must describe the actual migration stage without claiming the repository was closed or archived.
+The authoritative legal-document source remains
+`/home/ubuntu/rinspace/docs/legal/zh-CN`.
+
+Local commits, tags, packages and generated files do not prove source cutover or production approval.
+Historical artifacts and unaccepted candidates must not be consumed by product deployment.
+
+Run `git diff --check` and review status before handoff. Documentation-only policy changes do not
+require frontend builds. Report only checks actually run and preserve all license/attribution records.

@@ -1,61 +1,128 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { useAuthAdapter, useAuthSnapshot } from '@/platform/auth/context';
-import { loadAdminWorkspaceCapabilities } from '@/services/domains/operations';
+import { publicEnv } from "@/app/config/env";
+import { loadCurrentUserInfo } from "@/services/domains/identity";
+import { loadAdminWorkspaceCapabilities } from "@/services/domains/operations";
+import {
+  loadWalletAdminCapabilities,
+  type WalletAdminCapabilities,
+} from "@/services/domains/walletAdmin";
+import { getCurrentUser, normalizePhone, sha256Hex } from "@/services/profile";
 
 import {
-  adminIdentitySignalsFromAuth,
   adminWorkspaceFailureState,
   deriveAdminWorkspaceAccess,
+  type AdminIdentitySignals,
   type AdminWorkspaceAccessState,
-} from './access';
+} from "./access";
 
-type LoadedAccessState = Readonly<{
-  identityKey: string;
-  value: AdminWorkspaceAccessState;
-}>;
+const adminPhoneHash = publicEnv.adminPhoneSha256 || "";
 
-export function useAdminWorkspaceAccess(): AdminWorkspaceAccessState {
-  const auth = useAuthAdapter();
-  const authSnapshot = useAuthSnapshot();
-  const { isAdmin, isModerator } = adminIdentitySignalsFromAuth(authSnapshot);
-  const identityKey = [
-    auth.kind,
-    authSnapshot.status,
-    authSnapshot.user?.id || '',
-    isAdmin ? 'admin' : isModerator ? 'moderator' : 'member',
-  ].join(':');
-  const [loaded, setLoaded] = useState<LoadedAccessState>({
-    identityKey: '',
-    value: { kind: 'loading' },
+async function loadIdentitySignals(): Promise<AdminIdentitySignals | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const phoneHash = user.phone
+    ? await sha256Hex(normalizePhone(user.phone))
+    : "";
+  const current = await loadCurrentUserInfo().catch(() => null);
+  const isAdmin =
+    Boolean(adminPhoneHash && phoneHash === adminPhoneHash) ||
+    current?.role_id === 2 ||
+    current?.role_name === "admin";
+  return {
+    uid: user.id,
+    isAdmin,
+    isModerator: isAdmin ||
+      current?.role_id === 3 ||
+      current?.role_name === "moderator",
+  };
+}
+
+export function useAdminWorkspaceAccess() {
+  const [state, setState] = useState<AdminWorkspaceAccessState>({
+    kind: "loading",
   });
 
   useEffect(() => {
-    if (authSnapshot.status !== 'authenticated' || auth.kind === 'demo-auth') return undefined;
     let active = true;
-    setLoaded({ identityKey, value: { kind: 'loading' } });
     const load = async () => {
       try {
-        const capabilities = await loadAdminWorkspaceCapabilities();
-        const access = deriveAdminWorkspaceAccess({ isAdmin, isModerator }, capabilities);
+        const identity = await loadIdentitySignals();
+        if (!identity) {
+          if (active) setState({ kind: "denied" });
+          return;
+        }
+        const [workspaceResult, walletResult] = await Promise.allSettled([
+          loadAdminWorkspaceCapabilities(),
+          loadWalletAdminCapabilities(),
+        ]);
+        const walletCapabilities: WalletAdminCapabilities =
+          walletResult.status === "fulfilled"
+            ? walletResult.value
+            : Object.freeze({
+                "wallet.refund.view": false,
+                "wallet.refund.review": false,
+                "wallet.refund.revoke": false,
+                "wallet.policy.view": false,
+                "wallet.policy.configure": false,
+                "wallet.risk.view": false,
+                "wallet.risk.review": false,
+                "wallet.risk.restrict": false,
+                "wallet.reconciliation.manage": false,
+                "wallet.coverage.manage": false,
+              });
+        if (
+          workspaceResult.status === "rejected" &&
+          !walletCapabilities["wallet.refund.view"] &&
+          !walletCapabilities["wallet.risk.view"]
+        )
+          throw workspaceResult.reason;
+        const capabilities =
+          workspaceResult.status === "fulfilled"
+            ? workspaceResult.value
+            : {
+                views: {
+                  home: false,
+                  content: false,
+                  review: false,
+                  system: false,
+                },
+                systemSections: {
+                  overview: false,
+                  events: false,
+                  publishing: false,
+                  consistency: false,
+                  records: false,
+                },
+                capabilities: {},
+                features: {
+                  moderationCasesV2: false,
+                  reportFeedback: false,
+                  systemOperations: false,
+                  controlCommands: false,
+                },
+              };
+        const access = deriveAdminWorkspaceAccess(
+          identity,
+          capabilities,
+          walletCapabilities,
+        );
         if (!active) return;
-        setLoaded({
-          identityKey,
-          value: access.allowedViews.length ? { kind: 'ready', access } : { kind: 'denied' },
-        });
+        setState(
+          access.allowedViews.length
+            ? { kind: "ready", access }
+            : { kind: "denied" },
+        );
       } catch (error: unknown) {
-        const failure = adminWorkspaceFailureState(error);
-        if (failure.kind === 'unavailable') console.error('Admin workspace access failed', error);
-        if (active) setLoaded({ identityKey, value: failure });
+        console.error("Admin workspace access failed", error);
+        if (active) setState(adminWorkspaceFailureState(error));
       }
     };
     void load();
     return () => {
       active = false;
     };
-  }, [auth.kind, authSnapshot.status, identityKey, isAdmin, isModerator]);
+  }, []);
 
-  if (authSnapshot.status === 'restoring') return { kind: 'loading' };
-  if (authSnapshot.status === 'guest' || auth.kind === 'demo-auth') return { kind: 'denied' };
-  return loaded.identityKey === identityKey ? loaded.value : { kind: 'loading' };
+  return state;
 }

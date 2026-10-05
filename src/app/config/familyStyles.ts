@@ -1,8 +1,18 @@
+let darkLegacyStyles: Promise<unknown> | undefined;
+
+export function loadDarkLegacyStyles() {
+  if (typeof document === "undefined" || document.documentElement.dataset.theme !== "dark") {
+    return Promise.resolve();
+  }
+  darkLegacyStyles ??= import("@/styles/product-families/dark-legacy-overrides.css");
+  return darkLegacyStyles;
+}
+
 const loaders: Record<string, () => Promise<unknown>> = {
   discovery: async () => {
     await import("@/styles/product-families/discovery.css");
     await import("@/styles/product-families/dark-legacy-tokens.css");
-    return import("@/styles/product-families/dark-legacy-overrides.css");
+    return loadDarkLegacyStyles();
   },
   knowledge: async () => {
     await import("@/styles/product-families/knowledge.css");
@@ -11,31 +21,31 @@ const loaders: Record<string, () => Promise<unknown>> = {
     await import("@/styles/product-families/unified-book-reviews.css");
     await import("@/styles/product-families/book-reader-annotations.css");
     await import("@/styles/product-families/dark-legacy-tokens.css");
-    return import("@/styles/product-families/dark-legacy-overrides.css");
+    return loadDarkLegacyStyles();
   },
   identity: async () => {
     await import("@/styles/product-families/identity.css");
     await import("@/styles/product-families/dark-legacy-tokens.css");
-    await import("@/styles/product-families/dark-legacy-overrides.css");
-    return import("@/styles/product-families/identity-accessibility.css");
+    return loadDarkLegacyStyles();
   },
   creation: async () => {
     await import("@/styles/product-families/creation.css");
     await import("@/styles/creator-workspace.css");
     await import("@/styles/product-families/dark-legacy-tokens.css");
-    return import("@/styles/product-families/dark-legacy-overrides.css");
+    return loadDarkLegacyStyles();
   },
   operations: async () => {
     await import("@/styles/product-families/operations.css");
     await import("@/styles/admin-workspace.css");
     await import("@/styles/product-families/dark-legacy-tokens.css");
-    return import("@/styles/product-families/dark-legacy-overrides.css");
+    return loadDarkLegacyStyles();
   },
   "account-policy": async () => {
     await import("@/styles/product-families/account-policy.css");
     await import("@/styles/product-families/dark-legacy-tokens.css");
-    return import("@/styles/product-families/dark-legacy-overrides.css");
+    return loadDarkLegacyStyles();
   },
+  download: async () => import("@/styles/product-families/download.css"),
 };
 
 const loaded = new Map<string, Promise<unknown>>();

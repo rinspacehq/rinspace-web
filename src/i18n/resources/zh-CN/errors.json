@@ -4,12 +4,6 @@
   "conflict": "内容已发生变化，请刷新后重试。",
   "notFound": "请求的内容不存在或已被移除。",
   "validationFailed": "请检查输入后重试。",
-  "capabilities": {
-    "generic": "此能力在当前运行模式中不可用；请查看演示能力面板中的依赖和恢复路径。",
-    "upload": "演示只支持不超过 2MB 的本地图片；请缩小图片，或在集成环境配置真实上传服务。",
-    "renderer": "演示不会提交生产渲染任务；请使用本地预览，或在集成环境配置 Renderer。",
-    "workspace": "演示不会打开生产代码工作区；请使用本地编辑器，或在集成环境配置 workspace 服务。"
-  },
   "authentication": {
     "required": "请先登录后继续。",
     "otpSendFailed": "验证码发送失败。",
@@ -76,7 +70,7 @@
   },
   "discovery": {
     "announcementsLoadFailed": "公告加载失败。",
-    "blogsLoadFailed": "博客加载失败。",
+    "blogsLoadFailed": "文章加载失败。",
     "booksLoadFailed": "书籍加载失败。",
     "bookCollectionFailed": "收藏状态更新失败。",
     "discussionsLoadFailed": "讨论加载失败。",
@@ -94,6 +88,7 @@
     "workspaceOpenFailed": "标签源码工作区打开失败。",
     "tagSourceLoadFailed": "标签源码信息加载失败。",
     "tagFollowFailed": "标签关注状态更新失败。",
+    "tagLikeFailed": "标签喜欢状态更新失败。",
     "linkedQuestionsLoadFailed": "引用题目加载失败。",
     "bookAuthorLoadFailed": "作者书籍加载失败。",
     "bookActivityLoadFailed": "书籍相关内容加载失败。",
@@ -184,7 +179,6 @@
     "operationsReconciliationFailed": "对账操作失败。"
   },
   "creation": {
-    "quiverUnavailable": "演示不会加载 Quiver 或调用真实图表服务；请继续使用 Markdown/LaTeX，或在集成环境启用 Quiver。",
     "markdownSectionLoadFailed": "Markdown 章节加载失败。",
     "markdownSectionSaveFailed": "Markdown 章节保存失败。",
     "coverUploadFailed": "封面上传失败。",

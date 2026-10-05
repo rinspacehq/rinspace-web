@@ -51,7 +51,7 @@
       "uploaded": "封面已上传。",
       "imageOnly": "请选择图片文件。",
       "cropBook": "裁剪书籍封面",
-      "cropBlog": "裁剪博客封面"
+      "cropBlog": "裁剪文章封面"
     },
     "bookProfile": {
       "title": "编辑档案",
@@ -63,14 +63,22 @@
       "savingAction": "保存中…",
       "saveAction": "保存档案"
     },
-    "capabilities": {
-      "demoBoundary": "演示创建与图片上传只保存在此浏览器；远程仓库、工作区、Renderer、PDF 与归档上传保持关闭。",
-      "pdfUnavailable": "演示模式不上传 PDF；请使用本地 Markdown/LaTeX 创作，或在集成环境配置真实上传与 Renderer。"
+    "quickEdit": {
+      "articleTitle": "编辑文章",
+      "close": "关闭文章编辑窗口",
+      "titleRequired": "请填写标题。",
+      "saving": "保存中…",
+      "activationPending": "修改已提交，等待发布。",
+      "saved": "已保存。",
+      "savingAction": "保存中…",
+      "saveAction": "保存"
     },
     "create": {
       "titles": {
-        "blog": "创建 LaTeX 博客",
+        "blog": "创建 LaTeX 文章",
+        "typstBlog": "创建 Typst 文章",
         "latexBook": "创建 LaTeX 书籍",
+        "typstBook": "创建 Typst 书籍",
         "markdownBook": "创建 Markdown 书籍",
         "pdfBook": "上传 PDF 书籍"
       },
@@ -81,17 +89,18 @@
       "titleRequired": "请填写标题。",
       "excerptRequired": "请填写简介。",
       "pdfRequired": "请先上传 PDF 文件。",
-      "initialChapter": "开始",
       "creatingAction": "创建中…",
       "createAction": "创建并编辑",
       "creating": {
-        "blog": "正在创建 LaTeX 博客…",
+        "blog": "正在创建 LaTeX 文章…",
+        "typstBlog": "正在创建 Typst 文章…",
         "latexBook": "正在创建 LaTeX 书籍…",
+        "typstBook": "正在创建 Typst 书籍…",
         "markdownBook": "正在创建 Markdown 书籍…",
         "pdfBook": "正在上传 PDF 书籍…"
       },
       "openingRepository": "正在打开 Git 仓库…",
-      "activationPending": "内容已写入 Gitea，正在校验并激活精确 commit。激活完成前主站继续保持上一版本或暂不公开。",
+	  "activationPending": "内容已写入 Gitea，正在校验并激活精确 commit。激活完成前主站继续保持上一版本或暂不公开。",
       "moderation": {
         "pending": "内容已提交审核。",
         "published": "内容已发布。",
@@ -115,18 +124,16 @@
   },
   "bookWorkspace": {
     "fallbackTitle": "书籍工作台",
-    "documentTitle": "{{title}} 工作台",
+    "documentTitle": "{{title}} 工作台 · 芥子环",
     "notBook": "这个内容不是书籍。",
     "externalBookManagement": "站外 / PDF 书籍使用资料编辑页管理。",
     "editBookProfile": "编辑书籍资料",
-    "capabilities": {
-      "demoBoundary": "本地章节和档案编辑可用；生产仓库、code-server、整书上传和 Renderer 不会在演示中启动。",
-      "rendererUnavailable": "演示不会上传归档或提交生产渲染任务；本地章节修改仍可继续。"
-    },
     "markdownWorkspace": "Markdown 书籍工作台",
     "latexWorkspace": "LaTeX 书籍工作台",
     "defaultMarkdownExcerpt": "轻量 Markdown 网页书。",
     "defaultBookExcerpt": "这本书还没有简介。",
+    "typstWorkspace": "Typst 书籍工作台",
+    "defaultTypstExcerpt": "基于 Typst 源码构建的网页与 PDF 书籍。",
     "publishStatus": {
       "draft": "草稿",
       "private": "私密",
@@ -153,13 +160,11 @@
       "readingPending": "阅读页待生成",
       "editProfile": "编辑档案",
       "authorOnly": "仅作者可编辑",
-      "openingRepository": "打开中",
       "openRepository": "打开仓库",
       "uploading": "上传中",
       "rendering": "后台渲染中",
       "loading": "加载中",
       "importAndPublish": "导入整本并发布"
-      ,"rendererUnavailable": "Renderer 不可用"
     },
     "markdown": {
       "chapters": "Markdown 章节",
@@ -185,11 +190,18 @@
       "sources": {
         "reader": "网页书目录",
         "toc": "书籍目录",
-        "tex": "TeX 源码",
+        "latex": "TeX 源码",
+        "typst": "Typst 源码",
         "sameFile": "同文件内节点"
       },
       "emptyGroup": "还没有章节",
       "empty": "还没有可见章节"
+    },
+    "typst": {
+      "workspace": "Typst 工作台",
+      "noChapters": "暂无章节",
+      "emptyDirectory": "暂无章节",
+      "empty": "这本书还没有可阅读的章节。"
     },
     "matter": {
       "front": "前",
@@ -205,7 +217,7 @@
     }
   },
   "publishPage": {
-    "documentTitle": "{{heading}}",
+    "documentTitle": "{{heading}} · 芥子环",
     "modes": {
       "question": {
         "eyebrow": "提问",
@@ -251,17 +263,20 @@
       "latex": "创建 LaTeX 书籍档案",
       "pdf": "上传 PDF 书籍",
       "markdown": "创建 Markdown 书籍档案",
+      "typst": "创建 Typst 书籍档案",
       "copyrighted": "提交 PDF / 站外书籍"
     },
     "bookEditHeadings": {
       "latex": "编辑 LaTeX 书籍档案",
       "pdf": "编辑 PDF 书籍",
       "markdown": "编辑 Markdown 书籍档案",
+      "typst": "编辑 Typst 书籍档案",
       "copyrighted": "编辑 PDF / 站外书籍"
     },
     "bookPlaceholders": {
       "pdf": "写一段会展示在评分页的简介：这本 PDF 书籍写什么、适合谁读、前置知识和亮点。",
-      "markdown": "写一段会展示在评分页的简介：这本 Markdown 书籍写什么、适合谁读、前置知识和亮点。"
+      "markdown": "写一段会展示在评分页的简介：这本 Markdown 书籍写什么、适合谁读、前置知识和亮点。",
+      "typst": "写一段会展示在评分页的简介：这本 Typst 书籍写什么、适合谁读、前置知识和亮点。"
     },
     "fields": {
       "title": "标题",
@@ -386,8 +401,8 @@
   },
   "writer": {
     "documentTitle": {
-      "article": "LaTeX 写作",
-      "book": "LaTeX 写书"
+      "article": "LaTeX 写作 · 芥子环",
+      "book": "LaTeX 写书 · 芥子环"
     },
     "fallbacks": {
       "bookProject": "书籍项目",
@@ -417,7 +432,7 @@
       "change": "更换",
       "upload": "上传",
       "remove": "移除",
-      "cropArticle": "裁剪博客封面",
+      "cropArticle": "裁剪文章封面",
       "cropBook": "裁剪书籍封面"
     },
     "import": {
@@ -453,14 +468,14 @@
       "bookProject": "正在读取书籍项目…",
       "articleSource": "正在读取原文源包…",
       "sourceArchive": "正在把 TeX 源包交给 Rin…",
-      "articleTemplate": "正在载入 LaTeX 博客模板…",
+      "articleTemplate": "正在载入 LaTeX 文章模板…",
       "bookTemplate": "正在载入 LaTeX 书籍模板…"
     },
     "status": {
       "bookProfileLoaded": "已读取书籍档案。第一次保存会生成 Rin 源项目。",
       "archiveEditing": "已载入 {{filename}}，正在编辑 {{path}}。",
       "archiveReady": "已载入 {{filename}}，可继续编辑。",
-      "articleTemplateLoaded": "已载入 LaTeX 博客模板。",
+      "articleTemplateLoaded": "已载入 LaTeX 文章模板。",
       "bookTemplateLoaded": "已载入 LaTeX 书籍模板。",
       "articleDraftSaved": "草稿已保存，可在创作中心继续编辑。",
       "bookDraftSaved": "书籍草稿已保存，可在创作中心继续编辑。",
@@ -476,8 +491,8 @@
     },
     "validation": {
       "contentType": "只有 Rin 长文或书籍可以在 Rin 编辑器里继续编辑。",
-      "bookMode": "当前是书籍写作模式，不能编辑博客内容。",
-      "articleMode": "当前是博客写作模式，不能编辑书籍内容。",
+      "bookMode": "当前是书籍写作模式，不能编辑文章内容。",
+      "articleMode": "当前是文章写作模式，不能编辑书籍内容。",
       "missingArchive": "这份内容没有保存 TeX 源包，不能用 Rin 编辑器继续编辑。",
       "signInArticle": "请先登录后保存文章。",
       "signInBook": "请先登录后保存书籍。",
@@ -485,7 +500,7 @@
     }
   },
   "markdownWriter": {
-    "documentTitle": "Markdown 写作",
+    "documentTitle": "Markdown 写作 · 芥子环",
     "labels": {
       "title": "文章标题",
       "tags": "标签",
@@ -495,9 +510,6 @@
       "page": "页面"
     },
     "placeholders": {
-      "newTitle": "Markdown 博客标题",
-      "editTitle": "博客标题",
-      "editor": "写一篇 Markdown 博客…",
       "imageCaption": "图片说明",
       "imageUpload": "上传图片",
       "summary": "写简介…"
@@ -516,6 +528,7 @@
       "remove": "移除",
       "save": "保存",
       "saving": "保存中",
+      "viewBlog": "查看文章",
       "edit": "编辑",
       "preview": "预览",
       "useDefault": "使用默认",
@@ -523,9 +536,11 @@
       "done": "完成"
     },
     "controls": {
-      "saveState": "博客保存状态",
+      "saveState": "文章保存状态",
       "sourceVisibility": "源码可见性",
-      "pageState": "页面状态"
+      "pageState": "页面状态",
+      "fullscreen": "进入全屏编辑",
+      "exitFullscreen": "退出全屏编辑"
     },
     "editor": "Markdown 编辑器",
     "summary": {
@@ -539,9 +554,11 @@
       "inlineEditor": "编辑行内公式"
     },
     "topBar": {
-      "bold": "加粗",
+      "toolbar": "Markdown 编辑工具",
+      "heading": "段落与标题",
+      "bold": "粗体",
       "italic": "斜体",
-      "strike": "删除线",
+      "strikethrough": "删除线",
       "inlineCode": "行内代码",
       "bulletList": "无序列表",
       "orderedList": "有序列表",
@@ -549,12 +566,11 @@
       "link": "插入链接",
       "image": "插入图片",
       "table": "插入表格",
-      "codeBlock": "代码块",
-      "quote": "引用块",
-      "divider": "分隔线",
+      "codeBlock": "插入代码块",
+      "quote": "插入引用",
+      "horizontalRule": "插入分隔线",
       "math": "数学",
-      "quiver": "Quiver 交换图",
-      "tool": "编辑器工具 {{index}}"
+      "quiver": "Quiver"
     },
     "headings": {
       "paragraph": "正文",
@@ -565,7 +581,6 @@
       "heading6": "六级标题"
     },
     "quiver": {
-      "unavailableDemo": "演示不会加载 Quiver 或调用真实图表服务；请继续使用 Markdown/LaTeX，或在集成环境启用 Quiver。",
       "editor": "Quiver 交换图编辑器",
       "help": "导出为图片并插入当前光标位置",
       "exporting": "导出中",
@@ -575,7 +590,8 @@
       "stillLoading": "Quiver 正在加载，请稍后再插入。",
       "timeout": "Quiver 导出超时，请确认弹层已加载完成。",
       "exportFailed": "Quiver 图表导出失败。",
-      "empty": "请先在 Quiver 中画一个图表，再点击插入。"
+      "empty": "请先在 Quiver 中画一个图表，再点击插入。",
+      "pendingPublish": "Quiver 图仍在等待生成；源代码已保存到草稿，请重试生成后再发布。"
     },
     "render": {
       "aria": "Markdown 发布渲染状态",
@@ -618,20 +634,22 @@
       "renderComplete": "Markdown 渲染完成，正在保存文章…",
       "compatibilitySave": "当前发布继续使用兼容阅读路径，正在保存文章…",
       "draftSaved": "草稿已保存，可在创作中心继续编辑。",
+      "revisionDraftSaved": "修改已保存到账号草稿，重新打开此编辑器可继续编辑；当前公开版本未改变。",
+      "publishFailedDraftKept": "发布失败，原文已保存到账号草稿，重新打开编辑器可继续编辑。{{reason}}",
+      "draftContentSaveFailedDraftKept": "创作中心保存失败，但原文已写入账号草稿，重新打开编辑器可继续编辑。{{reason}}",
+      "accountDraftFailedLocalKept": "账号草稿保存失败，本机仍有副本；请保持此页打开并稍后重试。",
+      "accountDraftFailed": "草稿保存失败，请先复制原文备份并稍后重试。",
 	  "activationPending": "修改已写入 Gitea，正在校验并激活精确 commit。主站当前仍显示上一版本。",
       "published": "已发布：{{title}}",
       "privatePublished": "已保存为私密发布：{{title}}"
     },
     "validation": {
-      "blogOnly": "只有博客可以在 Markdown 编辑器里继续编辑。",
-      "wrongEditor": "这篇博客不是 Markdown 写作方式，请用 LaTeX 编辑器打开。",
-      "missingSource": "这篇博客没有保存 Markdown 源文，不能继续编辑。",
+      "blogOnly": "只有文章可以在 Markdown 编辑器里继续编辑。",
+      "wrongEditor": "这篇文章不是 Markdown 写作方式，请用 LaTeX 编辑器打开。",
+      "missingSource": "这篇文章没有保存 Markdown 源文，不能继续编辑。",
       "imageOnly": "请选择图片文件。",
       "signIn": "请先登录后保存文章。"
     }
-  },
-  "demoCapabilities": {
-    "notice": "浏览器演示：草稿与发布内容只保存在本设备。服务端渲染、协作、代码工作区、审核和真实发布不可用；可通过重置演示数据恢复初始内容。"
   },
   "markdownSection": {
     "notMarkdownBook": "这个章节不属于 Markdown 书籍。",

@@ -1,53 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
 
-import { parseRuntimeConfig } from "@/app/config/runtime";
-import type { HttpTransport } from "@/platform/runtime";
 import { createContent, parseContentModerationSubmission } from "./feed";
-import { installHttpClientRuntime, resetHttpClientRuntimeForTests } from "./httpClient";
 
-const sessionKey = "rinspace-auth-session";
-const integration = parseRuntimeConfig(JSON.parse(
-  fs.readFileSync(path.join(process.cwd(), "config/runtime.example.json"), "utf8"),
-) as unknown);
-
-function encodeBase64URL(value: string) {
-  return window
-    .btoa(value)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function validAccessToken() {
-  return [
-    encodeBase64URL(JSON.stringify({ alg: "none" })),
-    encodeBase64URL(
-      JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }),
-    ),
-    "signature",
-  ].join(".");
-}
+const sessionKey = "rinspace-auth-hint";
 
 beforeEach(() => {
-  resetHttpClientRuntimeForTests();
   window.localStorage.clear();
   window.sessionStorage.clear();
   window.localStorage.setItem(
     sessionKey,
     JSON.stringify({
-      access_token: validAccessToken(),
-      refresh_token: "refresh-token",
-      expires_in: 3600,
       sub: "moderation-author",
-      issued_at: Date.now(),
+      sessionEpoch: 1,
     }),
   );
 });
 
 afterEach(() => {
-  resetHttpClientRuntimeForTests();
   vi.unstubAllGlobals();
 });
 
@@ -80,19 +49,28 @@ describe("content moderation submission response", () => {
 
   it("reuses the same create key while an async submission remains in review", async () => {
     const requestPayloads: Array<Record<string, unknown>> = [];
-    const request = vi.fn<HttpTransport["request"]>(async (requestInput) => {
-      requestPayloads.push(requestInput.body as Record<string, unknown>);
-      return {
-        submissionId: "84",
-        state: "ai_review_pending",
-        message: "一审未通过，已进入 AI 二审。",
-      };
-    });
-    installHttpClientRuntime(integration, {
-      kind: "compatible-http",
-      request,
-      requestRaw: vi.fn(),
-    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (requestInput: RequestInfo | URL, init?: RequestInit) => {
+        if (String(requestInput).endsWith("/api/identity/v1/session")) {
+          return new Response(
+            JSON.stringify({ status: "authenticated", csrfToken: "csrf", user: { id: "moderation-author" } }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (typeof init?.body !== "string")
+          throw new Error("expected a JSON request body");
+        requestPayloads.push(JSON.parse(init.body) as Record<string, unknown>);
+        return new Response(
+          JSON.stringify({
+            submissionId: "84",
+            state: "ai_review_pending",
+            message: "一审未通过，已进入 AI 二审。",
+          }),
+          { status: 202, headers: { "Content-Type": "application/json" } },
+        );
+      }),
+    );
 
     const input = {
       type: "blog" as const,
@@ -100,7 +78,7 @@ describe("content moderation submission response", () => {
       repositoryStatus: "published" as const,
       sourceVisibility: "open" as const,
       sourceVisibilityIntent: "open" as const,
-      title: "异步审核博客",
+      title: "异步审核文章",
       body: "[[RIN_WRITER]]<p>正文</p>[[/RIN_WRITER]]",
       tags: ["general"],
       editor: "rin" as const,

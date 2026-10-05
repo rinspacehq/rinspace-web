@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { identitySessionMock } from './identity-session-mock';
 
 const currentUser = {
   id: 'admin-browser-1',
@@ -139,14 +140,7 @@ const question = {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
-    localStorage.setItem('rinspace-auth-session', JSON.stringify({
-      access_token: `e30.${payload}.signature`,
-      refresh_token: 'admin-browser-refresh',
-      expires_in: 3600,
-      issued_at: Date.now(),
-      sub: 'admin-browser-1',
-    }));
+    localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'admin-browser-1' }));
     if (!localStorage.getItem('rinspace-language-preference-v1')) {
       localStorage.setItem('rinspace-language-preference-v1', JSON.stringify({ preference: 'en' }));
     }
@@ -155,6 +149,10 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
     const pathname = url.pathname.replace(/^\/rinspace(?=\/)/, '');
+    if (pathname === '/api/identity/v1/session') {
+      await route.fulfill({ json: identitySessionMock('admin-browser-1', 'admin-browser', 'admin') });
+      return;
+    }
     if (pathname === '/auth/v1/user/me') {
       await route.fulfill({ json: { sub: 'admin-browser-1', username: 'admin-browser', nickname: 'Admin Browser', user_metadata: { username: 'admin-browser', rank: 250 } } });
       return;

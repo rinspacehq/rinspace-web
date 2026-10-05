@@ -168,6 +168,39 @@ test('picks an existing tag suggestion without creating a duplicate label', asyn
   expect(pickedSlug).toBe('sheaf');
 });
 
+test('keeps an explicit creation path when an existing tag has the same name', async () => {
+  global.fetch = async () =>
+    tagSuggestResponse([
+      {
+        tagId: '8',
+        slug: 'sheaf',
+        name: 'sheaf',
+        displayName: 'Sheaf',
+        postCount: 3,
+        parentTags: [{ tagId: '2', slugName: 'geometry', displayName: 'Geometry' }],
+        usageExcerpt: 'Algebraic geometry',
+      },
+    ]);
+  let selected: string[] = [];
+  const view = renderPicker(
+    <TagPicker
+      value={[]}
+      onChange={(next) => {
+        selected = next;
+      }}
+      ariaLabel="内容标签"
+    />,
+  );
+
+  fireEvent.change(view.getByLabelText('内容标签'), {
+    target: { value: 'Sheaf' },
+  });
+  fireEvent.click(await view.findByText('新标签：Sheaf'));
+  fireEvent.click(view.getByText('确认创建'));
+
+  expect(selected).toEqual(['42']);
+});
+
 test('shows tag id, readable label, slug, and parent context in suggestions', async () => {
   global.fetch = async () =>
     tagSuggestResponse([
@@ -273,7 +306,7 @@ test('uses a creation link instead of adding directly in link mode', async () =>
   expect(selected).toEqual([]);
 });
 
-test('does not show already selected suggestions again', async () => {
+test('does not show an already selected suggestion again but keeps same-name creation available', async () => {
   global.fetch = async () =>
     tagSuggestResponse([
       {
@@ -296,9 +329,7 @@ test('does not show already selected suggestions again', async () => {
     target: { value: 'analysis' },
   });
 
-  await waitFor(() => {
-    expect(view.queryByText('新标签：analysis')).toBeNull();
-  });
+  await view.findByText('新标签：analysis');
   expect(view.container.textContent || '').toContain('analysis');
 });
 

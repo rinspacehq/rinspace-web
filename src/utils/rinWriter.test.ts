@@ -28,7 +28,7 @@ test('sourceOnlyProject keeps wiki source exact without default template injecti
 });
 
 test('defaultProject still wraps partial source for regular Rin writing', () => {
-  const body = mainFileBody(defaultProject('博客', '\\section{Intro}'));
+  const body = mainFileBody(defaultProject('文章', '\\section{Intro}'));
 
   expect(body).toContain('\\documentclass{article}');
   expect(body).toContain('\\section{Intro}');

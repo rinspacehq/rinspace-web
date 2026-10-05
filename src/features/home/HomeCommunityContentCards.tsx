@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 import AvatarName from "@/components/AvatarName";
-import { useOptionalBootstrap } from "@/app/bootstrap/context";
+import CardActionButton, { CardActionIcon } from "@/components/CardActionButton";
 import LoadingState from "@/components/LoadingState";
 import UserIdentity from "@/components/UserIdentity";
 import { formatDate, formatNumber } from "@/i18n/format";
@@ -36,13 +36,13 @@ import {
 import { loadBookReviews, submitBookReview } from "@/services/domains/book";
 import { uploadAnswerFile } from "@/services/domains/publication";
 import { messageFromError } from "@/services/errors";
+import { subscribeToMediaQuery } from "@/utils/mediaQuery";
 import type {
   BookRatingSummary,
   BookReview,
   CommentSummary,
   FeedItem,
 } from "@/services/contracts";
-import { motion } from "motion/react";
 import {
   type ChangeEvent,
   type ReactNode,
@@ -62,47 +62,8 @@ const RinStickerPicker = lazy(() => import("@/components/RinStickerPicker"));
 const commentPageSize = 12;
 const commentPageCache = new Map<string, Map<number, CommentSummary[]>>();
 
-const communityActionGlyphs = {
-  star: "\uf588",
-  "star-fill": "\uf586",
-  heart: "\uf417",
-  "heart-fill": "\uf415",
-  bookmark: "\uf1a2",
-  "bookmark-check": "\uf196",
-  "chat-dots": "\uf24a",
-  share: "\uf52e",
-  image: "\uf42a",
-} as const;
-
-type CommunityActionIconName = keyof typeof communityActionGlyphs;
-
-function CommunityActionIcon({ name }: { name: CommunityActionIconName }) {
-  return (
-    <motion.span
-      aria-hidden="true"
-      className="rin-icon-motion"
-      whileHover={
-        name.startsWith("star") || name.startsWith("heart")
-          ? { scale: 1.12 }
-          : { y: -1 }
-      }
-      transition={{ type: "spring", stiffness: 520, damping: 28 }}
-    >
-      <span
-        aria-hidden="true"
-        className={`rin-community-action-icon rin-community-action-icon--${name}`}
-        style={{
-          fontFamily: '"Rin Community Actions"',
-          fontSize: "0.9rem",
-          lineHeight: 1,
-          WebkitFontSmoothing: "antialiased",
-        }}
-      >
-        {communityActionGlyphs[name]}
-      </span>
-    </motion.span>
-  );
-}
+export { CardActionButton };
+const CommunityActionIcon = CardActionIcon;
 
 function useMobileOverlay() {
   const query = "(max-width: 640px)";
@@ -113,8 +74,7 @@ function useMobileOverlay() {
     const media = window.matchMedia(query);
     const update = () => setMobile(media.matches);
     update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
+    return subscribeToMediaQuery(media, update);
   }, []);
   return mobile;
 }
@@ -197,47 +157,6 @@ export function CardExactTime({ item }: { item: FeedItem }) {
   ) : (
     node
   );
-}
-
-export function CardActionButton({
-  icon,
-  label,
-  value,
-  active = false,
-  toggle = false,
-  tone = "default",
-  disabled = false,
-  onClick,
-  buttonRef,
-}: {
-  icon: CommunityActionIconName;
-  label: string;
-  value: ReactNode;
-  active?: boolean;
-  toggle?: boolean;
-  tone?: "default" | "like" | "rating";
-  disabled?: boolean;
-  onClick: () => void;
-  buttonRef?: (node: HTMLButtonElement | null) => void;
-}) {
-  const accessibleLabel = `${label}，${typeof value === "string" || typeof value === "number" ? value : ""}`;
-  const button = (
-    <AnimateButton
-      unstyled
-      ref={buttonRef}
-      type="button"
-      className={`home-card-action${active ? " active" : ""}`}
-      data-tone={tone}
-      aria-label={accessibleLabel}
-      aria-pressed={toggle ? active : undefined}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <CommunityActionIcon name={icon} />
-      <span className="home-card-action-value">{value}</span>
-    </AnimateButton>
-  );
-  return <Tooltip content={label}>{button}</Tooltip>;
 }
 
 function ResponsiveOverlay({
@@ -352,8 +271,6 @@ export function ContentCommentDialog({
   onMessage: (kind: "error" | "status", message: string) => void;
 }) {
   const { t } = useFeatureTranslation("discovery");
-  const bootstrap = useOptionalBootstrap();
-  const demoMode = bootstrap?.config.mode === "demo";
   const resolvedLocale = useResolvedLocale();
   const [order, setOrder] = useState<"hot" | "newest">("hot");
   const [items, setItems] = useState<CommentSummary[]>([]);
@@ -643,9 +560,7 @@ export function ContentCommentDialog({
     try {
       const markdown: string[] = [];
       for (const file of files.slice(0, 9)) {
-        const url = demoMode && bootstrap
-          ? (await bootstrap.ports.uploads.upload({ name: file.name, type: file.type, bytes: file })).url
-          : await uploadAnswerFile("post", file);
+        const url = await uploadAnswerFile("post", file);
         markdown.push(commentImageMarkdown(url, file.name, t("home.comments.imageAlt")));
       }
       updateBody((current) =>

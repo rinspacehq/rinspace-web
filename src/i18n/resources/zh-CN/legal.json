@@ -6,8 +6,6 @@
   "contact": "联系我们",
   "navigation": "法律页面导航",
   "operator": "运营主体",
-  "source": "源代码",
-  "notPublished": "此部署未公开",
   "nav": {
     "about": "关于",
     "legal": "法律信息",
@@ -18,18 +16,18 @@
   },
   "pages": {
     "about": {
-      "title": "关于 {{siteName}}",
+      "title": "关于 芥子环",
       "label": "About",
-      "description": "{{siteName}} 是一个以 Tag 为核心的长文知识社区，支持 Markdown 与 LaTeX 写作，并依托 Git 进行版本管理。",
+      "description": "芥子环 是一个以 Tag 为核心的长文知识社区，支持 Markdown 与 LaTeX 写作，并依托 Git 进行版本管理。",
       "sections": {
         "position": {
           "title": "站点定位",
-          "line1": "{{siteName}} 面向长期知识整理、博客写作、书籍笔记、标签 Wiki 与问答讨论。",
+          "line1": "芥子环 面向长期知识整理、文章写作、书籍笔记、标签 Wiki 与问答讨论。",
           "line2": "我们希望把标签作为知识组织的核心，让内容、引用和版本变更都能被清晰追踪。"
         },
         "operator": {
           "title": "运营主体",
-          "line1": "{{siteName}} 的运营主体：{{company}}。",
+          "line1": "芥子环 由 {{company}} 运营。",
           "line2": "站点公开联系邮箱为 {{email}}。"
         }
       }
@@ -37,18 +35,18 @@
     "legal": {
       "title": "法律信息",
       "label": "Legal",
-      "description": "{{siteName}} 的运营主体、备案信息和公开联系方式。",
+      "description": "芥子环 的运营主体、备案信息和公开联系方式。",
       "sections": {
         "identity": {
           "title": "主体信息",
-          "line1": "网站名称：{{siteName}}",
+          "line1": "网站名称：芥子环",
           "line2": "运营主体：{{company}}",
           "line3": "联系邮箱：{{email}}"
         },
         "records": {
           "title": "备案信息",
-          "line1": "ICP备案号：{{icp}}",
-          "line2": "公安备案号：{{publicSecurity}}"
+          "line1": "ICP备案号：沪ICP备2025152146号-2",
+          "line2": "公安备案号：沪公网安备31012102000206号"
         },
         "links": {
           "title": "相关入口",
@@ -60,7 +58,7 @@
     "terms": {
       "title": "用户协议",
       "label": "Terms",
-      "description": "使用 {{siteName}} 发布、编辑、引用和互动内容时适用的基础规则。",
+      "description": "使用 芥子环 发布、编辑、引用和互动内容时适用的基础规则。",
       "sections": {
         "account": {
           "title": "账户与内容",
@@ -69,7 +67,7 @@
         },
         "knowledge": {
           "title": "知识内容与引用",
-          "line1": "{{siteName}} 支持 Markdown、LaTeX、标签 Wiki 和 Git 版本管理，用户应尊重原作者署名和引用规范。",
+          "line1": "芥子环 支持 Markdown、LaTeX、标签 Wiki 和 Git 版本管理，用户应尊重原作者署名和引用规范。",
           "line2": "平台可以基于展示、索引、备份、审核和安全维护需要，对用户公开内容进行必要处理。"
         },
         "enforcement": {
@@ -82,17 +80,17 @@
     "privacy": {
       "title": "隐私政策",
       "label": "Privacy",
-      "description": "{{siteName}} 对账户、内容、日志和联系信息的基本处理说明。",
+      "description": "芥子环 对账户、内容、日志和联系信息的基本处理说明。",
       "sections": {
         "collection": {
           "title": "信息收集",
-          "line1": "为提供登录、发布、编辑、评论、通知、安全审计和反滥用能力，{{siteName}} 会处理必要的账户信息、内容信息和操作日志。",
+          "line1": "为提供登录、发布、编辑、评论、通知、安全审计和反滥用能力，站点会处理必要的账户信息、内容信息和操作日志。",
           "line2": "用户主动提交的邮箱、头像、个人简介、文章、评论、标签编辑和上传文件，会按用户选择的可见性进行展示或保存。"
         },
         "purpose": {
           "title": "使用目的",
           "line1": "相关信息主要用于提供站点功能、维护内容版本、处理举报投诉、保障安全、改进产品体验和满足合规要求。",
-          "line2": "除法律法规要求、用户授权或安全处置需要外，我们不会将个人信息用于与 {{siteName}} 无关的目的。"
+          "line2": "除法律法规要求、用户授权或安全处置需要外，我们不会将个人信息用于与 芥子环 无关的目的。"
         },
         "rights": {
           "title": "联系与更正",
@@ -103,16 +101,16 @@
     "copyright": {
       "title": "版权与侵权投诉",
       "label": "Copyright",
-      "description": "{{siteName}} 的版权尊重原则和侵权投诉联系渠道。",
+      "description": "芥子环 的版权尊重原则和侵权投诉联系渠道。",
       "sections": {
         "principles": {
           "title": "版权原则",
-          "line1": "{{siteName}} 尊重原创内容、学术引用、开源协议和合理转载规则。",
+          "line1": "芥子环 尊重原创内容、学术引用、开源协议和合理转载规则。",
           "line2": "用户发布内容时，应确认自己拥有相应权利，或已经取得授权，或符合合理使用、引用、开源协议等合法基础。"
         },
         "materials": {
           "title": "投诉材料",
-          "line1": "如认为 {{siteName}} 上的内容侵犯你的合法权益，请提供被投诉链接、权利证明、侵权说明和可联系的邮箱。",
+          "line1": "如认为 芥子环 上的内容侵犯你的合法权益，请提供被投诉链接、权利证明、侵权说明和可联系的邮箱。",
           "line2": "投诉邮箱：{{email}}"
         },
         "handling": {
@@ -124,7 +122,7 @@
     "contact": {
       "title": "联系我们",
       "label": "Contact",
-      "description": "{{siteName}} 的公开联系邮箱和常见联系事项。",
+      "description": "芥子环 的公开联系邮箱和常见联系事项。",
       "sections": {
         "email": {
           "title": "公开邮箱",

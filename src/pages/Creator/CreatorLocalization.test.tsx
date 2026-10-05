@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from 'components/ui';
 import { ensureLocaleNamespaces, i18n } from '@/i18n';
 import type { CurrentUserInfo, FeedItem } from '@/services/contracts';
-import { loadContentDetail, loadContentFeed } from '@/services/domains/article';
+import { deleteContent, loadContentDetail, loadContentFeed } from '@/services/domains/article';
 import { loadCreatorContributions } from '@/services/domains/creator';
 import { loadCurrentUserInfo, loadPersonalQuestionPage } from '@/services/domains/identity';
 import { loadCreatorAnalytics } from '@/features/content-analytics/api';
@@ -183,7 +183,7 @@ describe('Creator Center localization', () => {
 
     expect(view.getByText('内容管理')).toBeTruthy();
     expect((view.getByLabelText('标题') as HTMLInputElement).value).toBe('未保存的新标题');
-    expect(document.title).toBe('内容管理');
+    expect(document.title).toBe('内容管理 - 芥子环');
   });
 
   it('formats analytics from structured keys and retains metric visibility', async () => {
@@ -236,5 +236,17 @@ describe('Creator Center localization', () => {
 
     expect(await view.findByRole('img', { name: '一年内 4 次贡献' })).toBeTruthy();
     expect(view.getByText('少')).toBeTruthy();
+  });
+
+  it('deletes creator content after the confirmation dialog without a verification step', async () => {
+    const view = shell(<CreatorPage />, '/creator?view=content&type=discussion');
+    expect(await view.findByText('保留作者标题')).toBeTruthy();
+
+    fireEvent.click(view.getByRole('button', { name: '删除' }));
+    fireEvent.click(await view.findByRole('button', { name: '确认删除' }));
+
+    await act(async () => undefined);
+    expect(deleteContent).toHaveBeenCalledWith('discussion-1');
+    expect(view.queryByText('保留作者标题')).toBeNull();
   });
 });

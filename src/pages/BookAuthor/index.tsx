@@ -1,6 +1,6 @@
 import { Icon , useNoticeToasts } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { RuntimeHelmet as Helmet } from '@/components/RuntimeHelmet';
+import { Helmet } from 'react-helmet-async';
 import { Link, useParams } from 'react-router-dom';
 
 import { MathInline } from '@/components/MathText';
@@ -32,7 +32,13 @@ function AuthorBookCard({ item }: { item: FeedItem }) {
       <div className="home-book-main">
         <div className="stream-card-topline">
           <span className="meta-category meta-category-book" title={t('bookAuthor.book')}>B</span>
-          <span>{book?.kind === 'copyrighted' ? t('bookAuthor.externalBook') : t('bookAuthor.originalBook')}</span>
+          <span>
+            {book?.kind === 'copyrighted'
+              ? t('bookAuthor.externalBook')
+              : book?.kind === 'typst'
+                ? t('bookAuthor.typstBook')
+                : t('bookAuthor.originalBook')}
+          </span>
         </div>
         <h2>
           <Link to={contentPath('book', item.id, item.title)}>

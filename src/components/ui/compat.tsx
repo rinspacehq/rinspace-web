@@ -6,6 +6,7 @@ import {
   AnimateDialog,
   AnimateDialogClose,
   AnimateDialogContent,
+  AnimateDialogDescription,
   AnimateDialogOverlay,
   AnimateDialogPortal,
   AnimateDialogTitle,
@@ -44,15 +45,16 @@ export const Form = Object.assign(forwardRef<HTMLFormElement, FormHTMLAttributes
 export function Spinner({ className, ...props }: HTMLAttributes<HTMLSpanElement> & { animation?: string; size?: string }) { return <span {...props} className={cn('rin-ui-spinner', className)} />; }
 export function Container({ fluid, className, ...props }: HTMLAttributes<HTMLDivElement> & { fluid?: boolean }) { return <div {...props} className={cn(fluid ? 'rin-container-fluid' : 'rin-page-grid', className)} />; }
 
-type ModalProps = { show?: boolean; onHide?: () => void; children: ReactNode; className?: string; dialogClassName?: string; size?: string; centered?: boolean; backdrop?: boolean | 'static'; keyboard?: boolean };
-function ModalRoot({ show, onHide, children, className, dialogClassName, keyboard = true, backdrop = true }: ModalProps) {
-  return <AnimateDialog open={Boolean(show)} onOpenChange={(open) => { if (!open) onHide?.(); }}><AnimateDialogPortal><AnimateDialogOverlay className="rin-ui-overlay rin-animate-overlay" /><AnimateDialogContent className={cn('rin-ui-panel rin-ui-dialog', className, dialogClassName)} onEscapeKeyDown={(event) => { if (!keyboard) event.preventDefault(); }} onPointerDownOutside={(event) => { if (backdrop === 'static' || backdrop === false) event.preventDefault(); }}>{children}</AnimateDialogContent></AnimateDialogPortal></AnimateDialog>;
+type ModalProps = { show?: boolean; onHide?: () => void; children: ReactNode; className?: string; dialogClassName?: string; size?: string; centered?: boolean; backdrop?: boolean | 'static'; keyboard?: boolean; preserveLayoutDuringMotion?: boolean };
+function ModalRoot({ show, onHide, children, className, dialogClassName, keyboard = true, backdrop = true, preserveLayoutDuringMotion = false }: ModalProps) {
+  return <AnimateDialog open={Boolean(show)} onOpenChange={(open) => { if (!open) onHide?.(); }}><AnimateDialogPortal><AnimateDialogOverlay className="rin-ui-overlay rin-animate-overlay" /><AnimateDialogContent className={cn('rin-ui-panel rin-ui-dialog', className, dialogClassName)} preserveLayoutDuringMotion={preserveLayoutDuringMotion} onEscapeKeyDown={(event) => { if (!keyboard) event.preventDefault(); }} onPointerDownOutside={(event) => { if (backdrop === 'static' || backdrop === false) event.preventDefault(); }}>{children}</AnimateDialogContent></AnimateDialogPortal></AnimateDialog>;
 }
 const ModalHeader = ({ closeButton, children, ...props }: HTMLAttributes<HTMLElement> & { closeButton?: boolean }) => {
   const { t } = useTranslation('common');
   return <header {...props}>{children}{closeButton ? <AnimateDialogClose asChild><AnimateIconButton icon={<X />} label={t('accessibility.close')} /></AnimateDialogClose> : null}</header>;
 };
 const ModalTitle = (props: HTMLAttributes<HTMLHeadingElement>) => <AnimateDialogTitle {...props} />;
+const ModalDescription = (props: HTMLAttributes<HTMLParagraphElement>) => <AnimateDialogDescription {...props} />;
 const ModalBody = (props: HTMLAttributes<HTMLDivElement>) => <div {...props} />;
 const ModalFooter = (props: HTMLAttributes<HTMLElement>) => <footer {...props} />;
-export const Modal = Object.assign(ModalRoot, { Header: ModalHeader, Title: ModalTitle, Body: ModalBody, Footer: ModalFooter });
+export const Modal = Object.assign(ModalRoot, { Header: ModalHeader, Title: ModalTitle, Description: ModalDescription, Body: ModalBody, Footer: ModalFooter });

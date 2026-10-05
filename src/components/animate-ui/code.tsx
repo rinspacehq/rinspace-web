@@ -106,8 +106,6 @@ export function CodeBlock({
   }, [code, html, lang]);
 
   useEffect(() => {
-    const pre = blockRef.current?.querySelector<HTMLPreElement>('pre');
-    if (pre) pre.tabIndex = 0;
     if (!lineNumbers) return;
     const codeElement = blockRef.current?.querySelector<HTMLElement>('pre code');
     if (codeElement) addLineNumbersToHighlightedCode(codeElement);
