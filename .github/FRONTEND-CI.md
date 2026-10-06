@@ -1,4 +1,4 @@
-# 新前端检查与候选产物流程 / Frontend checks and candidate artifacts
+# 前端检查与候选产物流程 / Frontend checks and candidate artifacts
 
 这些流程随当前前端源码公开，不复用历史 Demo/容器/发布流程。源码公开和公开
 main 的审查合入不等于官网切换；未调度正式构建、发行或部署。既有 1036 文件
