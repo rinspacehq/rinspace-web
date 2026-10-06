@@ -11,16 +11,18 @@
 
 ## 本地修改页面
 
-使用 Node.js 22 和项目固定的 pnpm 9.7，在本目录执行：
+安装 Node.js 22（需包含 Corepack），在本仓库根目录执行一条命令：
 
 ```sh
-corepack pnpm install --frozen-lockfile --ignore-scripts
-corepack pnpm dev:real
+node scripts/start-local.mjs
 ```
 
-打开 `http://127.0.0.1:5173/`。端口占用时执行
-`corepack pnpm dev:real --port 5176`，访问对应端口。修改 `src/` 后由 Vite 热更新，
-Ctrl-C 停止服务。现有 `pnpm start` 是原始 Vite 入口，不是默认连接正式服务的入口。
+脚本会按本仓库锁文件安装 pnpm 9.7 依赖（禁用安装脚本），再启动连接正式服务的
+本地前端。打开 `http://127.0.0.1:5173/`；若端口占用，执行
+`node scripts/start-local.mjs --port 5176` 并打开对应端口。修改 `src/` 后由 Vite
+热更新；Ctrl-C 停止服务。它只监听 `127.0.0.1`，不启动业务数据库。
+已有依赖时也可直接运行 `corepack pnpm dev:real`；普通 `pnpm start` 不是连接正式
+服务的推荐入口。
 
 不需要私仓配置、平台管理密钥、测试账号、Cookie/token 导出或本地业务数据库。
 当前候选可以匿名读取正式公开数据；安装命令是使用说明，不代表已完成干净环境

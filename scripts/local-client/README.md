@@ -11,16 +11,16 @@
 
 ## 运行
 
-在本公开仓库的根目录中，使用 Node.js 22 和仓库固定的 pnpm 9.7：
+在本公开仓库的根目录中，安装 Node.js 22（包含 Corepack）后运行：
 
 ```sh
-corepack pnpm install --frozen-lockfile --ignore-scripts
-corepack pnpm dev:real
+node scripts/start-local.mjs
 # 默认 http://127.0.0.1:5173/；端口占用时：
-corepack pnpm dev:real --port 5176
+node scripts/start-local.mjs --port 5176
 ```
 
-也可执行 `npm run dev:real`。修改现有 `src/`，Vite 负责热更新；Ctrl-C
+脚本按锁文件安装依赖且禁用安装脚本，然后启动原有 `dev:real` 入口。已有依赖时
+也可直接执行 `corepack pnpm dev:real`。修改现有 `src/`，Vite 负责热更新；Ctrl-C
 停止。不要改成 LAN、0.0.0.0 或公开域名。普通 start/build、常规 Vite 与发布入口
 未修改；本入口不接受任意上游，不读取生产环境文件或平台管理凭据。
 
@@ -84,8 +84,9 @@ handle；本地会话、Origin/CSRF、发码间隔/尝试上限、绑定/期限/
 ## 当前未完成项
 
 - 正式 Native 配置和同意页已启用；账号持有人的本地登录、受保护页面和退出
-  仍待实际验收。`/__rinspace_local/status` 会检查本地工具与正式配置就绪状态；
-  若配置暂时不可用，授权入口会明确报错，不应绕过校验。
+  仍待实际验收。`/__rinspace_local/status` 的 `authorizationReady` 表示本进程
+  最近一次授权配置核对已通过；首次点击授权之前为 `false` 属正常现象。
+  若正式配置暂时不可用，授权入口会明确报错，不应绕过校验。
 - 上述安全操作只通过合成供应商与隔离数据库/浏览器检查；真实短信、账号及图片
   验证码仍待获授权验收。其余身份操作未全部适配，不盲目代理 Cookie-only 接口。
 - 81 MiB 上传运输与直接字节响应只通过隔离检查，未上传/下载正式私有文件；PDF/

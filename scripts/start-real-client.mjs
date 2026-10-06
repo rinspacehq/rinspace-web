@@ -27,5 +27,5 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 }
 await server.listen();
 console.log(`Rinspace local frontend: ${origin}/`);
-console.log('Connected to real Rinspace services. Local login opens official consent; it requires the reviewed native backend to be activated.');
+console.log('Connected to real Rinspace services. Local login opens official consent; authorize only code you trust.');
 console.log('Gitea and the inner world open on rinspace.com. No Cookie/token, database or production env file is needed.');
