@@ -38,7 +38,7 @@ corepack pnpm check:real-client
 corepack pnpm test
 ```
 
-修改构建、资源或环境边界时，再运行 `corepack pnpm check:independent`、`corepack pnpm check:env-boundary` 和相应的浏览器测试。自动化测试使用隔离输入，不需要真实账号。完整的提交与截图要求见[贡献指南](CONTRIBUTING.md)。
+修改构建、资源或环境边界时，再运行 `corepack pnpm check:independent`、`corepack pnpm check:env-boundary` 和相应的浏览器测试。自动化测试使用隔离输入，不需要真实账号。完整的提交与截图要求见[贡献指南](CONTRIBUTING.md)；公开 CI 与候选产物流程见[流程说明](.github/FRONTEND-CI.md)。
 
 ## 发布状态
 
