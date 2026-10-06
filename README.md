@@ -1,94 +1,55 @@
 # Rinspace 表世界前端
 
-这里是 Rinspace 现有表世界的 React/Vite 前端，不是另做的一套 Demo。页面、组件、
-样式、路由、翻译和浏览器请求代码都在这个目录内；本地接入工具连接正式服务，
-不运行 Rinspace 业务数据库。
+Rinspace 的表世界 React 前端。这里包含实际使用的页面、组件、样式、路由、翻译和浏览器请求代码。你可以在本地修改它们，连接 Rinspace 的正式服务查看效果；不需要运行后端或准备测试账号。
 
-> 迁移准备状态：这份现有前端源码已公开到 `rinspacehq/rinspace-web`，
-> 官网尚未切换消费公开发行；源码公开不等于唯一前端来源已完成切换。
-> 正式 Native 授权入口现已启用；真实账号的本地页面查看仍待账号持有人验收，
-> 不能把接口就绪当成全部本地功能已验证。
+## 一键在本地运行
 
-## 本地修改页面
-
-安装 Node.js 22（需包含 Corepack），在本仓库根目录执行一条命令：
+需要 Git、Node.js 22 或更新版本（含 Corepack）。克隆仓库后，只需在仓库根目录运行一条命令：
 
 ```sh
+git clone https://github.com/rinspacehq/rinspace-web.git
+cd rinspace-web
 node scripts/start-local.mjs
 ```
 
-脚本会按本仓库锁文件安装 pnpm 9.7 依赖（禁用安装脚本），再启动连接正式服务的
-本地前端。打开 `http://127.0.0.1:5173/`；若端口占用，执行
-`node scripts/start-local.mjs --port 5176` 并打开对应端口。修改 `src/` 后由 Vite
-热更新；Ctrl-C 停止服务。它只监听 `127.0.0.1`，不启动业务数据库。
-已有依赖时也可直接运行 `corepack pnpm dev:real`；普通 `pnpm start` 不是连接正式
-服务的推荐入口。
+打开 **http://127.0.0.1:5173/**。脚本会按锁文件安装依赖（禁用依赖安装脚本），然后启动连接 `rinspace.com` 的本地前端。修改 `src/` 会自动刷新页面；按 Ctrl-C 停止。端口被占用时运行 `node scripts/start-local.mjs --port 5176`，再打开对应端口。已有依赖时，也可以运行 `corepack pnpm dev:real`。
 
-不需要私仓配置、平台管理密钥、测试账号、Cookie/token 导出或本地业务数据库。
-当前候选可以匿名读取正式公开数据；安装命令是使用说明，不代表已完成干净环境
-安装和正式发行验收。
+这是一键**本地启动**：它只监听本机 `127.0.0.1`，不启动业务数据库，也不要求私仓配置、生产环境文件、平台管理密钥或共享测试账号。
 
-## 真实账号与本地能力
+## 登录与可用范围
 
-本地登录的用途是查看和修改本人有权访问的页面，不是提供全部官网功能。
-本地登录入口会打开 `rinspace.com`：用户登录自己的账号并确认授权，随后返回
-本地页面。前端修改无需提交 PR 或获得逐人开发资格。
+匿名页面可以直接查看。需要查看仅登录可见的页面时，从本地页面选择前往官网授权，在 `rinspace.com` 登录自己的账号并确认授权，再返回本地页面。请只授权自己信任的代码，不要把密码、验证码、Cookie 或 token 复制给本地工具或他人。
 
-当前正式 Native 配置与同意页已上线，但真实账号本地页面查看尚未完成维护者验收。
-请仅授权自己信任的本地代码；不要复制官网凭据或关闭来源校验。匿名页面开发
-不需要登录。
+本地登录的目的是帮助你检查自己修改的页面，不是让本地副本具备官网全部业务能力。请求连接真实服务；已接入的写操作可能修改真实账号数据，未接通的功能应在官网使用，不会模拟成功。Gitea 和里世界入口跳转官方网页，不在本机部署它们。
 
-连接的是正式服务，不是虚拟数据。已接入的操作可能影响真实账号和数据；未支持
-的业务操作使用官网，不显示模拟成功。Gitea 和里世界入口只打开对应官方网页。
-本地不部署 Gitea、Mastodon、Renderer 或代码工作区，也不要求把它们全部接通。
+正式授权配置和官网同意页已启用，但维护者尚未完成真实账号的本地受保护页面验收。当前已知限制及安全边界见[本地连接说明](scripts/local-client/README.md)。遇到问题时请报告脱敏现象，不要发送账号凭据或授权回调地址。
 
-## 源码与检查
+## 修改与验证
 
-| 目录 | 用途 |
-| --- | --- |
-| `src/` | 实际页面、组件、样式、翻译、路由与请求代码 |
-| `public/` | 前端静态资源，已按源码范围审查；发行另行验收 |
-| `contracts/` | 前端自身需要的固定契约、路由和测试输入 |
-| `scripts/` | 构建、生成与检查工具 |
-| `scripts/local-client/` | 本地正式服务连接、授权和会话工具，不包含业务数据库 |
-| `tests/`、`playwright/` | 浏览器回归与自动化测试输入 |
+从 `src/` 中的页面和组件开始修改。`public/` 放静态资源，`contracts/` 放前端所需的契约输入，`scripts/` 放构建与检查工具，`tests/` 和 `playwright/` 放浏览器测试。
+
+提交前至少运行与你的改动相关的测试。常用检查：
 
 ```sh
 corepack pnpm check
 corepack pnpm check:routes
 corepack pnpm check:i18n
-corepack pnpm check:env-boundary
-corepack pnpm check:entrypoints
-corepack pnpm check:animate-ui
 corepack pnpm check:real-client
 corepack pnpm test
 ```
 
-自动化夹具只用于无生产凭据的测试，不作为默认用户体验。贡献和脱敏要求见
-[CONTRIBUTING.md](CONTRIBUTING.md)。现有构建命令为 `pnpm build`；本工作区正式
-候选构建只通过获准的固定提交 self-hosted 流程执行。
+修改构建、资源或环境边界时，再运行 `corepack pnpm check:independent`、`corepack pnpm check:env-boundary` 和相应的浏览器测试。自动化测试使用隔离输入，不需要真实账号。完整的提交与截图要求见[贡献指南](CONTRIBUTING.md)。
 
-生产模式沿用现有两项公共 CloudBase 参数的必填检查：
-`REACT_APP_CLOUDBASE_ENV_ID` 和 `REACT_APP_CLOUDBASE_ACCESS_KEY`（前端 publishable key）。
-这不是平台管理密钥；不要复制生产环境文件。本地 `pnpm dev:real` 不要求这些参数。
+## 发布状态
 
-产品构建仅使用 `index.html`；构建检查报告在 `build/reports/`，浏览器性能报告在
-`test-results/performance/`，不改写待验收的构建产物。浏览器回归从空
-匿名状态开始，不依赖维护者保存的会话。生产观测、历史截图和原始组件 catalog
-工具属于私仓，不是公开启动或测试的前提。内部实验页及原检查保留在私仓，
-通过私仓入口使用独立的实验构建配置，不进入产品构建。
+源码已经公开，但 `rinspace.com` 还没有切换为消费本仓库的前端发行包。上面的一键脚本只用于本地预览，不会将网站发布到公网；单独运行 `corepack pnpm build` 也不等于完成可登录站点的部署。本地授权需要受来源限制的回调和连接工具，不能把生产环境文件复制进仓库。
 
-## 官网如何使用贡献
+维护者会审查公开贡献，构建固定版本并在私仓对同一产物做集成验证，之后才可能让官网消费该版本。目前公开 `v0.2.0` 是集成预发布版；官网尚未切换来源，私仓仍保留当前生产前端。公开 `main`、未审查 PR 或 `latest` 都不会自动进入生产。
 
-目标是公开仓库成为唯一可编辑前端来源：贡献经维护者审查后产生固定发行，私仓
-验证并锁定同一产物的版本、来源提交和摘要，再原样部署。私仓不手工搬页面/CSS，
-不维护第二套前端，也不自动把公开 PR 或 `main/latest` 同步到生产。
+修改并查看表世界页面只需使用上面的本地命令；本仓库目前不提供公网自部署脚本。
 
-这条消费链路尚未正式切换。迁移沿用现有 rinspace-web 许可体系：Rinspace 自有
-软件采用 AGPL-3.0-only 社区许可，保留独立商业许可；第三方、资产和品牌继续
-遵守原 [LICENSE](LICENSE)、[LICENSING.md](LICENSING.md)、
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)、[资产](ASSET-LICENSES.md)与
-[商标](TRADEMARKS.md)条款。贡献条款、DCO 和第三方完整许可文本也在本目录内，
-不依赖私仓父目录。当前 notice 仍明确记录 SDK 分发许可与其他发行审查的未闭合项。
-不另改为 MIT。本次源码已有获批范围和干净来源记录；后续变更继续核对差异，
-不能把源码公开直接视为固定发行、私仓消费或官网切换已经完成。
+## 贡献、许可与安全
+
+欢迎提交页面、组件、样式、翻译和可复现的测试改进。请在 PR 中说明受影响页面和验证结果，保留必要的明暗主题及窄屏对照；不要提交构建产物、凭据、真实用户私有数据或未经确认可分发的素材。提交须遵守 [DCO](DCO) 和[贡献许可](CONTRIBUTION-LICENSE.md)，参见[贡献指南](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私密报告。
+
+Rinspace 自有软件按 [AGPL-3.0-only 社区许可](LICENSE)发布，同时保留独立商业许可。第三方代码、字体、素材及品牌分别遵守[许可说明](LICENSING.md)、[第三方声明](THIRD_PARTY_NOTICES.md)、[资产许可](ASSET-LICENSES.md)和[商标规则](TRADEMARKS.md)；第三方许可待核实之处仍按声明如实披露。
