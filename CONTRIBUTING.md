@@ -1,11 +1,11 @@
 # 修改 Rinspace 表世界前端
 
-本文随当前真实前端的迁移候选准备；现有 `rinspacehq/rinspace-web` 尚未完成内容
-迁移。迁移后继续使用这个仓库的历史、Issue、PR 和贡献归属，不另建一套产品前端。
+本仓库已公开当前真实前端源码，保留原有 Git 历史、Issue、PR 和贡献归属；
+官网尚未切换为消费本仓库的固定发行包。
 
 ## 开发与验证
 
-按 [README.md](README.md) 安装并运行 `pnpm dev:real`，直接修改现有 `src/`。
+按 [README.md](README.md) 运行 `node scripts/start-local.mjs`，直接修改现有 `src/`。
 本地默认连接正式服务；自己的真实账号只在需要查看受保护页面时使用，不要求
 贡献者部署后端、创建虚拟业务数据库或领取共用测试账号。
 
