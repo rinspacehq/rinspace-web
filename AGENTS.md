@@ -76,3 +76,11 @@ Historical artifacts and unaccepted candidates must not be consumed by product d
 
 Run `git diff --check` and review status before handoff. Documentation-only policy changes do not
 require frontend builds. Report only checks actually run and preserve all license/attribution records.
+
+## Formal frontend cutover stage / 正式前端切换阶段（2026-10-08）
+
+The maintainer explicitly approved proceeding to formal cutover after same-byte v0.2.1
+validation. Publication of the exact verified package, complete consumer wiring, normal
+PR/checks, coordinated ownership and controlled rollout are authorized. Activation is
+pending consumer checks and the coordinated activation record. Existing production
+gates, immutable input checks and license disclosures remain required.
