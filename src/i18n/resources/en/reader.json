@@ -976,5 +976,10 @@
       "rankedUser": "{{index}}. {{user}}: {{score}}",
       "currentList": "Current list ({{type}}, page {{page}})"
     }
+  },
+  "pdfReading": {
+    "startReading": "Start reading",
+    "error": "The PDF cannot be opened right now. Please reload.",
+    "loading": "Loading PDF…"
   }
 }

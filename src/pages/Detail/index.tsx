@@ -29,6 +29,9 @@ import {
   useState,
 } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import AuthorPDFReadingLink, {
+  authorPDFFromFragment,
+} from "@/components/AuthorPDFReadingLink";
 import SiteIcpLink from "@/components/SiteIcpLink";
 import SiteTopbar from "@/components/SiteTopbarShell";
 import UserIdentity from "@/components/UserIdentity";
@@ -93,7 +96,10 @@ import { prefixInlineSvgIds } from "@/utils/inlineSvgIds";
 import { markdownWithoutMatchingTitle } from "@/utils/markdownTitle";
 import { contentTypeMetaChar } from "@/utils/contentTypeMeta";
 import { contentEditDestination } from "@/utils/contentEditDestination";
-import { rinArticleHydrationPlan } from "@/utils/rinArticleHydration";
+import {
+  rinArticleHydrationPlan,
+  rinDeferredMathDisplayMode,
+} from "@/utils/rinArticleHydration";
 import { normalizeRinCodeLanguage } from "@/utils/rinCodeHighlight";
 import {
   hydrateRinMathJaxOfficialMenu,
@@ -1027,7 +1033,7 @@ function removeGeneratedRinReaderToc(document: Document) {
 function prepareRinWriterDocument(
   html: string,
   title: string,
-  options: { removeGeneratedToc?: boolean } = {},
+  options: { removeGeneratedToc?: boolean; serverFinal?: boolean } = {},
 ) {
   if (typeof window === "undefined") return "";
   const document = new DOMParser().parseFromString(html, "text/html");
@@ -1064,15 +1070,21 @@ function prepareRinWriterDocument(
     });
 
     if (element.tagName.toLowerCase() === "a") {
-      element.setAttribute("rel", "noopener noreferrer");
+      const rel = new Set(
+        (element.getAttribute("rel") || "").split(/\s+/).filter(Boolean),
+      );
+      rel.add("noopener");
+      rel.add("noreferrer");
+      element.setAttribute("rel", Array.from(rel).join(" "));
       const href = element.getAttribute("href") || "";
-      if (/^https?:\/\//i.test(href)) element.setAttribute("target", "_blank");
+      if (/^https?:\/\//i.test(href) && !element.hasAttribute("target"))
+        element.setAttribute("target", "_blank");
     }
   });
 
   prefixRinWriterDiagramSvgIds(document);
-  removeMatchingArticleDocumentTitle(document, title);
-  if (options.removeGeneratedToc) {
+  if (!options.serverFinal) removeMatchingArticleDocumentTitle(document, title);
+  if (options.removeGeneratedToc && !options.serverFinal) {
     removeGeneratedRinReaderToc(document);
   }
   const firstSectionHeading = findFirstSectionHeading(document.body);
@@ -1092,7 +1104,7 @@ function prepareRinWriterDocument(
   );
   const usedIds = new Map<string, number>();
   document.body.querySelectorAll("h2, h3, h4").forEach((heading, index) => {
-    if (heading.id) return;
+    if (heading.id || options.serverFinal) return;
     const base = slugifyHeading(
       heading.textContent || "",
       `section-${index + 1}`,
@@ -1144,16 +1156,16 @@ function sanitizeRinWriterHtml(
 ) {
   const document = prepareRinWriterDocument(html, title, options);
   if (!document) return "";
-  const references = rinWriterReferenceMap(document);
-  repairRinWriterCleverReferences(document, references);
   if (!options.serverFinal) {
+    const references = rinWriterReferenceMap(document);
+    repairRinWriterCleverReferences(document, references);
     repairRenderedKatexLatexArtifacts(document, references);
     if (!options.deferMath) {
       renderRinMathTextNodes(document, references);
       repairRenderedKatexLatexArtifacts(document, references);
     }
+    polishRinBibliographyDocument(document);
   }
-  polishRinBibliographyDocument(document);
   const trustedStyleHtml = trustedRinMathJaxCommonHtmlStyleHtml(document);
   const bodyHtml = document.body.innerHTML.trim();
   return [trustedStyleHtml, bodyHtml].filter(Boolean).join("\n").trim();
@@ -2416,9 +2428,14 @@ function renderRinMathTextNodesInBatches(
 
 function renderDeferredMathElement(element: HTMLElement) {
   if (element.dataset.rinMathRendered === "true") return;
+  // Legacy LaTeX bodies keep the equation number in a sibling span, and it would otherwise leak
+  // into textContent and be discarded by the typeset replacement. Detach it, then restore it.
+  const equationNumber = element.querySelector(".rin-equation-number");
+  equationNumber?.remove();
   const source = element.dataset.rinMathSource || element.textContent || "";
-  const displayMode = element.dataset.rinMathDisplay === "block";
+  const displayMode = rinDeferredMathDisplayMode(element);
   element.innerHTML = renderKatexReaderMath(source, displayMode);
+  if (equationNumber) element.appendChild(equationNumber);
   element.dataset.rinMathRendered = "true";
 }
 
@@ -2875,7 +2892,7 @@ function blogTocHeadingText(heading: Element) {
 }
 
 function rinWriterTocItems(html: string, title: string): BlogTocItem[] {
-  const document = prepareRinWriterDocument(html, title);
+  const document = prepareRinWriterDocument(html, title, { serverFinal: true });
   if (!document) return [];
   return Array.from(document.body.querySelectorAll("h2, h3, h4"))
     .map((heading) => {
@@ -3416,15 +3433,19 @@ const RinWriterArticle = memo(function RinWriterArticle({
   enableInternalLinkPreviews?: boolean;
 }) {
   const { t } = useFeatureTranslation("reader");
+  const authorPDF = useMemo(
+    () => (serverFinal ? authorPDFFromFragment(html) : null),
+    [html, serverFinal],
+  );
   const articleRef = useRef<HTMLElement | null>(null);
   const sanitizedHtml = useMemo(
     () =>
-      sanitizeRinWriterHtml(html, title, {
+      sanitizeRinWriterHtml(authorPDF ? "" : html, title, {
         removeGeneratedToc,
         deferMath,
         serverFinal,
       }),
-    [deferMath, html, removeGeneratedToc, serverFinal, title],
+    [authorPDF, deferMath, html, removeGeneratedToc, serverFinal, title],
   );
   const hasIntro = useMemo(
     () => sanitizedRinWriterHtmlHasIntro(sanitizedHtml),
@@ -3524,6 +3545,8 @@ const RinWriterArticle = memo(function RinWriterArticle({
     [],
   );
 
+  if (authorPDF) return <AuthorPDFReadingLink pdf={authorPDF} />;
+
   return (
     <section
       className="rin-writer-article"
@@ -3534,7 +3557,7 @@ const RinWriterArticle = memo(function RinWriterArticle({
       onContextMenu={handleArticleContextMenu}
     >
       <div
-        className={`rin-writer-html${
+        className={`rin-writer-html${serverFinal ? " rin-renderer-content" : ""}${
           hasIntro ? " rin-writer-html-has-intro" : " rin-writer-html-no-intro"
         }`}
         dangerouslySetInnerHTML={{
@@ -6234,6 +6257,27 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
       ? sameUserId(currentUser?.id, post.authorUid || post.authorId)
       : isCurrentUserAdmin),
   );
+  const bookAuthorPDF = useMemo(() => {
+    if (post?.type !== "book") return null;
+    const inlinePDF = authorPDFFromFragment(rinWriterHtml(post.body));
+    if (inlinePDF) return inlinePDF;
+    const raw = extractMarkedSection(post.body, "RIN_READER");
+    if (!raw) return null;
+    try {
+      const reader: unknown = JSON.parse(raw);
+      if (
+        !isPlainRecord(reader) ||
+        !Array.isArray(reader.pages) ||
+        reader.pages.length !== 1
+      ) return null;
+      const page: unknown = reader.pages[0];
+      return isPlainRecord(page) && typeof page.html === "string"
+        ? authorPDFFromFragment(page.html)
+        : null;
+    } catch {
+      return null;
+    }
+  }, [post]);
   const hasBookReader = Boolean(
     post?.type === "book" &&
     (bookReaderItems.length ||
@@ -11299,7 +11343,12 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 </em>
               </div>
             )}
-            {bookPdfUrl ? (
+            {bookAuthorPDF ? (
+              <AuthorPDFReadingLink
+                pdf={bookAuthorPDF}
+                className="book-detail-read-action"
+              />
+            ) : bookPdfUrl ? (
               <a
                 className="book-detail-read-action"
                 href={bookPdfUrl}
@@ -14050,5 +14099,6 @@ export {
   RinWriterArticle,
   bookPdfPageCount,
   bookReaderPageCounts,
+  rinWriterTocItems,
 };
 export default DetailPage;

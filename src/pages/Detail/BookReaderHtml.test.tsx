@@ -9,6 +9,7 @@ import {
   RinWriterArticle,
   bookPdfPageCount,
   bookReaderPageCounts,
+  rinWriterTocItems,
 } from "./index";
 
 const readerTocItems = [
@@ -94,6 +95,13 @@ test("counts web pages from reader pages and ignores unusable PDF metadata", () 
   expect(bookPdfPageCount(null)).toBeNull();
 });
 
+test("builds navigation only from renderer-owned heading anchors", () => {
+  expect(rinWriterTocItems(
+    '<h2 id="native.section">Section 4</h2><h3>Unanchored authored heading</h3>',
+    "Book",
+  )).toEqual([{ id: "native.section", text: "Section 4", level: 2 }]);
+});
+
 test("forwards the declared owner page of a cross-page reader reference", () => {
   const onReaderReference = vi.fn();
   const view = render(
@@ -126,7 +134,7 @@ test("keeps reader MathML semantics instead of re-rendering Typst math", () => {
       <RinWriterArticle
         html={
           '<section><h2 id="math">公式</h2><p><math display="block">' +
-          '<semantics><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow>' +
+          "<semantics><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow>" +
           '<annotation encoding="application/x-tex">a + b</annotation></semantics></math>' +
           "</p></section>"
         }
@@ -172,12 +180,12 @@ test("keeps the assistive MathML mirror of the MathJax CHTML profile", () => {
   expect(
     assistive?.querySelector("math semantics annotation")?.textContent,
   ).toBe("x");
-  expect(container?.querySelector("mjx-math")?.getAttribute("aria-hidden")).toBe(
-    "true",
-  );
   expect(
-    container?.getAttribute("data-rin-math-source"),
-  ).toBe("<math><mi>x</mi></math>");
+    container?.querySelector("mjx-math")?.getAttribute("aria-hidden"),
+  ).toBe("true");
+  expect(container?.getAttribute("data-rin-math-source")).toBe(
+    "<math><mi>x</mi></math>",
+  );
 });
 
 test("never lets rejected output reach the reader DOM", () => {
@@ -204,8 +212,76 @@ test("never lets rejected output reach the reader DOM", () => {
   expect(view.container.querySelector("[onclick]")).toBeNull();
   expect(view.container.querySelector("[onerror]")).toBeNull();
   expect(view.container.querySelector('a[href^="javascript:"]')).toBeNull();
-  expect(
-    (globalThis as { __rinXss?: number }).__rinXss,
-  ).toBeUndefined();
+  expect((globalThis as { __rinXss?: number }).__rinXss).toBeUndefined();
   expect(view.getByText("Safe heading")).toBeTruthy();
+});
+
+test("preserves final renderer document content, labels and reference identities", () => {
+  const html =
+    '<article id="doc"><h1 class="rin-doc-title">Renderer title</h1>' +
+    '<nav class="rin-toc"><a href="#native.section">Renderer contents</a></nav>' +
+    '<h2 id="native.section">Section 4</h2>' +
+    '<p id="literal">Literal \\cref{native.theorem} remains renderer text.</p>' +
+    '<div id="native.theorem" class="ltx_theorem rin-env"><h6 class="ltx_title_theorem ltx_runin rin-env-title">Lemma 7.</h6>' +
+    '<div class="ltx_para"><p class="ltx_p">Native statement.</p></div></div>' +
+    '<ol class="ltx_enumerate rin-list"><li class="ltx_item rin-list-item" id="native.item">' +
+    '<span class="ltx_tag_item rin-list-marker">(iv)</span><p>Native list item.</p></li></ol>' +
+    '<section class="rin-bibliography"><h6 class="rin-env-title">References</h6>' +
+    '<ul class="ltx_biblist"><li class="ltx_bibitem" id="native.bib">' +
+    '<span class="ltx_tag_bibitem">[Knuth84]</span><span>{TeX} and {C++}</span>' +
+    '<a href="https://example.org/book" target="_self" rel="cite">Original reference</a></li></ul></section>' +
+    '<table class="ltx_equation ltx_eqn_table" id="native.equation"><tbody><tr>' +
+    '<td class="ltx_eqn_cell"><math><mi>x</mi></math></td><td class="ltx_eqn_eqno">(9)</td></tr></tbody></table>' +
+    '<figure id="native.figure"><img width="600" height="1200" src="/diagram.svg" alt="Native diagram">' +
+    "<figcaption>Figure 3.</figcaption></figure><h3>Unanchored authored heading</h3></article>";
+  const source = new DOMParser().parseFromString(html, "text/html");
+  source.querySelectorAll("a").forEach((anchor) => {
+    const rel = new Set(
+      (anchor.getAttribute("rel") || "").split(/\s+/).filter(Boolean),
+    );
+    rel.add("noopener");
+    rel.add("noreferrer");
+    anchor.setAttribute("rel", Array.from(rel).join(" "));
+  });
+  const view = render(
+    <MemoryRouter>
+      <RinWriterArticle
+        html={html}
+        title="Renderer title"
+        serverFinal
+        removeGeneratedToc
+      />
+    </MemoryRouter>,
+  );
+  const output = view.container.querySelector(".rin-renderer-content");
+  expect(output).toBeTruthy();
+  for (const selector of [
+    ".rin-doc-title",
+    ".rin-toc",
+    "#literal",
+    "#native\\.theorem",
+    "#native\\.item",
+    "#native\\.equation",
+    "#native\\.figure",
+    "h3",
+  ]) {
+    expect(output?.querySelector(selector)?.outerHTML).toBe(
+      source.querySelector(selector)?.outerHTML,
+    );
+  }
+  const bibliography = output?.querySelector(".rin-bibliography");
+  expect(bibliography?.textContent).toBe(
+    source.querySelector(".rin-bibliography")?.textContent,
+  );
+  expect(bibliography?.querySelector(".ltx_bibitem")?.id).toBe("native.bib");
+  const reference = bibliography?.querySelector("a");
+  expect(reference?.getAttribute("href")).toBe("https://example.org/book");
+  expect(reference?.getAttribute("target")).toBe("_self");
+  expect(reference?.getAttribute("rel")?.split(" ")).toEqual([
+    "cite",
+    "noopener",
+    "noreferrer",
+  ]);
+  expect(output?.querySelector(".rin-ref-clever")).toBeNull();
+  expect(output?.querySelector(".katex")).toBeNull();
 });

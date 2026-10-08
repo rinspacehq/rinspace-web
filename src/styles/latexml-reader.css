@@ -1,0 +1,29 @@
+/* LaTeXML supplies bibliography labels in .ltx_tag_bibitem. Native
+   LaTeXML.css also disables the browser's list marker on .ltx_bibitem. */
+.rin-writer-html .ltx_biblist {
+  list-style: none;
+  padding-inline-start: 0;
+}
+.rin-writer-html .ltx_bibitem {
+  position: relative;
+  list-style: none;
+  padding-inline-start: 2.5em;
+  margin-block: .65em;
+}
+.rin-writer-html .ltx_bibitem > .ltx_tag_bibitem {
+  position: absolute;
+  inset-inline-start: 0;
+}
+
+/* A wide diagram may scroll horizontally. Its image and caption determine
+   the full block height; a figure must never become a vertical scroll pane. */
+.rin-writer-html :is(figure, .rin-float, .rin-tikz, .rin-quiver,
+    .rin-reader-diagram, .rin-reader-diagram-svg, .rin-tikz-svg) {
+  height: auto;
+  max-height: none;
+  overflow-y: hidden;
+}
+.rin-writer-html :is(.rin-tikz-svg, .rin-reader-diagram-svg) :is(img, svg) {
+  height: auto;
+  max-height: none;
+}

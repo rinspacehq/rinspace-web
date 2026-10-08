@@ -14,6 +14,8 @@
 @import "./topbar-shell.css";
 @import "./rinspace-topbar-mobile-search.css";
 @import "./content.css";
+@import "./latexml-reader.css";
+@import "./renderer-content.css";
 @import "./migrated-pages.css";
 @import "./home-community-content-cards.css";
 @import "./reporting.css";

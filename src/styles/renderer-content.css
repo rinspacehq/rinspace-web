@@ -1,0 +1,71 @@
+/* Renderer semantic classes are part of the final-output contract. These
+   presentation rules preserve the LaTeXML roles used by the pinned renderer
+   (ae2c8b266d1aa04af4350a64c79215bbe4b7c482); product chrome stays outside
+   .rin-renderer-content. No counters, translated labels or generated content. */
+.rin-renderer-content .ltx_runin {
+  display: inline;
+  margin: 0;
+}
+.rin-renderer-content .ltx_runin + .ltx_para,
+.rin-renderer-content .ltx_runin + .ltx_para > .ltx_p:first-child,
+.rin-renderer-content .ltx_runin + p:first-of-type {
+  display: inline;
+}
+.rin-renderer-content .ltx_font_bold {
+  font-weight: bold;
+}
+.rin-renderer-content .ltx_font_medium {
+  font-weight: normal;
+}
+.rin-renderer-content .ltx_font_italic {
+  font-style: italic;
+}
+.rin-renderer-content .ltx_font_upright {
+  font-style: normal;
+}
+.rin-renderer-content .ltx_font_slanted {
+  font-style: oblique;
+}
+.rin-renderer-content .ltx_font_smallcaps {
+  font-variant-caps: small-caps;
+}
+.rin-renderer-content .ltx_font_typewriter {
+  font-family: monospace;
+}
+
+/* Native list labels may be custom text, symbols or counters resolved by TeX.
+   A browser marker or product ::before counter would add a second label. */
+.rin-renderer-content .ltx_item:has(> .ltx_tag_item) {
+  list-style: none;
+}
+.rin-renderer-content .ltx_item:has(> .ltx_tag_item)::marker {
+  content: none;
+}
+.rin-renderer-content .ltx_item:has(> .ltx_tag_item)::before {
+  content: none;
+}
+
+/* Equation tables are alignment structures, unlike scrolling prose tables. */
+.rin-renderer-content table.ltx_eqn_table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+.rin-renderer-content .ltx_eqn_row {
+  display: table-row;
+}
+.rin-renderer-content .ltx_eqn_cell {
+  display: table-cell;
+}
+.rin-renderer-content .ltx_align_left {
+  text-align: left;
+}
+.rin-renderer-content .ltx_align_center {
+  text-align: center;
+}
+.rin-renderer-content .ltx_align_right {
+  text-align: right;
+}
+.rin-renderer-content .ltx_eqn_eqno {
+  white-space: nowrap;
+}
