@@ -15,7 +15,11 @@ export function rinArticleHydrationPlan(options: {
 }): RinArticleHydrationPlan {
   if (options.serverFinal) {
     return {
-      renderDeferredMath: false,
+      // Durable markdown bundles inline their MathJax CHTML and carry no placeholders, so
+      // hasDeferredMath is false and nothing is re-rendered. Legacy LaTeX article bodies publish
+      // `.rin-deferred-math` placeholders that only the browser can typeset; skipping them left
+      // the raw TeX visible to readers.
+      renderDeferredMath: options.hasDeferredMath,
       renderMathTextNodes: false,
       renderLateXMLMathML: false,
       renderDiagrams: false,
@@ -33,4 +37,21 @@ export function rinArticleHydrationPlan(options: {
     decorateFinalCode: false,
     hydrateMathJaxStretchy: true,
   };
+}
+
+const rinDeferredMathDisplayClasses = [
+  'rin-deferred-math-display',
+  'rin-display-math',
+];
+
+/**
+ * Deferred math placeholders carry display mode in two dialects. Browser markdown output sets
+ * `data-rin-math-display`; the legacy LaTeX renderer only sets the display classes. Reading both
+ * keeps display equations from being typeset as inline math.
+ */
+export function rinDeferredMathDisplayMode(element: Element) {
+  if (element.getAttribute('data-rin-math-display') === 'block') return true;
+  return rinDeferredMathDisplayClasses.some((className) =>
+    element.classList.contains(className),
+  );
 }
