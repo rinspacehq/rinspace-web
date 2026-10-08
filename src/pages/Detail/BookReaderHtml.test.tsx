@@ -124,8 +124,20 @@ test("forwards the declared owner page of a cross-page reader reference", () => 
   fireEvent.click(crossPageLink);
   expect(onReaderReference).toHaveBeenNthCalledWith(1, "loc-4", "appendix");
 
-  fireEvent.click(view.getByText("same page"));
-  expect(onReaderReference).toHaveBeenNthCalledWith(2, "intro", undefined);
+  const heading = view.container.querySelector<HTMLElement>("#intro")!;
+  const scrollIntoView = vi.fn();
+  heading.scrollIntoView = scrollIntoView;
+  // JSDOM has no layout scrolling. Own and drain the delayed alignment here
+  // so it cannot run against a later test's element with the same anchor ID.
+  vi.useFakeTimers();
+  try {
+    fireEvent.click(view.getByText("same page"));
+    expect(onReaderReference).toHaveBeenNthCalledWith(2, "intro", undefined);
+    act(() => { vi.runAllTimers(); });
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("keeps reader MathML semantics instead of re-rendering Typst math", () => {
