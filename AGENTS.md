@@ -1,86 +1,57 @@
-# Instructions for frontend migration agents
+# Rinspace public frontend instructions
 
-These instructions apply to the existing `rinspace-web` repository. Read
-`/home/ubuntu/WORKSPACE.md` and `/home/ubuntu/AGENTS.md` first when working in this workspace.
+In the maintainer workspace, read `/home/ubuntu/WORKSPACE.md` and `/home/ubuntu/AGENTS.md`.
+External contributors need only this public tree; no private configuration or account is required.
 
-## Repository status
+## Source ownership and activation boundary
 
-- This repository remains canonically located at `rinspacehq/rinspace-web`. `lunifans` is
-  the maintainer's personal identity, not an alternative `origin`, authoritative fork or release
-  namespace. Do not redirect fetch, push or releases to `lunifans/*` without an explicit
-  written ownership migration.
-- On 2026-10-04 the sole maintainer approved reuse of this existing repository for frontend
-  migration preparation. The former experiment's exclusion from the product chain is not a
-  deletion or GitHub archive operation; preserve Git history, issues/PRs and contribution credit.
-- Preparation is not source cutover: private `/home/ubuntu/rinspace/ui` remains the only editable
-  product frontend until the documented gates pass. Product requirements, backend identity,
-  contracts, integration decisions, release and operations remain in the private product repository.
-- Rebuild only from its reviewed clean source commit and approved file list. Historical UI, demos,
-  packages and workflows are not the migration baseline or current release inputs; never copy
-  this old UI into the private product or infer live behavior from it.
-- After an explicitly accepted cutover, this repository owns the only editable outer-world frontend
-  and fixed frontend releases. Private consumption locks exact version and integrity and requires
-  public/private checks of the same immutable candidate; never synchronize PRs automatically.
-- A request to open-source a standalone Rinspace module (for example the Milkdown editor) does not
-  expand this whole-frontend migration or authorize placing that module here. Such work starts with
-  a specification in `/home/ubuntu/rinspace/specs/` and requires a separately approved public
-  repository/package identity before any export or publication.
+- `rinspacehq/rinspace-web` is the canonical frontend repository. Preserve history, contributions,
+  issues/PRs, license and attribution. `lunifans` is a personal identity, not an alternative origin.
+- The maintainer explicitly authorized formal cutover on 2026-10-08. The activation boundary is
+  accepted private fixed-consumer PR #249, its successful checks and the coordinated workspace
+  activation record. Until that boundary passes, private `ui/` remains the current source authority.
+  After it passes, this repository is the only editable product frontend source; private `ui/`
+  trees retained in old branches are recovery evidence and cannot be a second development line.
+- The accepted release is original v0.2.1, source 80587145fba20f9f8dc41421513ae0adfba838e8,
+  package SHA-256 26657eba596cf6112b34974bbe61cd5e48b2e6597dcab787177cf85ced1d54a3.
+  Public/private checks consume those same bytes. Later public main commits do not change a lock
+  or automatically activate product deployment. Documentation commits do not rebuild this release.
+- Product requirements, backend identity, canonical contracts, private integration and production
+  deployment remain owned by rinspacehq/rinspace. The Mastodon fork owns its native inner runtime;
+  shared inputs come from the accepted fixed package, with its manifest and compatibility review.
+- Earlier migration-preparation ownership restrictions are historical after the recorded activation.
+  The workspace record, both repository instructions, private README and release policy must agree
+  before source/production cutover. Never infer activation from a newer commit or tag.
 
-## Allowed changes
+## Development and contributions
 
-The 2026-10-04 approval permits coordinated local policy maintenance and migration preparation; it does
-not authorize source export/publication, build dispatch, commits, pushes, releases or deployment.
-Frontend export waits for complete source/input, license/notice and sensitive-content review,
-approved export scope and a clean private commit. Do not operate a parallel daily product UI here.
+- Work on a named branch, inspect status and both remote URLs, preserve unrelated changes.
+  Frontend source, styles, routes, translations, components and application tests belong here after
+  activation. Changes to backend contracts are specified and accepted privately first.
+- Start the real client with `node scripts/start-local.mjs`. Own-account authorization supports
+  necessary protected-page viewing; it does not promise a complete local business runtime.
+  Gitea and inner-world navigation use official webpages. Do not create a local business database.
+- Public PRs require ordinary review, DCO and isolated checks without private/production credentials.
+  Unreviewed code must never execute on a private or production runner. Do not bypass required
+  checks, modify dependency package source, or synchronize external PRs automatically.
+- A separate open-source module needs its own approved repository/package identity and private
+  specification. It is not added here merely because it shares frontend dependencies.
 
-The maintainer separately confirmed on 2026-10-05 that the current 1036-file private candidate is
-the accepted migration baseline. Named-branch local task commits and local reconstruction here
-are permitted after remaining export reviews pass, bound to the digest in WORKSPACE.md.
-This does not authorize push, build dispatch, publication, deployment or source/production cutover.
-Preserve unrelated edits in the original public working tree; use a named linked worktree for
-the replacement candidate, retaining this repository's history and contribution credit.
+## Immutable release consumption
 
-Source cutover additionally requires independent public checks and private integration against the
-same candidate, fixed provenance/compatibility/version/digests, an explicit maintainer acceptance
-and removal of duplicate editable private frontend code with a verified rollback artifact.
-The existing private-main-only deployment and production guards stay intact until that reviewed
-integration change. Ordinary requests or newer public tags do not bypass any of these gates.
+- A candidate is built once from an exact reviewed public commit. Public checks and actual private
+  integration, including rollback, must validate that same artifact digest and compatibility.
+- The private product locks the exact version, URL, source SHA, integrity, manifest, evidence,
+  compatibility, integration commit and change ID. Never consume main/latest or patch compiled
+  JS/CSS to pass integration. An ordinary public commit or release is not deployment authorization.
+- Keep original package notices, licenses, SBOM and provenance. The exact license for
+  @cloudbase/wx-cloud-client-sdk@1.8.10 remains unknown; the approved distribution decision retains
+  that disclosure and does not establish third-party permission.
+- Public browser configuration is non-secret. Never commit account credentials, callbacks, profiles,
+  production env files, internal operations, real user content or build output.
+- Existing private-main-only and production environment gates remain. Source export, publication,
+  build dispatch, release and deployment require the applicable maintainer authorization.
 
-If `/home/ubuntu/WORKSPACE.md`, root and both repository instructions, private README or release
-policy disagree, stop before export, cutover or release. The private decision record is
-`specs/rinspace-web-real-client-open-source/repository-policy.md`; it does not supersede WORKSPACE.
-
-Before changes, inspect branch/status, fetch and push URLs and the current diff. Use a named branch,
-preserve unrelated work and keep English/Chinese status notices consistent when changing them.
-Do not commit, push, publish, release or deploy unless explicitly authorized.
-
-Future independent development uses complete current page source and necessary public inputs, not
-a replacement demo or local business database. Own-account login supports protected page viewing;
-Gitea and inner-world navigation go to their official webpages, not locally hosted runtimes.
-Browser configuration is public; never include credentials, private user content or internal
-operations. Public PR checks use isolated runners without private/production secrets, and unreviewed
-candidate code must not execute on a private production runner. License, origin, authorization,
-secret scanning, attribution and release safeguards must not be weakened to make checks pass.
-
-## Historical content
-
-README files, contribution guides, specs, route contracts, demo instructions, `world-shell`, release
-workflows and legal-document copies below the old tree describe the previous experiment. During
-preparation they remain historical, not current Rinspace instructions. Approved replacement notices
-must describe the actual migration stage without claiming the repository was closed or archived.
-The authoritative legal-document source remains
-`/home/ubuntu/rinspace/docs/legal/zh-CN`.
-
-Local commits, tags, packages and generated files do not prove source cutover or production approval.
-Historical artifacts and unaccepted candidates must not be consumed by product deployment.
-
-Run `git diff --check` and review status before handoff. Documentation-only policy changes do not
-require frontend builds. Report only checks actually run and preserve all license/attribution records.
-
-## Formal frontend cutover stage / 正式前端切换阶段（2026-10-08）
-
-The maintainer explicitly approved proceeding to formal cutover after same-byte v0.2.1
-validation. Publication of the exact verified package, complete consumer wiring, normal
-PR/checks, coordinated ownership and controlled rollout are authorized. Activation is
-pending consumer checks and the coordinated activation record. Existing production
-gates, immutable input checks and license disclosures remain required.
+Run `git diff --check` and appropriate checks; report only actual results. Keep English/Chinese
+status consistent. The current official legal-document source remains privately owned; public
+copies are derived inputs and do not silently amend terms.
