@@ -246,7 +246,7 @@ required package-specific notices have been fully reviewed or bundled.
 | `@radix-ui/react-visually-hidden` | `1.2.3` | MIT | no | Copyright (c) 2022 WorkOS | <https://radix-ui.com/primitives> |
 | `@radix-ui/rect` | `1.1.1` | MIT | no | See exact package archive; attribution review pending | <https://radix-ui.com/primitives> |
 | `@radix-ui/rect` | `1.1.3` | MIT | no | Copyright (c) 2022 WorkOS | <https://radix-ui.com/primitives> |
-| `@rinspacehq/markdown-writer` | `0.3.4` | MIT | yes | Copyright (c) 2026 Rinspace contributors | <https://github.com/rinspacehq/rinspace-editor-markdown/releases/tag/v0.3.4> |
+| `@rinspacehq/markdown-writer` | `0.3.5` | MIT | yes | Copyright (c) 2026 Rinspace contributors | <https://github.com/rinspacehq/rinspace-editor-markdown/releases/tag/v0.3.5> |
 | `@shikijs/core` | `4.3.1` | MIT | no | Copyright (c) 2021 Pine Wu<br>Copyright (c) 2023 Anthony Fu <https://github.com/antfu> | <https://github.com/shikijs/shiki#readme> |
 | `@shikijs/engine-javascript` | `4.3.1` | MIT | no | Copyright (c) 2021 Pine Wu<br>Copyright (c) 2023 Anthony Fu <https://github.com/antfu> | <https://github.com/shikijs/shiki#readme> |
 | `@shikijs/engine-oniguruma` | `4.3.1` | MIT | no | Copyright (c) 2021 Pine Wu<br>Copyright (c) 2023 Anthony Fu <https://github.com/antfu> | <https://github.com/shikijs/shiki#readme> |
@@ -535,7 +535,7 @@ and attribution. A missing final newline is normalized in two copies; no license
 | --- | --- | --- |
 | `@cloudbase/js-sdk@3.8.0` | Apache-2.0 | [cloudbase-js-sdk-3.8.0-Apache-2.0.txt](licenses/cloudbase-js-sdk-3.8.0-Apache-2.0.txt) |
 | `@mattiasbuelens/web-streams-adapter@0.1.0` | MIT | [web-streams-adapter-0.1.0-MIT.txt](licenses/web-streams-adapter-0.1.0-MIT.txt) |
-| `@rinspacehq/markdown-writer@0.3.4` | MIT | [markdown-writer-0.3.4-MIT.txt](licenses/markdown-writer-0.3.4-MIT.txt) |
+| `@rinspacehq/markdown-writer@0.3.5` | MIT | [markdown-writer-0.3.5-MIT.txt](licenses/markdown-writer-0.3.5-MIT.txt) |
 | `bson@6.10.4` | Apache-2.0 | [bson-6.10.4-Apache-2.0.txt](licenses/bson-6.10.4-Apache-2.0.txt) |
 | `core-js-pure@3.49.0` | MIT | [core-js-pure-3.49.0-MIT.txt](licenses/core-js-pure-3.49.0-MIT.txt) |
 | `lodash@4.18.1` | MIT | [lodash-4.18.1-MIT.txt](licenses/lodash-4.18.1-MIT.txt) |
