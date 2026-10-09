@@ -28,6 +28,9 @@ export function publicConfiguration(value) {
   for (const key of ['REACT_APP_CLOUDBASE_ENV_ID', 'REACT_APP_CLOUDBASE_ACCESS_KEY']) {
     if (!value[key]?.trim()) throw Error(`${key} must be explicitly reviewed public configuration`);
   }
+  if (value.VITE_RINSPACE_TYPST_CREATE_ENABLED !== 'true') {
+    throw Error('Production candidates must keep the launched Typst creation feature enabled');
+  }
   // The official site uses a redirect-free, root-relative module graph.
   return { ...value, VITE_ASSET_BASE: '/', PUBLIC_URL: '', REACT_APP_BASE_URL: '/' };
 }

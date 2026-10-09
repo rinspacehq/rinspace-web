@@ -14,7 +14,7 @@ export function fixture() {
     version: 'v1.2.3', enabled: 'true', isolatedRunner: 'true', distributionApproved: 'false',
     reviewedSource: 'a'.repeat(40), reviewedVersion: 'v1.2.3',
     compatibility: { api: 'synthetic-api/1', identity: 'synthetic-identity/1', shared: 'synthetic-shared/1' },
-    publicConfig: { REACT_APP_CLOUDBASE_ENV_ID: 'synthetic-environment', REACT_APP_CLOUDBASE_ACCESS_KEY: 'synthetic-publishable-fixture-not-a-credential' },
+    publicConfig: { REACT_APP_CLOUDBASE_ENV_ID: 'synthetic-environment', REACT_APP_CLOUDBASE_ACCESS_KEY: 'synthetic-publishable-fixture-not-a-credential', VITE_RINSPACE_TYPST_CREATE_ENABLED: 'true' },
   };
   const context = releaseContext(input);
   const dependencyLock = Buffer.from('Synthetic dependency lock, not an installed dependency graph');
@@ -49,7 +49,7 @@ test('public configuration uses an allowlist, explicit publishable inputs and of
   const value = fixture();
   assert.equal(value.context.publicConfig.VITE_ASSET_BASE, '/');
   assert.equal(value.context.publicConfig.PUBLIC_URL, '');
-  for (const publicConfig of [null, {}, { ...value.input.publicConfig, DATABASE_URL: 'not allowed' }, { ...value.input.publicConfig, REACT_APP_RIN_ADMIN_PHONE_SHA256: 'not public build input' }, { ...value.input.publicConfig, REACT_APP_CLOUDBASE_ACCESS_KEY: ' ' }, { ...value.input.publicConfig, REACT_APP_CLOUDBASE_ENV_ID: 'bad\nvalue' }]) assert.throws(() => publicConfiguration(publicConfig));
+  for (const publicConfig of [null, {}, { ...value.input.publicConfig, VITE_RINSPACE_TYPST_CREATE_ENABLED: 'false' }, { ...value.input.publicConfig, VITE_RINSPACE_TYPST_CREATE_ENABLED: '' }, { ...value.input.publicConfig, VITE_RINSPACE_TYPST_CREATE_ENABLED: undefined }, { ...value.input.publicConfig, DATABASE_URL: 'not allowed' }, { ...value.input.publicConfig, REACT_APP_RIN_ADMIN_PHONE_SHA256: 'not public build input' }, { ...value.input.publicConfig, REACT_APP_CLOUDBASE_ACCESS_KEY: ' ' }, { ...value.input.publicConfig, REACT_APP_CLOUDBASE_ENV_ID: 'bad\nvalue' }]) assert.throws(() => publicConfiguration(publicConfig));
 });
 
 test('candidate bytes are deterministic and inventory preserves source bytes', () => {
