@@ -52,8 +52,8 @@
     "@lezer/highlight": "1.2.3",
     "@mathjax/mathjax-newcm-font": "4.1.3",
     "@mathjax/src": "4.1.3",
-    "@milkdown/crepe": "7.21.2",
-    "@milkdown/kit": "7.21.2",
+    "@milkdown/crepe": "7.22.2",
+    "@milkdown/kit": "7.22.2",
     "@radix-ui/react-accordion": "1.2.12",
     "@radix-ui/react-checkbox": "1.3.3",
     "@radix-ui/react-dialog": "1.1.15",
@@ -67,12 +67,12 @@
     "@radix-ui/react-tabs": "1.1.13",
     "@radix-ui/react-toast": "1.2.15",
     "@radix-ui/react-tooltip": "1.2.8",
-    "@rinspacehq/markdown-writer": "https://github.com/rinspacehq/markdown-writer/releases/download/v0.3.3/rinspacehq-markdown-writer-0.3.3.tgz",
+    "@rinspacehq/markdown-writer": "https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.4/rinspacehq-markdown-writer-0.3.4.tgz",
     "classnames": "^2.3.1",
     "clsx": "2.1.1",
     "dompurify": "3.4.11",
     "i18next": "25.5.2",
-    "katex": "^0.16.25",
+    "katex": "0.19.0",
     "lucide-react": "1.31.0",
     "motion": "12.43.0",
     "pdfjs-dist": "3.11.174",
@@ -127,6 +127,9 @@
   },
   "packageManager": "pnpm@9.7.0",
   "pnpm": {
+    "overrides": {
+      "katex": "0.19.0"
+    },
     "packageExtensions": {
       "react-helmet-async@*": {
         "peerDependencies": {

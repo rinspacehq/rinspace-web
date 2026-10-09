@@ -7,7 +7,7 @@ describe('loadRinspaceOpenSourceStars', () => {
 
   it('sums every public repository returned for the organization', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify([
-      { name: 'markdown-writer', fork: false, archived: false, disabled: false, stargazers_count: 17 },
+      { name: 'rinspace-editor-markdown', fork: false, archived: false, disabled: false, stargazers_count: 17 },
       { name: 'rinspace-web', fork: false, archived: false, disabled: false, stargazers_count: 99 },
       { name: 'mastodon', fork: true, archived: false, disabled: false, stargazers_count: 88 },
       { name: 'archived-project', fork: false, archived: true, disabled: false, stargazers_count: 77 },
