@@ -67,7 +67,7 @@
     "@radix-ui/react-tabs": "1.1.13",
     "@radix-ui/react-toast": "1.2.15",
     "@radix-ui/react-tooltip": "1.2.8",
-    "@rinspacehq/markdown-writer": "https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.4/rinspacehq-markdown-writer-0.3.4.tgz",
+    "@rinspacehq/markdown-writer": "https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz",
     "classnames": "^2.3.1",
     "clsx": "2.1.1",
     "dompurify": "3.4.11",

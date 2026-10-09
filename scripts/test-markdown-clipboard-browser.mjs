@@ -16,6 +16,17 @@ const vscodeHTML = `<div style="color: #cccccc; background-color: #1f1f1f; font-
   <div><span>const answer = 42;</span></div>
   <div><span>console.log(answer);</span></div>
 </div>`;
+const looseTable = `Table paste fixture.
+
+| Method | Admin | Reddit |
+
+|---|---:|---:|
+
+| Prompt Update | 48.35 | 54.57 |
+
+| Logit Update | 52.31 | 57.64 |
+
+Logit Update performs better.`;
 
 const browser = await chromium.launch({
   headless: true,
@@ -102,9 +113,54 @@ try {
     "",
     "pasted source code could not be removed from the editor",
   );
+
+  await page.evaluate((plainText) => {
+    const target =
+      document.activeElement?.closest?.(".ProseMirror") ||
+      document.querySelector(".ProseMirror");
+    if (!target) throw new Error("Markdown editor is missing.");
+    const data = new DataTransfer();
+    data.setData("text/plain", plainText);
+    target.dispatchEvent(
+      new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: data,
+      }),
+    );
+  }, looseTable);
+  await page.waitForTimeout(900);
+
+  const tablePaste = await page.evaluate(() => ({
+    tableCount: document.querySelectorAll(".ProseMirror table.children").length,
+    headers: Array.from(document.querySelectorAll(".ProseMirror th")).map(
+      (node) => (node.textContent || "").trim(),
+    ),
+    cells: Array.from(document.querySelectorAll(".ProseMirror td")).map(
+      (node) => (node.textContent || "").trim(),
+    ),
+    paragraphs: Array.from(document.querySelectorAll(".ProseMirror p")).map(
+      (node) => (node.textContent || "").trim(),
+    ),
+  }));
+  assert.equal(
+    tablePaste.tableCount,
+    1,
+    "blank-separated GFM table paste did not create one table",
+  );
+  assert.deepEqual(tablePaste.headers, ["Method", "Admin", "Reddit"]);
+  assert.deepEqual(tablePaste.cells, [
+    "Prompt Update",
+    "48.35",
+    "54.57",
+    "Logit Update",
+    "52.31",
+    "57.64",
+  ]);
+  assert.ok(tablePaste.paragraphs.includes("Logit Update performs better."));
   assert.deepEqual(browserErrors, []);
 } finally {
   await browser.close();
 }
 
-console.log("VS Code source clipboard browser acceptance passed");
+console.log("VS Code source and Markdown table clipboard browser acceptance passed");
