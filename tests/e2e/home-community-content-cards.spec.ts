@@ -208,7 +208,7 @@ test.beforeEach(async ({ page }) => {
     if (url.hostname === 'api.github.com' && url.pathname === '/orgs/rinspacehq/repos') {
       await route.fulfill({
         json: [
-          { name: 'markdown-writer', fork: false, archived: false, disabled: false, stargazers_count: 42 },
+          { name: 'rinspace-editor-markdown', fork: false, archived: false, disabled: false, stargazers_count: 42 },
           { name: 'rinspace-web', fork: false, archived: false, disabled: false, stargazers_count: 99 },
           { name: 'mastodon', fork: true, archived: false, disabled: false, stargazers_count: 88 },
         ],

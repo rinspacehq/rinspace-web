@@ -12,8 +12,8 @@ const vscodeHTML = `
 `;
 
 describe('Milkdown clipboard normalization', () => {
-  it('prefers plain Markdown over VS Code syntax-highlighted HTML', () => {
-    expect(shouldPasteClipboardAsMarkdown('# 标题\n\n正文', vscodeHTML)).toBe(true);
+  it('leaves VS Code syntax-highlighted clipboard data to the package code-paste handler', () => {
+    expect(shouldPasteClipboardAsMarkdown('# This stays source code\nconst answer = 42;', vscodeHTML)).toBe(false);
   });
 
   it('keeps ordinary rich web content on the native HTML paste path', () => {
@@ -24,9 +24,9 @@ describe('Milkdown clipboard normalization', () => {
     expect(shouldPasteClipboardAsMarkdown('令 $x = 1$', '')).toBe(true);
   });
 
-  it('preserves explicit fenced code blocks while normalizing Markdown', () => {
-    const fenced = '```ts\nconst answer = 42;\n```';
-    expect(markdownMathForMilkdown(fenced)).toBe(fenced);
-    expect(shouldPasteClipboardAsMarkdown(fenced, vscodeHTML)).toBe(true);
+  it('does not reinterpret source containing backticks as math Markdown', () => {
+    const source = 'const snippet = `value`;';
+    expect(markdownMathForMilkdown(source)).toBe(source);
+    expect(shouldPasteClipboardAsMarkdown(source, vscodeHTML)).toBe(false);
   });
 });

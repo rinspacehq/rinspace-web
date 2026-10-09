@@ -135,12 +135,9 @@ required package-specific notices have been fully reviewed or bundled.
 | `@codemirror/state` | `6.6.0` | MIT | yes | Copyright (C) 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others | <https://github.com/codemirror/state#readme> |
 | `@codemirror/theme-one-dark` | `6.1.3` | MIT | no | Copyright (C) 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others | <https://github.com/codemirror/theme-one-dark#readme> |
 | `@codemirror/view` | `6.43.1` | MIT | yes | Copyright (C) 2018-2021 by Marijn Haverbeke <marijn@haverbeke.berlin> and others | — |
-| `@floating-ui/core` | `1.7.5` | MIT | no | Copyright (c) 2021-present Floating UI contributors | <https://floating-ui.com> |
 | `@floating-ui/core` | `1.8.0` | MIT | no | Copyright (c) 2021-present Floating UI contributors | <https://floating-ui.com> |
-| `@floating-ui/dom` | `1.7.6` | MIT | no | Copyright (c) 2021-present Floating UI contributors | <https://floating-ui.com> |
 | `@floating-ui/dom` | `1.8.0` | MIT | no | Copyright (c) 2021-present Floating UI contributors | <https://floating-ui.com> |
 | `@floating-ui/react-dom` | `2.1.9` | MIT | no | Copyright (c) 2021-present Floating UI contributors | <https://floating-ui.com/docs/react-dom> |
-| `@floating-ui/utils` | `0.2.11` | MIT | no | Copyright (c) 2021-present Floating UI contributors | <https://floating-ui.com> |
 | `@floating-ui/utils` | `0.2.12` | MIT | no | Copyright (c) 2021-present Floating UI contributors | <https://floating-ui.com> |
 | `@jridgewell/sourcemap-codec` | `1.5.5` | MIT | no | Copyright 2024 Justin Ridgewell <justin@ridgewell.name> | <https://github.com/jridgewell/sourcemaps/tree/main/packages/sourcemap-codec> |
 | `@lezer/common` | `1.5.2` | MIT | no | Copyright (C) 2018 by Marijn Haverbeke <marijn@haverbeke.berlin> and others | <https://github.com/lezer-parser/common#readme> |
@@ -165,29 +162,29 @@ required package-specific notices have been fully reviewed or bundled.
 | `@mathjax/mathjax-newcm-font` | `4.1.3` | Apache-2.0 | yes | See exact package archive; attribution review pending | <https://github.com/mathjax/MathJax-fonts#readme> |
 | `@mathjax/src` | `4.1.3` | Apache-2.0 | yes |    2. Grant of Copyright License. Subject to the terms and conditions of<br>   Copyright [yyyy] [name of copyright owner] | <https://github.com/mathjax/Mathjax-src#readme> |
 | `@mattiasbuelens/web-streams-adapter` | `0.1.0` | MIT | no | Copyright (c) 2018 Mattias Buelens | <https://www.npmjs.com/package/@mattiasbuelens/web-streams-adapter/v/0.1.0> |
-| `@milkdown/components` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/core` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/crepe` | `7.21.2` | MIT | yes | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/ctx` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/exception` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/kit` | `7.21.2` | MIT | yes | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-block` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-clipboard` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-cursor` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-diff` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-history` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-indent` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-listener` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-slash` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-streaming` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-tooltip` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-trailing` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/plugin-upload` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/preset-commonmark` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/preset-gfm` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/prose` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/transformer` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
-| `@milkdown/utils` | `7.21.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/components` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/core` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/crepe` | `7.22.2` | MIT | yes | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/ctx` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/exception` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/kit` | `7.22.2` | MIT | yes | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-block` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-clipboard` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-cursor` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-diff` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-history` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-indent` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-listener` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-slash` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-streaming` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-tooltip` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-trailing` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/plugin-upload` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/preset-commonmark` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/preset-gfm` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/prose` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/transformer` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
+| `@milkdown/utils` | `7.22.2` | MIT | no | Copyright (c) 2020-present Mirone | <https://github.com/Milkdown/milkdown#readme> |
 | `@ocavue/utils` | `1.7.0` | MIT | no | Copyright (c) 2025 ocavue | <https://github.com/ocavue/utils#readme> |
 | `@radix-ui/number` | `1.1.1` | MIT | no | See exact package archive; attribution review pending | <https://radix-ui.com/primitives> |
 | `@radix-ui/primitive` | `1.1.3` | MIT | no | Copyright (c) 2022 WorkOS | <https://radix-ui.com/primitives> |
@@ -249,7 +246,7 @@ required package-specific notices have been fully reviewed or bundled.
 | `@radix-ui/react-visually-hidden` | `1.2.3` | MIT | no | Copyright (c) 2022 WorkOS | <https://radix-ui.com/primitives> |
 | `@radix-ui/rect` | `1.1.1` | MIT | no | See exact package archive; attribution review pending | <https://radix-ui.com/primitives> |
 | `@radix-ui/rect` | `1.1.3` | MIT | no | Copyright (c) 2022 WorkOS | <https://radix-ui.com/primitives> |
-| `@rinspacehq/markdown-writer` | `0.3.3` | MIT | yes | Copyright (c) 2026 Rinspace contributors | <https://www.npmjs.com/package/@rinspacehq/markdown-writer/v/0.3.3> |
+| `@rinspacehq/markdown-writer` | `0.3.4` | MIT | yes | Copyright (c) 2026 Rinspace contributors | <https://github.com/rinspacehq/rinspace-editor-markdown/releases/tag/v0.3.4> |
 | `@shikijs/core` | `4.3.1` | MIT | no | Copyright (c) 2021 Pine Wu<br>Copyright (c) 2023 Anthony Fu <https://github.com/antfu> | <https://github.com/shikijs/shiki#readme> |
 | `@shikijs/engine-javascript` | `4.3.1` | MIT | no | Copyright (c) 2021 Pine Wu<br>Copyright (c) 2023 Anthony Fu <https://github.com/antfu> | <https://github.com/shikijs/shiki#readme> |
 | `@shikijs/engine-oniguruma` | `4.3.1` | MIT | no | Copyright (c) 2021 Pine Wu<br>Copyright (c) 2023 Anthony Fu <https://github.com/antfu> | <https://github.com/shikijs/shiki#readme> |
@@ -304,7 +301,7 @@ required package-specific notices have been fully reviewed or bundled.
 | `color-support` | `1.1.3` | ISC | no | Copyright (c) Isaac Z. Schlueter and Contributors | <https://github.com/isaacs/color-support#readme> |
 | `comma-separated-tokens` | `2.0.3` | MIT | no | Copyright (c) 2016 Titus Wormer <tituswormer@gmail.com> | <https://github.com/wooorm/comma-separated-tokens#readme> |
 | `commander` | `14.0.3` | MIT | no | Copyright (c) 2011 TJ Holowaychuk <tj@vision-media.ca> | <https://github.com/tj/commander.js#readme> |
-| `commander` | `8.3.0` | MIT | no | Copyright (c) 2011 TJ Holowaychuk <tj@vision-media.ca> | <https://github.com/tj/commander.js#readme> |
+| `commander` | `15.0.0` | MIT | no | Copyright (c) 2011 TJ Holowaychuk <tj@vision-media.ca> | <https://github.com/tj/commander.js#readme> |
 | `concat-map` | `0.0.1` | MIT | no | See exact package archive; attribution review pending | <https://github.com/substack/node-concat-map#readme> |
 | `console-control-strings` | `1.1.0` | ISC | no | Copyright (c) 2014, Rebecca Turner <me@re-becca.org> | <https://github.com/iarna/console-control-strings#readme> |
 | `cookie` | `1.1.1` | MIT | no | Copyright (c) 2012-2014 Roman Shtylman <shtylman@gmail.com><br>Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> | <https://github.com/jshttp/cookie#readme> |
@@ -347,8 +344,7 @@ required package-specific notices have been fully reviewed or bundled.
 | `is-plain-obj` | `4.1.0` | MIT | no | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com) | <https://github.com/sindresorhus/is-plain-obj#readme> |
 | `js-tokens` | `4.0.0` | MIT | no | Copyright (c) 2014, 2015, 2016, 2017, 2018 Simon Lydell | <https://github.com/lydell/js-tokens#readme> |
 | `jwt-decode` | `3.1.2` | MIT | no | Copyright (c) 2015 Auth0, Inc. <support@auth0.com> (http://auth0.com) | <https://github.com/auth0/jwt-decode#readme> |
-| `katex` | `0.16.47` | MIT | yes | Copyright (c) 2013-2020 Khan Academy and other contributors | <https://katex.org> |
-| `katex` | `0.17.0` | MIT | yes | Copyright (c) 2013-2020 Khan Academy and other contributors | <https://katex.org> |
+| `katex` | `0.19.0` | MIT | yes | Copyright (c) 2013-2020 Khan Academy and other contributors | <https://katex.org> |
 | `lodash` | `4.18.1` | MIT | no | Copyright OpenJS Foundation and other contributors <https://openjsf.org/><br>Copyright and related rights for sample code are waived via CC0. Sample | <https://www.npmjs.com/package/lodash/v/4.18.1> |
 | `lodash-es` | `4.18.1` | MIT | no | Copyright OpenJS Foundation and other contributors <https://openjsf.org/><br>Copyright and related rights for sample code are waived via CC0. Sample | <https://lodash.com/custom-builds> |
 | `longest-streak` | `3.1.0` | MIT | no | Copyright (c) 2015 Titus Wormer <mailto:tituswormer@gmail.com> | <https://github.com/wooorm/longest-streak#readme> |
@@ -417,7 +413,7 @@ required package-specific notices have been fully reviewed or bundled.
 | `ms` | `2.1.3` | MIT | no | Copyright (c) 2020 Vercel, Inc. | <https://github.com/vercel/ms#readme> |
 | `nan` | `2.28.0` | MIT | no | Copyright (c) 2018 [NAN contributors](<https://github.com/nodejs/nan#wg-members--collaborators>) | <https://github.com/nodejs/nan#readme> |
 | `nanoid` | `3.3.12` | MIT | no | Copyright 2017 Andrey Sitnik <andrey@sitnik.ru> | <https://github.com/ai/nanoid#readme> |
-| `nanoid` | `5.1.16` | MIT | no | Copyright 2017 Andrey Sitnik <andrey@sitnik.es> | <https://github.com/ai/nanoid#readme> |
+| `nanoid` | `6.0.2` | MIT | no | Copyright 2017 Andrey Sitnik <andrey@sitnik.es> | <https://github.com/ai/nanoid#readme> |
 | `node-fetch` | `2.7.0` | MIT | no | Copyright (c) 2016 David Frank | <https://github.com/bitinn/node-fetch> |
 | `nopt` | `5.0.0` | ISC | no | Copyright (c) Isaac Z. Schlueter and Contributors | <https://github.com/npm/nopt#readme> |
 | `normalize-wheel` | `1.0.1` | BSD-3-Clause | no | Copyright (c) 2015, Facebook, Inc. All rights reserved. | — |
@@ -539,7 +535,7 @@ and attribution. A missing final newline is normalized in two copies; no license
 | --- | --- | --- |
 | `@cloudbase/js-sdk@3.8.0` | Apache-2.0 | [cloudbase-js-sdk-3.8.0-Apache-2.0.txt](licenses/cloudbase-js-sdk-3.8.0-Apache-2.0.txt) |
 | `@mattiasbuelens/web-streams-adapter@0.1.0` | MIT | [web-streams-adapter-0.1.0-MIT.txt](licenses/web-streams-adapter-0.1.0-MIT.txt) |
-| `@rinspacehq/markdown-writer@0.3.3` | MIT | [markdown-writer-0.3.3-MIT.txt](licenses/markdown-writer-0.3.3-MIT.txt) |
+| `@rinspacehq/markdown-writer@0.3.4` | MIT | [markdown-writer-0.3.4-MIT.txt](licenses/markdown-writer-0.3.4-MIT.txt) |
 | `bson@6.10.4` | Apache-2.0 | [bson-6.10.4-Apache-2.0.txt](licenses/bson-6.10.4-Apache-2.0.txt) |
 | `core-js-pure@3.49.0` | MIT | [core-js-pure-3.49.0-MIT.txt](licenses/core-js-pure-3.49.0-MIT.txt) |
 | `lodash@4.18.1` | MIT | [lodash-4.18.1-MIT.txt](licenses/lodash-4.18.1-MIT.txt) |

@@ -8,21 +8,13 @@ const baseURL = (
 ).replace(/\/$/, "");
 const chromiumPath = process.env.CHROMIUM_BIN;
 const browserErrors = [];
-const markdown = `# VS Code 粘贴标题
-
-这是从 VS Code 复制的 Markdown 正文。
-
-- 第一项
-- 第二项
-
-行内代码保持为 \`const answer = 42\`。`;
+const sourceCode = `# This stays source code
+const answer = 42;
+console.log(answer);`;
 const vscodeHTML = `<div style="color: #cccccc; background-color: #1f1f1f; font-family: Consolas, 'Courier New', monospace; white-space: pre;">
-  <div><span># VS Code 粘贴标题</span></div>
-  <div><br></div>
-  <div><span>这是从 VS Code 复制的 Markdown 正文。</span></div>
-  <div><br></div>
-  <div><span>- 第一项</span></div>
-  <div><span>- 第二项</span></div>
+  <div><span># This stays source code</span></div>
+  <div><span>const answer = 42;</span></div>
+  <div><span>console.log(answer);</span></div>
 </div>`;
 
 const browser = await chromium.launch({
@@ -68,41 +60,37 @@ try {
         }),
       );
     },
-    { plainText: markdown, htmlText: vscodeHTML },
+    { plainText: sourceCode, htmlText: vscodeHTML },
   );
   await page.waitForTimeout(900);
 
   const pasted = await page.evaluate(() => ({
-    title: document.querySelector("#markdown-title")?.value || "",
-    headings: Array.from(document.querySelectorAll(".ProseMirror h1")).map(
-      (node) => node.textContent || "",
-    ),
-    paragraphs: Array.from(document.querySelectorAll(".ProseMirror p")).map(
-      (node) => node.textContent || "",
-    ),
-    listItems: Array.from(document.querySelectorAll(".ProseMirror li")).map(
-      (node) => (node.textContent || "").trim(),
-    ),
+    headingCount: document.querySelectorAll(".ProseMirror h1").length,
     codeBlockCount: document.querySelectorAll(
       ".milkdown-code-block:not(.rin-latex-block)",
     ).length,
-    inlineCode: Array.from(document.querySelectorAll(".ProseMirror code")).map(
+    codeLines: Array.from(document.querySelectorAll(
+      ".milkdown-code-block:not(.rin-latex-block) .cm-line",
+    )).map(
       (node) => node.textContent || "",
     ),
   }));
 
-  assert.equal(pasted.title, "VS Code 粘贴标题");
-  assert.deepEqual(pasted.headings, ["VS Code 粘贴标题"]);
-  assert.ok(
-    pasted.paragraphs.includes("这是从 VS Code 复制的 Markdown 正文。"),
+  assert.equal(
+    pasted.headingCount,
+    0,
+    "the heading input rule consumed the leading # from pasted source code",
   );
-  assert.deepEqual(pasted.listItems, ["第一项", "第二项"]);
   assert.equal(
     pasted.codeBlockCount,
-    0,
-    "VS Code clipboard HTML created an unwanted code block",
+    1,
+    "VS Code clipboard source was not inserted as one code block",
   );
-  assert.ok(pasted.inlineCode.includes("const answer = 42"));
+  assert.deepEqual(pasted.codeLines, [
+    "# This stays source code",
+    "const answer = 42;",
+    "console.log(answer);",
+  ]);
 
   await editor.click();
   await page.keyboard.press("Control+A");
@@ -112,11 +100,11 @@ try {
   assert.equal(
     (await editor.innerText()).trim(),
     "",
-    "pasted Markdown could not be removed from the editor",
+    "pasted source code could not be removed from the editor",
   );
   assert.deepEqual(browserErrors, []);
 } finally {
   await browser.close();
 }
 
-console.log("VS Code Markdown clipboard browser acceptance passed");
+console.log("VS Code source clipboard browser acceptance passed");
