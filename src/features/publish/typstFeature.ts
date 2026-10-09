@@ -1,5 +1,4 @@
 import { publicEnv } from '@/app/config/env';
 
-// Keep creation closed until the Renderer HTML/PDF workers and reader are part
-// of the same reviewed release candidate.
+// Production candidates must keep the launched Typst creation flow enabled.
 export const typstCreationEnabled = publicEnv.typstCreateEnabled;
