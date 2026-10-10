@@ -14,11 +14,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  frontend:
+  checks:
+    name: ${{ matrix.name }}
     # External PR code never runs on private or production self-hosted runners.
     # Pin the supported image compatible with unprivileged bubblewrap namespaces.
     runs-on: ubuntu-22.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - name: Source and boundaries
+            suite: source
+          - name: Unit tests
+            suite: unit
+          - name: Tooling tests
+            suite: tooling
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -37,5 +49,22 @@ jobs:
           NPM_CONFIG_USERCONFIG: /dev/null
           NPM_CONFIG_GLOBALCONFIG: /dev/null
         run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
-      - name: Check frontend with no parent tree, credentials or network
-        run: node scripts/release/run-isolated-checks.mjs
+      - name: Run ${{ matrix.name }} with no parent tree, credentials or network
+        run: node scripts/release/run-isolated-checks.mjs --suite ${{ matrix.suite }}
+
+  frontend:
+    name: frontend
+    if: ${{ always() }}
+    needs: [checks]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every named frontend check
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+        run: |
+          if [ "${CHECKS_RESULT}" != 'success' ]; then
+            echo '::error title=Frontend checks failed::Open the named failed check above for its focused log.'
+            exit 1
+          fi
+          echo 'All frontend checks passed.'

@@ -12,6 +12,11 @@ test('PR checks use only disposable hosted runners and no formal build/private s
   assert.match(text, /--frozen-lockfile --ignore-scripts --ignore-pnpmfile/);
   assert.doesNotMatch(text, /secrets\.|contents: write|--build|pull_request_target|runs-on:.*self-hosted/);
   assert.doesNotMatch(text, /sysctl|sudo\s+(?:node|bwrap)|--admin|--privileged/);
+  for (const name of ['Source and boundaries', 'Unit tests', 'Tooling tests']) assert.match(text, new RegExp(`name: ${name}`));
+  assert.match(text, /fail-fast: false/);
+  assert.match(text, /max-parallel: 2/);
+  assert.match(text, /name: frontend/);
+  assert.match(text, /--suite \$\{\{ matrix\.suite \}\}/);
 });
 
 test('DCO metadata workflow never checks out or executes PR head code', () => {
