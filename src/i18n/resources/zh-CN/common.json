@@ -5,6 +5,13 @@
   "accountRestoring": "正在恢复账户",
   "processing": "处理中…",
   "pageLoaded": "页面已加载",
+  "contextMenu": {
+    "title": "快捷菜单",
+    "hint": "Esc 关闭",
+    "summon": "召唤琳",
+    "editor": "编辑器",
+    "editorTitle": "芥子环在线编辑器（新标签页打开）"
+  },
   "actions": {
     "save": "保存",
     "saving": "保存中…",

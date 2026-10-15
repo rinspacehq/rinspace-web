@@ -5,6 +5,13 @@
   "accountRestoring": "Restoring account",
   "processing": "Processing…",
   "pageLoaded": "Page loaded",
+  "contextMenu": {
+    "title": "Quick actions",
+    "hint": "Esc to close",
+    "summon": "Summon Rin",
+    "editor": "Editor",
+    "editorTitle": "Rinspace Online Editor (opens in a new tab)"
+  },
   "actions": {
     "save": "Save",
     "saving": "Saving…",

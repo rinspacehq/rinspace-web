@@ -583,6 +583,11 @@ and the lockfile remain the authority for package-specific text; final source di
 release notices and SBOMs must be checked together.
 
 The complete Animate UI upstream catalog is excluded from the public candidate.
+The application-integrated radial menu adapts the annular geometry and spring animation
+from `apps/www/registry/components/community/radial-menu/index.tsx` at upstream commit
+`efeb96ffd7a3b7a4868667e4ac3c346620fb3044` (community author: arhamkhnz).
+Its controlled trigger and accessible menu items use the application's existing Radix
+menu dependency; no Base UI package is included by this adaptation.
 The application-integrated files under `src/components/animate-ui/` retain the bundled
 MIT + Commons Clause terms and are outside Rinspace commercial relicensing; see
 [LICENSING.md](LICENSING.md). This notice does not relicense those files.
