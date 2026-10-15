@@ -10,6 +10,7 @@ export * from './hover-card';
 export * from './github-stars';
 export * from './motion';
 export * from './overlay';
+export * from './radial-menu';
 export * from './sidebar';
 export * from './splitting-text';
 export * from './tabs';

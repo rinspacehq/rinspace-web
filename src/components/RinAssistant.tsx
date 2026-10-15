@@ -1,6 +1,7 @@
-import { Icon, AnimateButton} from 'components/ui';
+import { Icon, AnimateButton, AnimateRadialMenu } from 'components/ui';
 import { publicEnv } from '@/app/config/env';
 import { FormEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import CodeMirrorEditor from '@/components/CodeMirrorEditor';
 import MathText from '@/components/MathText';
@@ -25,7 +26,7 @@ type Point = {
 
 type CaretDocument = Document & {
   caretRangeFromPoint?: (x: number, y: number) => Range | null;
-  caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node } | null;
+  caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
 };
 
 type WindowFrame = {
@@ -183,6 +184,7 @@ function isNativeContextMenuTarget(target: EventTarget | null) {
         '.rin-assistant-window',
         '.rin-collection-window',
         '.rin-context-menu',
+        '.rin-radial-menu',
         '[data-native-context-menu="true"]',
         '[data-rin-native-context-menu="true"]',
         '.markdown-body',
@@ -241,12 +243,17 @@ function hasActiveTextSelection() {
 
 function isTextAtPoint(x: number, y: number) {
   const caretDocument = document as CaretDocument;
-  const range = caretDocument.caretRangeFromPoint?.(x, y);
-  if (range?.startContainer.nodeType === Node.TEXT_NODE && range.startContainer.textContent?.trim()) {
-    return true;
-  }
+  const caret = caretDocument.caretRangeFromPoint?.(x, y);
   const position = caretDocument.caretPositionFromPoint?.(x, y);
-  return Boolean(position?.offsetNode.nodeType === Node.TEXT_NODE && position.offsetNode.textContent?.trim());
+  const node = caret?.startContainer ?? position?.offsetNode;
+  const offset = caret?.startOffset ?? position?.offset ?? 0;
+  if (node?.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) return false;
+  // Caret APIs also return the *nearest* text when clicking empty page space.
+  // Only protect text whose actual character boxes contain the pointer.
+  const range = document.createRange();
+  range.setStart(node, Math.max(0, offset - 1));
+  range.setEnd(node, Math.min(node.textContent.length, offset + 1));
+  return Array.from(range.getClientRects()).some((rect) => x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
 }
 
 function shouldUseNativeContextMenu(event: MouseEvent) {
@@ -444,6 +451,7 @@ function saveLocalMessages(conversationId: number, messages: RinChatMessage[]) {
 }
 
 export default function RinAssistant() {
+  const { t } = useTranslation('common');
   const [menuPoint, setMenuPoint] = useState<Point | null>(null);
   const [open, setOpen] = useState(false);
   const [collectionOpen, setCollectionOpen] = useState(false);
@@ -476,27 +484,29 @@ export default function RinAssistant() {
 
   useEffect(() => {
     const handleContextMenu = (event: MouseEvent) => {
-      if (event.button !== 2 || shouldUseNativeContextMenu(event)) return;
+      if (event.defaultPrevented || event.button !== 2 || shouldUseNativeContextMenu(event)) {
+        setMenuPoint(null);
+        return;
+      }
       event.preventDefault();
-      const x = clamp(event.clientX, 8, window.innerWidth - 176);
-      const y = clamp(event.clientY, 8, window.innerHeight - 52);
-      setMenuPoint({ x, y });
+      setMenuPoint({ x: event.clientX, y: event.clientY });
     };
     const closeMenu = () => {
       setMenuPoint(null);
     };
     document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('click', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
     window.addEventListener('blur', closeMenu);
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('click', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
       window.removeEventListener('blur', closeMenu);
     };
   }, []);
 
   useEffect(() => {
     const handleResize = () => {
+      setMenuPoint(null);
       setFrame((current) => clampFrame(current));
       setCollectionFrame((current) => clampFrame(current));
     };
@@ -731,24 +741,22 @@ export default function RinAssistant() {
 
   return (
     <>
-      {menuPoint ? (
-        <div
-          className="rin-context-menu"
-          style={{ left: menuPoint.x, top: menuPoint.y }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <AnimateButton unstyled type="button" onClick={summon}>
-            <Icon name="stars" />
-            <span>召唤琳</span>
-          </AnimateButton>
-          <div className="rin-context-menu-group">
-            <AnimateButton unstyled type="button" onClick={openCollectionWindow}>
-              <Icon name="folder2-open" />
-              <span>收藏夹</span>
-            </AnimateButton>
-          </div>
-        </div>
-      ) : null}
+      <AnimateRadialMenu
+        point={menuPoint}
+        label={t('contextMenu.title')}
+        hint={t('contextMenu.hint')}
+        menuItems={[
+          { id: 'rin', label: t('contextMenu.summon'), icon: <Icon name="stars" /> },
+          { id: 'collections', label: t('collection.title'), icon: <Icon name="folder2-open" /> },
+          { id: 'editor', label: t('contextMenu.editor'), icon: <Icon name="pencil-square" />,
+            title: t('contextMenu.editorTitle'), href: publicEnv.localRealClient ? 'https://rinspace.com/editor/' : '/editor/' },
+        ]}
+        onClose={() => setMenuPoint(null)}
+        onSelect={(item) => {
+          if (item.id === 'rin') summon();
+          if (item.id === 'collections') openCollectionWindow();
+        }}
+      />
 
       {collectionOpen ? (
         <section

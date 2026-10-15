@@ -1,3 +1,66 @@
+.rin-radial-menu-anchor {
+  position: fixed;
+  inline-size: 0;
+  block-size: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+.rin-radial-menu {
+  position: relative;
+  z-index: 260;
+  border-radius: 50%;
+  color: var(--rin-ink);
+  font-family: var(--rin-font-interface), sans-serif;
+  outline: none;
+  filter: drop-shadow(0 10px 20px rgb(0 0 0 / 18%));
+  user-select: none;
+}
+.rin-radial-menu[data-state="closed"] { pointer-events: none; }
+.rin-radial-menu__surface { display: block; inline-size: 100%; block-size: 100%; overflow: visible; }
+.rin-radial-menu__sector { cursor: pointer; }
+.rin-radial-menu__ring { fill: var(--rin-surface-subtle); }
+.rin-radial-menu__wedge { fill: var(--rin-elevated); stroke: var(--rin-border); stroke-width: 1; }
+.rin-radial-menu__sector[data-active] .rin-radial-menu__ring { fill: var(--rin-accent); }
+.rin-radial-menu__sector[data-active] .rin-radial-menu__wedge { fill: var(--rin-surface-subtle); stroke: var(--rin-accent); stroke-width: 2; }
+.rin-radial-menu__item {
+  display: flex;
+  inline-size: 100%;
+  block-size: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 12px;
+  padding: 2px;
+  color: var(--rin-ink);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  outline: none;
+  cursor: pointer;
+}
+.rin-radial-menu__item:hover,
+.rin-radial-menu__item[data-highlighted] { color: var(--rin-accent); }
+.rin-radial-menu__item svg { inline-size: 20px; block-size: 20px; }
+.rin-radial-menu__center { fill: var(--rin-surface); stroke: var(--rin-border); pointer-events: none; }
+.rin-radial-menu__caption {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  display: grid;
+  gap: 4px;
+  inline-size: 72px;
+  transform: translate(-50%, -50%);
+  color: var(--rin-ink-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: center;
+  pointer-events: none;
+}
+.rin-radial-menu__caption small { font-size: 9px; }
+
 .rin-animate-button,
 .rin-animate-icon-button {
   appearance: none;
