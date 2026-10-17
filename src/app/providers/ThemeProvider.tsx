@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { loadDarkLegacyStyles } from 'app/config/familyStyles';
 import { subscribeToMediaQuery } from '@/utils/mediaQuery';
+import { readThemePreference, writeThemePreference, subscribeThemePreference, type ThemePreference } from '@/utils/themePreference';
 
-export type ThemePreference = 'system' | 'light' | 'dark';
-const storageKey = 'rinspace-theme-v2';
+export type { ThemePreference } from '@/utils/themePreference';
 const ThemeContext = createContext<{ preference: ThemePreference; resolved: 'light' | 'dark'; setPreference(value: ThemePreference): void } | null>(null);
 
 function systemTheme() { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
@@ -17,12 +17,10 @@ function applyTheme(preference: ThemePreference) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, updatePreference] = useState<ThemePreference>(() => {
-    const stored = window.localStorage.getItem(storageKey);
-    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-  });
+  const [preference, updatePreference] = useState<ThemePreference>(readThemePreference);
   const [resolved, setResolved] = useState<'light' | 'dark'>(() => applyTheme(preference));
-  const setPreference = useCallback((value: ThemePreference) => { window.localStorage.setItem(storageKey, value); updatePreference(value); }, []);
+  const setPreference = useCallback((value: ThemePreference) => { writeThemePreference(value); updatePreference(value); }, []);
+  useEffect(() => subscribeThemePreference(() => updatePreference(readThemePreference())), []);
   useEffect(() => {
     setResolved(applyTheme(preference));
     const media = window.matchMedia('(prefers-color-scheme: dark)');

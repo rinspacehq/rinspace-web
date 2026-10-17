@@ -14,9 +14,11 @@ import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import type { PersistedLanguagePreference } from '@/i18n/types';
 import { loadCurrentUserInfo, updateUserInterfaceConfig } from '@/services/domains/identity';
 import type { CurrentUserInfo } from '@/services/contracts';
+import { useTheme } from '@/app/providers/ThemeProvider';
 import './settings.css';
 
 function SettingsPage() {
+  const theme = useTheme();
   const { t, ready } = useFeatureTranslation('settings');
   const {
     preference,
@@ -26,7 +28,7 @@ function SettingsPage() {
   } = useLanguage();
   const [currentUser, setCurrentUser] = useState<CurrentUserInfo | null>(null);
   const [language, setLanguage] = useState<PersistedLanguagePreference>(preference);
-  const [colorScheme, setColorScheme] = useState('light');
+  const [colorScheme, setColorScheme] = useState(theme.preference);
   const [loading, setLoading] = useState(true);
   const [savingInterface, setSavingInterface] = useState(false);
   const [error, setError] = useState('');
@@ -43,7 +45,6 @@ function SettingsPage() {
     const accountPreference = normalizeLanguagePreference(info.language);
     setLanguage(accountPreference);
     await syncAccountPreference(info.language);
-    setColorScheme(info.color_scheme || 'light');
   }, [syncAccountPreference]);
 
   useNoticeToasts({
@@ -80,8 +81,11 @@ function SettingsPage() {
       });
       const accountPreference = normalizeLanguagePreference(nextConfig.language);
       setLanguage(accountPreference);
-      setColorScheme(nextConfig.colorScheme);
       await commitPreparedPreference({ ...prepared, preference: accountPreference });
+      if (nextConfig.colorScheme === 'light' || nextConfig.colorScheme === 'dark' || nextConfig.colorScheme === 'system') {
+        setColorScheme(nextConfig.colorScheme);
+        theme.setPreference(nextConfig.colorScheme);
+      }
       setNotice(t('interface.saved'));
     } catch (interfaceError) {
       console.error('Failed to save interface settings', interfaceError);
@@ -130,7 +134,10 @@ function SettingsPage() {
                 </Form.Group>
                 <Form.Group controlId="settings-color-scheme">
                   <Form.Label>{t('interface.displayMode')}</Form.Label>
-                  <Form.Select id="settings-color-scheme" value={colorScheme} onChange={(event) => setColorScheme(event.currentTarget.value)}>
+                  <Form.Select id="settings-color-scheme" value={colorScheme} onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    if (value === 'light' || value === 'dark' || value === 'system') setColorScheme(value);
+                  }}>
                     {(['light', 'dark', 'system'] as const).map((option) => (
                       <option value={option} key={option}>{t(`colorScheme.${option}`)}</option>
                     ))}

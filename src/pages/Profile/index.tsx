@@ -8,6 +8,7 @@ import { useNoticeToasts,
 } from 'components/ui';
 import { publicEnv } from '@/app/config/env';
 import { useTheme } from '@/app/providers/ThemeProvider';
+import { profileAboutSrcDoc } from '@/utils/profileAbout';
 import {
   type ChangeEvent,
   type DragEvent,
@@ -143,62 +144,6 @@ function profileTabLabel(t: IdentityTranslation, tab: ProfileTab) {
 function normalizeProfileTab(value: string | null): ProfileTab {
   if (value === 'dynamic') return 'tweet';
   return profileTabs.includes(value as ProfileTab) ? (value as ProfileTab) : 'about';
-}
-
-const aboutFrameCSP = [
-  "default-src 'none'",
-  "script-src 'none'",
-  "connect-src 'none'",
-  "form-action 'none'",
-  "base-uri 'none'",
-  "object-src 'none'",
-  "frame-src 'none'",
-  "img-src https: data:",
-  "style-src 'unsafe-inline' https:",
-  "font-src https: data:",
-  "media-src https: data:",
-].join('; ');
-
-function defaultAboutHTML(dark: boolean, emptyText: string) {
-  const color = dark ? '#a8b6c2' : '#64748b';
-  const background = dark ? '#0b1218' : '#fff';
-  const escapedText = emptyText
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-  return `<main style="min-height:100vh;display:grid;place-items:center;margin:0;font:16px system-ui;color:${color};background:${background};"><p>${escapedText}</p></main>`;
-}
-
-function profileAboutSrcDoc(source: string, dark: boolean, emptyText: string) {
-  const html = source.trim() || defaultAboutHTML(dark, emptyText);
-  const csp = `<meta http-equiv="Content-Security-Policy" content="${aboutFrameCSP.replace(/"/g, '&quot;')}">`;
-  const base = '<base target="_blank">';
-  const themeName = dark ? 'dark' : 'light';
-  const background = dark ? '#0b1218' : '#fff';
-  const color = dark ? '#d7e1ea' : '#1f2937';
-  const linkColor = dark ? '#8cc9f0' : '#245d82';
-  const theme = [
-    `<style data-rin-profile-theme="${themeName}">`,
-    `:root{color-scheme:${themeName}}`,
-    `html,body{min-height:100%;background:${background}!important;color:${color}!important}`,
-    'body{margin:0;padding:1rem;font:16px/1.7 system-ui}',
-    `a{color:${linkColor}}`,
-    '</style>',
-  ].join('');
-  const headPattern = /<head(\s[^>]*)?>/i;
-  if (headPattern.test(html)) {
-    const secured = html.replace(headPattern, (match) => `${match}${csp}${base}`);
-    if (/<\/head>/i.test(secured)) {
-      return secured.replace(/<\/head>/i, `${theme}</head>`);
-    }
-    return secured.replace(headPattern, (match) => `${match}${theme}`);
-  }
-  if (/<html(\s[^>]*)?>/i.test(html)) {
-    return html.replace(/<html(\s[^>]*)?>/i, (match) => `${match}<head>${csp}${base}${theme}</head>`);
-  }
-  return `<!doctype html><html><head>${csp}${base}${theme}</head><body>${html}</body></html>`;
 }
 
 function dateTimeLabel(t: IdentityTranslation, locale: LocaleId, timestamp: number) {

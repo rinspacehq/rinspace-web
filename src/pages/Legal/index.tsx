@@ -12,6 +12,8 @@ type LegalPageKey = 'about' | 'legal' | 'terms' | 'privacy' | 'copyright' | 'con
 
 type LegalSectionKey =
   | 'position'
+  | 'worlds'
+  | 'openSource'
   | 'operator'
   | 'identity'
   | 'records'
@@ -28,7 +30,12 @@ type LegalSectionKey =
   | 'email';
 
 const pageSections: Record<LegalPageKey, Array<{ key: LegalSectionKey; lines: number }>> = {
-  about: [{ key: 'position', lines: 2 }, { key: 'operator', lines: 2 }],
+  about: [
+    { key: 'position', lines: 2 },
+    { key: 'worlds', lines: 2 },
+    { key: 'openSource', lines: 1 },
+    { key: 'operator', lines: 2 },
+  ],
   legal: [
     { key: 'identity', lines: 3 },
     { key: 'records', lines: 2 },
@@ -109,6 +116,9 @@ function LegalPage({ page }: { page: LegalPageKey }) {
                 {section.body.map((line) => (
                   <p key={line}>{line}</p>
                 ))}
+                {page === 'about' && section.key === 'openSource' ? (
+                  <p><a href="https://github.com/rinspacehq" target="_blank" rel="noopener noreferrer">github.com/rinspacehq</a></p>
+                ) : null}
               </section>
             ))}
           </article>

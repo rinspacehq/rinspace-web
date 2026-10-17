@@ -213,7 +213,7 @@ afterEach(async () => {
 });
 
 describe('Profile localization', () => {
-  it('injects dark theme styles after non-empty about document styles', async () => {
+  it('preserves authored about styles while supplying the host color scheme', async () => {
     resolvedTheme = 'dark';
     vi.mocked(loadPersonalUserInfo).mockResolvedValue({
       id: 'profile-user-1',
@@ -258,9 +258,10 @@ describe('Profile localization', () => {
     const aboutSrcDoc = view.container
       .querySelector<HTMLIFrameElement>('.profile-about-frame')?.srcdoc || '';
     expect(aboutSrcDoc).toContain('data-rin-profile-theme="dark"');
-    expect(aboutSrcDoc).toContain('background:#0b1218!important');
-    expect(aboutSrcDoc.indexOf('body{background:#fff}')).toBeLessThan(
-      aboutSrcDoc.indexOf('data-rin-profile-theme="dark"'),
+    expect(aboutSrcDoc).not.toContain('!important');
+    expect(aboutSrcDoc).toContain('body{background:#fff}');
+    expect(aboutSrcDoc.indexOf('data-rin-profile-theme="dark"')).toBeLessThan(
+      aboutSrcDoc.indexOf('body{background:#fff}'),
     );
   });
 

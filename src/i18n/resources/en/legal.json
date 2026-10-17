@@ -18,12 +18,21 @@
     "about": {
       "title": "About Rinspace",
       "label": "About",
-      "description": "Rinspace is a long-form knowledge community organized by tags, with Markdown and LaTeX writing backed by Git version control.",
+      "description": "Rinspace is a platform for long-form writing, knowledge, and community, centered on tags.",
       "sections": {
         "position": {
-          "title": "What Rinspace is for",
-          "line1": "Rinspace supports long-term knowledge organization, article writing, book notes, tag Wikis, questions, and discussions.",
-          "line2": "Tags form the core of its knowledge structure so that content, citations, and version changes remain traceable."
+          "title": "Knowledge connected by tags",
+          "line1": "Tags are more than categories: they are knowledge nodes with stable identities, context, and connections.",
+          "line2": "Articles and books are organized, referenced, and developed around these nodes."
+        },
+        "worlds": {
+          "title": "Writing and community",
+          "line1": "Create, render, and read Markdown, LaTeX, and Typst, with an online editor and Git-backed source and revision history.",
+          "line2": "The outer world holds knowledge; the inner world hosts updates and conversation. One identity connects both."
+        },
+        "openSource": {
+          "title": "Open source",
+          "line1": "We open-source Rinspace's frontend, editors, renderer, and tag kernel, and maintain forks of Gitea and Mastodon."
         },
         "operator": {
           "title": "Operator",
