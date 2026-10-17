@@ -143,6 +143,19 @@ describe('Settings interface language', () => {
     expect(loadUserNotificationConfig).not.toHaveBeenCalled();
   });
 
+  it('shows the shared browser theme and publishes a saved System choice', async () => {
+    localStorage.setItem('rinspace-theme-v2', 'dark');
+    renderSettings();
+    const mode = await screen.findByLabelText('显示模式');
+    expect((mode as HTMLSelectElement).value).toBe('dark');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    fireEvent.change(mode, { target: { value: 'system' } });
+    expect(localStorage.getItem('rinspace-theme-v2')).toBe('dark');
+    fireEvent.click(screen.getByRole('button', { name: '保存偏好' }));
+    await waitFor(() => expect(localStorage.getItem('rinspace-theme-v2')).toBe('system'));
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'));
+  });
+
   it('shows separate device and personal credential scopes and confirms a targeted revoke', async () => {
     vi.mocked(listIdentityDevices).mockResolvedValue([{
       sid: 'sid-current', clientLabel: 'Desktop browser', authMethod: 'sms',

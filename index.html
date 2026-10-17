@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <script>
-      (() => { try { const value = localStorage.getItem('rinspace-theme-v2') || 'system'; const dark = value === 'dark' || (value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme = dark ? 'dark' : 'light'; document.documentElement.style.colorScheme = dark ? 'dark' : 'light'; const themeColor = document.querySelector('meta[name="theme-color"]'); if (themeColor) themeColor.setAttribute('content', dark ? '#0b1218' : '#f8fafc'); } catch { document.documentElement.dataset.theme = 'light'; } })();
+      (() => { let value = 'system'; try { const stored = localStorage.getItem('rinspace-theme-v2'); const legacy = localStorage.getItem('rinspace-inner-color-scheme'); value = ['light', 'dark', 'system'].includes(stored) ? stored : ['light', 'dark'].includes(legacy) ? legacy : 'system'; } catch {} const dark = value === 'dark' || (value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme = dark ? 'dark' : 'light'; document.documentElement.style.colorScheme = dark ? 'dark' : 'light'; const themeColor = document.querySelector('meta[name="theme-color"]'); if (themeColor) themeColor.setAttribute('content', dark ? '#0b1218' : '#f8fafc'); })();
     </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
