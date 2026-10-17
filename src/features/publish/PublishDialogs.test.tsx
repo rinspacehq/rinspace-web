@@ -9,6 +9,7 @@ import { ensureLocaleNamespaces, i18n } from '@/i18n';
 import { createContent, updateContent } from '@/services/domains/article';
 import type { PostDetail } from '@/services/feed';
 import { openGiteaPath } from '@/utils/giteaPaths';
+import { articleEditorPreferenceKey } from './articleEditorPreference';
 
 import BookProfileDialog from './BookProfileDialog';
 import PublishCreateDialog from './PublishCreateDialog';
@@ -35,6 +36,7 @@ vi.mock('@/services/domains/publication', () => ({
 }));
 
 vi.mock('@/services/profile', () => ({ uploadCoverFile: vi.fn() }));
+vi.mock('@/utils/onlineEditor', () => ({ openOnlineEditorProject: vi.fn() }));
 
 vi.mock('@/utils/pdfToc', () => ({
   extractPDFTOC: vi.fn(),
@@ -76,6 +78,7 @@ const typstArticle = {
 } as unknown as PostDetail;
 
 beforeEach(() => {
+  localStorage.removeItem(articleEditorPreferenceKey);
   vi.mocked(createContent).mockReset();
   vi.mocked(updateContent).mockReset();
   vi.mocked(openGiteaPath).mockReset();
@@ -249,6 +252,7 @@ test('opens the LaTeX blog repository even while activation is pending', async (
 
   fireEvent.change(await view.findByLabelText('标题'), { target: { value: 'Derived categories' } });
   fireEvent.change(view.getByLabelText('简介'), { target: { value: 'An introduction' } });
+  fireEvent.change(view.getByRole('combobox', { name: '编辑器' }), { target: { value: 'git' } });
   fireEvent.click(view.getByRole('button', { name: '创建并编辑' }));
 
   await waitFor(() => expect(openGiteaPath).toHaveBeenCalledWith('a', 'article-17'));

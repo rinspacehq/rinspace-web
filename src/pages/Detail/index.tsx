@@ -92,6 +92,7 @@ import {
 } from "@/utils/blogBody";
 import { removeMatchingArticleDocumentTitle } from "@/utils/articleHtml";
 import { articleGiteaSourcePath } from "@/utils/giteaPaths";
+import { openOnlineEditorProject } from "@/utils/onlineEditor";
 import { prefixInlineSvgIds } from "@/utils/inlineSvgIds";
 import { markdownWithoutMatchingTitle } from "@/utils/markdownTitle";
 import { contentTypeMetaChar } from "@/utils/contentTypeMeta";
@@ -10655,17 +10656,17 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   const renderBlogHeaderActions = () => {
     if (!post || kind !== "blog") return null;
     if (!canEditBlog) return null;
-    const editDestination = contentEditDestination(post);
+    const useOnlineEditor = blogEditorKind(post) !== "markdown";
     return (
       <div
         className="blog-header-actions"
         aria-label={t("detail.article.actions")}
       >
-        {editDestination === "quick-edit" ? (
+        {useOnlineEditor ? (
           <AnimateButton
             unstyled
             type="button"
-            onClick={() => setQuickEditOpen(true)}
+            onClick={() => openOnlineEditorProject("a", post.id)}
           >
             <Icon name="pencil-square" />
             {t("detail.common.edit")}

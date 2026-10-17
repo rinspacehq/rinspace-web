@@ -5,6 +5,8 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import { ensureLocaleNamespaces, i18n } from '@/i18n';
 import { createContent } from '@/services/domains/article';
 import { openGiteaPath } from '@/utils/giteaPaths';
+import { openOnlineEditorProject } from '@/utils/onlineEditor';
+import { articleEditorPreferenceKey } from './articleEditorPreference';
 
 import PublishCreateDialog from './PublishCreateDialog';
 
@@ -16,6 +18,7 @@ vi.mock('@/services/domains/publication', () => ({ uploadAnswerFile: vi.fn() }))
 vi.mock('@/services/profile', () => ({ uploadCoverFile: vi.fn() }));
 vi.mock('@/utils/pdfToc', () => ({ extractPDFTOC: vi.fn(), renderPDFCover: vi.fn() }));
 vi.mock('@/utils/giteaPaths', () => ({ openGiteaPath: vi.fn() }));
+vi.mock('@/utils/onlineEditor', () => ({ openOnlineEditorProject: vi.fn() }));
 
 function LocationProbe() {
   const location = useLocation();
@@ -23,13 +26,15 @@ function LocationProbe() {
 }
 
 beforeEach(async () => {
+  localStorage.removeItem(articleEditorPreferenceKey);
+  vi.mocked(openOnlineEditorProject).mockReset();
   vi.mocked(createContent).mockReset();
   vi.mocked(openGiteaPath).mockReset();
   await ensureLocaleNamespaces('en', ['creation']);
   await act(async () => { await i18n.changeLanguage('en'); });
 });
 
-test('Typst blog creation selects the Typst source format and opens its repository', async () => {
+test('Typst blog creation selects the Typst source format and opens its online project', async () => {
   vi.mocked(createContent).mockResolvedValue({ id: '71', title: 'A Typst article' } as never);
   const view = render(<MemoryRouter><PublishCreateDialog open mode="typst-blog" user={{ id: 'author-1' }} onClose={() => {}} /></MemoryRouter>);
   expect(await view.findByRole('heading', { name: 'Create Typst article' })).toBeTruthy();
@@ -37,7 +42,8 @@ test('Typst blog creation selects the Typst source format and opens its reposito
   fireEvent.change(view.getByLabelText('Summary'), { target: { value: 'The summary' } });
   fireEvent.click(view.getByRole('button', { name: 'Create and edit' }));
   await waitFor(() => expect(createContent).toHaveBeenCalledWith(expect.objectContaining({ editor: 'typst', body: '', type: 'blog' })));
-  await waitFor(() => expect(openGiteaPath).toHaveBeenCalledWith('a', '71'));
+  await waitFor(() => expect(openOnlineEditorProject).toHaveBeenCalledWith('a', '71'));
+  expect(openGiteaPath).not.toHaveBeenCalled();
 });
 
 test('Typst book creation selects the Typst template and opens the book workspace', async () => {

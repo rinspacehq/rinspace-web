@@ -1,5 +1,36 @@
 /* PublishCreateDialog additions on top of the shared auth-dialog styles. */
 
+.publish-create-dialog .auth-dialog-actions {
+  flex-wrap: wrap;
+}
+
+.publish-create-dialog .publish-dialog-editor-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-end: auto;
+}
+
+.publish-dialog-editor-choice .rin-ui-control {
+  border-radius: 0;
+  inline-size: auto;
+  min-inline-size: 6rem;
+  min-block-size: 38px;
+  font-size: 0.8125rem;
+}
+
+.publish-dialog-footer-actions {
+  display: flex;
+  gap: 10px;
+  margin-inline-start: auto;
+}
+
+@media (max-width: 420px) {
+  .publish-create-dialog .publish-dialog-editor-choice {
+    inline-size: 100%;
+  }
+}
+
 .publish-create-dialog .latex-blog-cover-preview.publish-dialog-book-cover {
   aspect-ratio: 2 / 3;
   max-inline-size: 9rem;
