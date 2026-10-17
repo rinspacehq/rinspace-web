@@ -16,14 +16,23 @@
   },
   "pages": {
     "about": {
-      "title": "关于 芥子环",
+      "title": "关于芥子环",
       "label": "About",
-      "description": "芥子环 是一个以 Tag 为核心的长文知识社区，支持 Markdown 与 LaTeX 写作，并依托 Git 进行版本管理。",
+      "description": "芥子环是一个以 Tag 为核心的长文、知识与社区平台。",
       "sections": {
         "position": {
-          "title": "站点定位",
-          "line1": "芥子环 面向长期知识整理、文章写作、书籍笔记、标签 Wiki 与问答讨论。",
-          "line2": "我们希望把标签作为知识组织的核心，让内容、引用和版本变更都能被清晰追踪。"
+          "title": "以 Tag 连接知识",
+          "line1": "Tag 不只是分类，而是具有稳定身份、上下文和知识连接的节点。",
+          "line2": "文章与书籍围绕这些节点组织、引用与演化。"
+        },
+        "worlds": {
+          "title": "创作与社区",
+          "line1": "支持 Markdown、LaTeX 与 Typst 的创作、渲染和阅读，在线编辑器与 Git 保留可追溯的源码和修订历史。",
+          "line2": "表世界承载知识内容，里世界承载动态与社区交流，二者共用一个身份。"
+        },
+        "openSource": {
+          "title": "开源项目",
+          "line1": "我们持续开源芥子环的前端、编辑器、渲染器与 Tag 内核，并维护 Gitea 和 Mastodon 分支。"
         },
         "operator": {
           "title": "运营主体",
