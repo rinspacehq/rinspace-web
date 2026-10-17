@@ -10,6 +10,7 @@ import SiteTopbar from '@/components/SiteTopbarShell';
 import PublicationProgressPanel from '@/components/PublicationProgressPanel';
 import { PublicationProgressPoller, type PublicationProgress } from '@/services/publicationProgress';
 import { openGiteaPath } from '@/utils/giteaPaths';
+import { openOnlineEditorProject } from '@/utils/onlineEditor';
 import BookProfileDialog from '@/features/publish/BookProfileDialog';
 import { formatNumber } from '@/i18n/format';
 import { resolveLocale } from '@/i18n/resolveLocale';
@@ -1030,6 +1031,10 @@ export default function BookWorkspacePage() {
                       <Icon name="git" />
                       {t('bookWorkspace.actions.openRepository')}
                     </AnimateButton>
+                    <AnimateButton unstyled type="button" onClick={() => openOnlineEditorProject('b', post.id)}>
+                      <Icon name="pencil-square" />
+                      {t('bookWorkspace.actions.openInEditor')}
+                    </AnimateButton>
                   </>
                 ) : (
                   <span className="disabled-action">
@@ -1140,6 +1145,12 @@ export default function BookWorkspacePage() {
                       <Icon name="git" />
                       {t('bookWorkspace.actions.openRepository')}
                     </AnimateButton>
+                    {!post.book.pdfUrl ? (
+                      <AnimateButton unstyled type="button" onClick={() => openOnlineEditorProject('b', post.id)}>
+                        <Icon name="pencil-square" />
+                        {t('bookWorkspace.actions.openInEditor')}
+                      </AnimateButton>
+                    ) : null}
                     <label
                       className={`primary-workspace-action book-workspace-import${projectSaving || projectLoading || importJobInProgress ? ' disabled-action' : ''}`}
                     >

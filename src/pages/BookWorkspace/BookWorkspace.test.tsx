@@ -9,6 +9,8 @@ import { loadContentDetail } from '@/services/domains/article';
 import type { PostDetail } from '@/services/feed';
 import { getCurrentUser } from '@/services/profile';
 import type { PublicationProgress } from '@/services/publicationProgress';
+import { openOnlineEditorProject } from '@/utils/onlineEditor';
+import { openGiteaPath } from '@/utils/giteaPaths';
 
 const progressDriver = vi.hoisted(() => ({
   initial: null as PublicationProgress | null,
@@ -19,6 +21,11 @@ import BookWorkspacePage from './index';
 
 vi.mock('@/components/SiteTopbarShell', () => ({ default: () => null }));
 vi.mock('@/features/publish/BookProfileDialog', () => ({ default: () => null }));
+vi.mock('@/utils/onlineEditor', () => ({ openOnlineEditorProject: vi.fn() }));
+vi.mock('@/utils/giteaPaths', async () => ({
+  ...await vi.importActual<typeof import('@/utils/giteaPaths')>('@/utils/giteaPaths'),
+  openGiteaPath: vi.fn(),
+}));
 
 vi.mock('@/services/domains/article', () => ({
   loadContentDetail: vi.fn(),
@@ -92,6 +99,8 @@ function renderWorkspace() {
 }
 
 beforeEach(() => {
+  vi.mocked(openOnlineEditorProject).mockReset();
+  vi.mocked(openGiteaPath).mockReset();
   progressDriver.initial = null;
   progressDriver.emit = null;
   vi.mocked(loadContentDetail).mockReset();
@@ -291,4 +300,43 @@ test('renders the Typst workspace without obsolete editor prompts', async () => 
   expect(view.baseElement.textContent).not.toContain('Manage external and PDF books');
   expect(view.baseElement.textContent).not.toContain('online editor');
   expect(view.baseElement.textContent).not.toContain('RIN_READER');
+});
+
+test.each([
+  { kind: 'original' as const, editor: 'rin', heading: 'LaTeX book workspace' },
+  { kind: 'typst' as const, editor: 'typst', heading: 'Typst book workspace' },
+  { kind: 'original' as const, editor: 'typst', heading: 'Typst book workspace' },
+])('adds the existing $heading project entry immediately after its Git button', async ({ kind, editor, heading }) => {
+  await ensureLocaleNamespaces('en', ['creation']);
+  await act(async () => { await i18n.changeLanguage('en'); });
+  vi.mocked(loadContentDetail).mockResolvedValue({ ...authoredBook, body: '', editor, book: { ...authoredBook.book!, kind } });
+  const view = renderWorkspace();
+  await view.findByText(heading);
+  const git = view.getByRole('button', { name: 'Open repository' });
+  const online = view.getByRole('button', { name: 'Open in editor' });
+  expect(git.nextElementSibling).toBe(online);
+  fireEvent.click(online);
+  expect(openOnlineEditorProject).toHaveBeenCalledWith('b', 'book-42');
+  fireEvent.click(git);
+  expect(openGiteaPath).toHaveBeenCalledWith('b', 'book-42');
+});
+
+test('does not expose author editor actions to another user', async () => {
+  await ensureLocaleNamespaces('en', ['creation']);
+  await act(async () => { await i18n.changeLanguage('en'); });
+  vi.mocked(getCurrentUser).mockResolvedValue({ id: 'another-user' });
+  vi.mocked(loadContentDetail).mockResolvedValue({ ...authoredBook, body: '', book: { ...authoredBook.book!, kind: 'typst' } });
+  const view = renderWorkspace();
+  await view.findByText('Typst book workspace');
+  expect(view.queryByRole('button', { name: 'Open in editor' })).toBeNull();
+  expect(view.queryByRole('button', { name: 'Open repository' })).toBeNull();
+});
+
+test.each(['markdown', 'original'] as const)('keeps %s/PDF workspace actions unchanged', async (kind) => {
+  await ensureLocaleNamespaces('en', ['creation']);
+  await act(async () => { await i18n.changeLanguage('en'); });
+  vi.mocked(loadContentDetail).mockResolvedValue({ ...authoredBook, body: '', book: { ...authoredBook.book!, kind, ...(kind === 'original' ? { pdfUrl: '/original.pdf' } : {}) } });
+  const view = renderWorkspace();
+  await view.findByRole('button', { name: 'Open repository' });
+  expect(view.queryByRole('button', { name: 'Open in editor' })).toBeNull();
 });

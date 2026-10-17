@@ -83,6 +83,8 @@
         "pdfBook": "Upload PDF book"
       },
       "close": "Close creation dialog",
+      "editor": "Editor",
+      "online": "Online",
       "visibility": "Visibility",
       "public": "Public",
       "private": "Private",
@@ -161,6 +163,7 @@
       "editProfile": "Edit profile",
       "authorOnly": "Only the author can edit",
       "openRepository": "Open repository",
+      "openInEditor": "Open in editor",
       "uploading": "Uploading",
       "rendering": "Rendering in the background",
       "loading": "Loading",

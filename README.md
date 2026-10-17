@@ -40,6 +40,8 @@ corepack pnpm test
 
 修改构建、资源或环境边界时，再运行 `corepack pnpm check:independent`、`corepack pnpm check:env-boundary` 和相应的浏览器测试。自动化测试使用隔离输入，不需要真实账号。完整的提交与截图要求见[贡献指南](CONTRIBUTING.md)；公开 CI 与候选产物流程见[流程说明](.github/FRONTEND-CI.md)。
 
+编辑器入口回归可运行 `corepack pnpm test:editor-entry:browser <编译目录>`（默认 `build`）；候选构建需启用 `VITE_RINSPACE_TYPST_CREATE_ENABLED=true`。它使用本地账号/内容夹具，检查方角下拉框、跨格式及浏览器重启后的选择记忆、文章详情与书籍入口，并输出截图；跳转目标为占位响应，不代替真实编辑器或线上创建/推送验收。
+
 ## 发布状态
 
 源码已经公开，正式前端来源边界由已接受的私仓固定消费者 PR #249、其必需检查和

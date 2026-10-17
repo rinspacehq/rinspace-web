@@ -7,6 +7,7 @@ import {
   DialogPortal,
   DialogTitle,
   Icon,
+  Select,
 } from 'components/ui';
 import {
   type ChangeEvent,
@@ -28,11 +29,16 @@ import type { BookTOCItem } from '@/services/feed';
 import type { RinspaceUser } from '@/services/phoneAuth';
 import { uploadCoverFile } from '@/services/profile';
 import { openGiteaPath } from '@/utils/giteaPaths';
+import { openOnlineEditorProject } from '@/utils/onlineEditor';
 import { bookWorkspacePath, contentPath } from '@/utils/routes';
 import { extractPDFTOC, renderPDFCover } from '@/utils/pdfToc';
 
 import { latexArticleInitialSource } from './latexArticleTemplate';
 import { typstCreationEnabled } from './typstFeature';
+import {
+  readArticleEditorPreference,
+  writeArticleEditorPreference,
+} from './articleEditorPreference';
 
 import './publish-dialog.css';
 
@@ -94,6 +100,7 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
   const isPdf = mode === 'pdf-book';
 
   const [title, setTitle] = useState('');
+  const [editorPreference, setEditorPreference] = useState(readArticleEditorPreference);
   const [excerpt, setExcerpt] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [coverUrl, setCoverUrl] = useState('');
@@ -113,6 +120,7 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
   useEffect(() => {
     if (!open) return;
     setTitle('');
+    setEditorPreference((current) => readArticleEditorPreference(current));
     setExcerpt('');
     setTags([]);
     setCoverUrl('');
@@ -290,8 +298,13 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
           setCreating(false);
           return;
         }
-        setNotice(t('publishDialog.create.openingRepository'));
-        openGiteaPath('a', saved.id);
+        setCreating(false);
+        onClose();
+        if (editorPreference === 'online') {
+          openOnlineEditorProject('a', saved.id);
+        } else {
+          openGiteaPath('a', saved.id);
+        }
         return;
       }
       const saved = await createContent({
@@ -464,20 +477,40 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
               </p>
             ) : null}
             <div className="auth-dialog-actions">
-              <AnimateButton
-                unstyled
-                type="button"
-                className="auth-dialog-link"
-                disabled={busy}
-                onClick={closeDialog}
-              >
-                {t('common:actions.cancel')}
-              </AnimateButton>
-              <AnimateButton unstyled type="submit" disabled={busy}>
-                {creating
-                  ? t('publishDialog.create.creatingAction')
-                  : t('publishDialog.create.createAction')}
-              </AnimateButton>
+              {!isBook ? (
+                <label className="publish-dialog-editor-choice">
+                  <span>{t('publishDialog.create.editor')}</span>
+                  <Select
+                    value={editorPreference}
+                    disabled={busy}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      if (value !== 'online' && value !== 'git') return;
+                      setEditorPreference(value);
+                      writeArticleEditorPreference(value);
+                    }}
+                  >
+                    <option value="online">{t('publishDialog.create.online')}</option>
+                    <option value="git">Git</option>
+                  </Select>
+                </label>
+              ) : null}
+              <div className="publish-dialog-footer-actions">
+                <AnimateButton
+                  unstyled
+                  type="button"
+                  className="auth-dialog-link"
+                  disabled={busy}
+                  onClick={closeDialog}
+                >
+                  {t('common:actions.cancel')}
+                </AnimateButton>
+                <AnimateButton unstyled type="submit" disabled={busy}>
+                  {creating
+                    ? t('publishDialog.create.creatingAction')
+                    : t('publishDialog.create.createAction')}
+                </AnimateButton>
+              </div>
             </div>
           </form>
         </DialogBody>

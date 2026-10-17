@@ -29,6 +29,7 @@
     "check:redesign:sources": "node scripts/check-redesign-sources.mjs",
     "test:publication-progress:browser": "node scripts/test-publication-progress-browser.mjs",
     "test:creator-controls:browser": "node scripts/test-creator-controls-browser.mjs",
+    "test:editor-entry:browser": "node scripts/test-editor-entry-browser.mjs",
     "test:home-sponsor-presence:browser": "node scripts/test-home-sponsor-presence-browser.mjs",
     "test:admin-workspace:browser": "NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost node scripts/test-admin-workspace-browser.mjs",
     "test:contextual-previews:browser": "node scripts/test-contextual-previews-browser.mjs",

@@ -83,6 +83,8 @@
         "pdfBook": "上传 PDF 书籍"
       },
       "close": "关闭创建窗口",
+      "editor": "编辑器",
+      "online": "在线",
       "visibility": "发布目标",
       "public": "公开",
       "private": "私密",
@@ -161,6 +163,7 @@
       "editProfile": "编辑档案",
       "authorOnly": "仅作者可编辑",
       "openRepository": "打开仓库",
+      "openInEditor": "在编辑器中打开",
       "uploading": "上传中",
       "rendering": "后台渲染中",
       "loading": "加载中",
