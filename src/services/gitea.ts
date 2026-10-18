@@ -1,4 +1,5 @@
 import { publicEnv } from "@/app/config/env";
+import { giteaBasePath } from "@/utils/giteaPaths";
 
 import {
   authHeaders as sessionAuthHeaders,
@@ -41,7 +42,9 @@ const giteaSSOMutationHeaders = {
   "Content-Type": "application/json",
 };
 
-export async function syncGiteaSession() {
+let giteaSyncRequest: Promise<boolean> | null = null;
+
+async function initializeGiteaSession() {
   const accessToken = await getAuthAccessToken();
   if (!accessToken && !hasAuthSession()) return false;
   const response = await fetch(giteaSSOEndpoint, {
@@ -56,7 +59,25 @@ export async function syncGiteaSession() {
   const payload = parseJson(await response.text());
   if (!response.ok)
     throw new Error(responseMessage(payload, "Git 登录同步失败。"));
+
+  // SSO refreshes the Native binding; Gitea still needs its own cookie round
+  // trip. A stale Gitea session can be cleared by the first rejected safe GET.
+  // Never apply this retry to repository mutations or Git receive-pack.
+  const options: RequestInit = { credentials: "same-origin", cache: "no-store" };
+  let bootstrap = await fetch(giteaBasePath, options);
+  if (bootstrap.status === 401) bootstrap = await fetch(giteaBasePath, options);
+  if (!bootstrap.ok)
+    throw new Error(`Gitea web session initialization failed (${bootstrap.status})`);
   return true;
+}
+
+export function syncGiteaSession(): Promise<boolean> {
+  // The topbar and GitAuth page may initialize together. Complete one whole
+  // binding transaction before either caller navigates to its target.
+  giteaSyncRequest ??= initializeGiteaSession().finally(() => {
+    giteaSyncRequest = null;
+  });
+  return giteaSyncRequest;
 }
 
 export async function clearGiteaSession() {
