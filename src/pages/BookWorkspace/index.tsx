@@ -21,6 +21,7 @@ import type { BookImportJob, BookMetadata, BookTOCItem, PostDetail } from '@/ser
 import { messageFromError } from '@/services/errors';
 import { type RinspaceUser } from '@/services/phoneAuth';
 import { getCurrentUser } from '@/services/profile';
+import { loadMarkdownEditorSource } from '@/services/markdownEditorSource';
 import {
   buildBookProjectIndex,
   importBookProjectArchive,
@@ -396,16 +397,26 @@ export default function BookWorkspacePage() {
   }, [post]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!post || post.type !== 'book' || post.book?.kind !== 'markdown') {
       setMarkdownProject(null);
       return;
     }
-    const nextProject = markdownBookProjectFromBody(
-      post.body,
-      post.book.bookTitle || post.title,
-    );
-    setMarkdownProject(nextProject);
-  }, [post]);
+    const controller = new AbortController();
+    const title = post.book.bookTitle || post.title;
+    if (post.repositorySource && sameUserId(currentUser?.id, post.authorUid || post.authorId)) {
+      setMarkdownProject(null);
+      setProjectLoading(true);
+      void loadMarkdownEditorSource(post, controller.signal).then((body) => {
+        if (!cancelled) setMarkdownProject(markdownBookProjectFromBody(body, title));
+      }).catch((error: unknown) => {
+        if (!cancelled) setProjectError(messageFromError(error, 'creation.bookProjectLoadFailed'));
+      }).finally(() => { if (!cancelled) setProjectLoading(false); });
+    } else {
+      setMarkdownProject(markdownBookProjectFromBody(post.body, title));
+    }
+    return () => { cancelled = true; controller.abort(); };
+  }, [post, currentUser?.id]);
 
   useEffect(() => {
     const savedJobID = window.localStorage.getItem(importJobStorageKey) || '';
@@ -447,7 +458,7 @@ export default function BookWorkspacePage() {
     (readerReady || extractMarkedSection(post.body, 'RIN_MARKDOWN_BOOK')),
   );
   const repositoryMarkdownBook = Boolean(post?.book?.kind === 'markdown'
-    && !extractMarkedSection(post.body, 'RIN_MARKDOWN_BOOK'));
+    && !markdownProject?.files.length);
   const publishStatusKey = post?.publishStatus === 'draft'
     ? 'draft'
     : post?.publishStatus === 'private'
@@ -548,6 +559,7 @@ export default function BookWorkspacePage() {
       // render: they persist the project as-is and keep the previous reader.
       const saved = await updateContent(post.slug || post.id, {
         type: 'book',
+        sourceCommit: post.pendingCommit || post.repositorySource?.commit,
         status: post.publishStatus === 'draft' || post.publishStatus === 'private' ? post.publishStatus : 'published',
         editor: 'markdown',
         title: post.title,
@@ -804,13 +816,13 @@ export default function BookWorkspacePage() {
                 ) : markdownProject?.files.length ? (
                   <ol className="book-workspace-chapter-list">
                     {markdownProject.files.map((file, index) => {
-                      const editPath = `${bookWorkspacePath(post.id)}/markdown/${encodeURIComponent(file.id)}`;
+                      const editPath = `${bookWorkspacePath(post.id)}/markdown/${encodeURIComponent(file.path)}`;
                       const activeDropTarget = dropTarget;
                       const dropClass =
                         activeDropTarget && activeDropTarget.path === file.id
                           ? ` drop-${activeDropTarget.placement}`
                           : '';
-                      const indent = file.level === 3 ? 2 : 0;
+                      const indent = Math.min(10, (file.level - 2) * 2);
                       return (
                         <li
                           key={file.id}

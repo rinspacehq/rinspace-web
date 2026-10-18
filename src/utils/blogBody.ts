@@ -1881,7 +1881,7 @@ export function markdownSourceFile(post: PostDetail) {
   if (legacySource) return legacySource;
   const repositorySource = post.repositorySource;
   if (!repositorySource?.entrypoint || !repositorySource.url) return null;
-  const filename = repositorySource.entrypoint.split('/').at(-1) || 'content.md';
+  const filename = repositorySource.entrypoint.split('/').at(-1) || 'main.md';
   return { filename, mime: 'text/markdown', url: repositorySource.url };
 }
 
