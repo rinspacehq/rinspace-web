@@ -20,9 +20,11 @@ export async function loadMarkdownEditorSource(
   if (post.repositorySource) {
     const source = post.repositorySource;
     const owner = post.type === "book" ? "b" : "a";
+    const editingCommit = post.pendingCommit || source.commit;
     const expectedPath = `/repos/${owner}/${encodeURIComponent(post.id)}/raw/commit/${source.commit}/${source.entrypoint.split("/").map(encodeURIComponent).join("/")}`;
     if (
       !/^[a-f0-9]{40}$/.test(source.commit) ||
+      !/^[a-f0-9]{40}$/.test(editingCommit) ||
       source.url !== expectedPath ||
       source.entrypoint !== "main.md" ||
       source.entrypoint
@@ -31,6 +33,10 @@ export async function loadMarkdownEditorSource(
     ) {
       throw new Error("Invalid repository source reference.");
     }
+    // The accepted reader can lag a successful Git save. Every source file
+    // must use the editing revision returned by the author API, never a mix
+    // of pending catalog and already-published chapters (or a mutable branch).
+    const editingURL = `/repos/${owner}/${encodeURIComponent(post.id)}/raw/commit/${editingCommit}/main.md`;
     await syncGiteaSession();
     const controller = new AbortController();
     const cancel = () => controller.abort();
@@ -55,7 +61,7 @@ export async function loadMarkdownEditorSource(
       return text;
     };
     try {
-      const main = await readSource(source.url);
+      const main = await readSource(editingURL);
       if (post.type !== "book") return main;
       const catalog = parseMarkdownCatalog(main);
       const files: MarkdownBookFile[] = new Array(catalog.length);
@@ -67,7 +73,7 @@ export async function loadMarkdownEditorSource(
             const index = next++;
             const entry = catalog[index];
             const body = await readSource(
-              source.url.slice(0, -"main.md".length) +
+              editingURL.slice(0, -"main.md".length) +
                 entry.path.split("/").map(encodeURIComponent).join("/"),
             );
             files[index] = {
