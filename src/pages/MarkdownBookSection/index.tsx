@@ -64,6 +64,7 @@ export default function MarkdownBookSectionPage() {
   });
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError('');
     setNotice('');
@@ -78,14 +79,14 @@ export default function MarkdownBookSectionPage() {
           throw new Error(t('markdownSection.notMarkdownBook'));
         }
         const repositoryBody = detail.repositorySource
-          ? await loadMarkdownEditorSource(detail)
+          ? await loadMarkdownEditorSource(detail, controller.signal)
           : detail.body;
         if (cancelled) return;
         const nextProject = markdownBookProjectFromBody(
           repositoryBody,
           detail.book.bookTitle || detail.title,
         );
-        const file = nextProject.files.find((item) => item.id === sectionId);
+        const file = nextProject.files.find((item) => item.path === sectionId || item.id === sectionId);
         if (!file) {
           throw new Error(t('markdownSection.notFound'));
         }
@@ -103,11 +104,12 @@ export default function MarkdownBookSectionPage() {
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [postId, sectionId, t]);
 
   const file = useMemo(
-    () => project?.files.find((item) => item.id === sectionId) || null,
+    () => project?.files.find((item) => item.path === sectionId || item.id === sectionId) || null,
     [project, sectionId],
   );
   const bookTitle = post?.book?.bookTitle || post?.title || t('markdownSection.bookFallback');
@@ -220,9 +222,8 @@ export default function MarkdownBookSectionPage() {
         repositoryFiles,
         book,
       });
-      const savedProject = saved.publicationPending
-        ? nextProject
-        : markdownBookProjectFromBody(saved.body, bookTitle);
+      // The response body is a reader projection, not the chapter source just committed.
+      const savedProject = nextProject;
       const savedFile = savedProject.files.find((item) => item.id === file.id);
       setPost(saved);
       setProject(savedProject);

@@ -1,7 +1,11 @@
 import { excerptFromMarkdown, extractMarkedSection, markdownToHtml } from '@/utils/blogBody';
 import { firstMarkdownHeading, markdownWithTitle } from '@/utils/markdownTitle';
 
-export type MarkdownBookLevel = 2 | 3;
+export type MarkdownBookLevel = 2 | 3 | 4 | 5 | 6 | 7;
+
+function bookLevel(value: unknown): MarkdownBookLevel {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 2 && value <= 7 ? value as MarkdownBookLevel : 2;
+}
 
 export type MarkdownBookFile = {
   id: string;
@@ -121,14 +125,14 @@ export function normalizeMarkdownBookProject(
     if (usedIds.has(id)) id = markdownBookFileId(fileTitle, index);
     usedIds.add(id);
     const parentId = file.parentId?.trim();
-    const level: MarkdownBookLevel = file.level === 3 && parentId && rawIds.has(parentId) ? 3 : 2;
+    const level: MarkdownBookLevel = file.level > 2 && parentId && rawIds.has(parentId) ? bookLevel(file.level) : 2;
     return {
       id,
       path: normalizePath(file.path || markdownBookPath(fileTitle, index)),
       title: fileTitle,
       body: String(file.body || ''),
       level,
-      parentId: level === 3 ? parentId : undefined,
+      parentId: level > 2 ? parentId : undefined,
     };
   });
   const toc = files.map(tocItemForFile);
@@ -157,7 +161,7 @@ export function markdownBookProjectFromBody(body: string, title: string): Markdo
               path: typeof item.path === 'string' ? item.path : '',
               title: typeof item.title === 'string' ? item.title : '',
               body: item.body,
-              level: item.level === 3 ? 3 : 2,
+              level: bookLevel(item.level),
               parentId: typeof item.parentId === 'string' ? item.parentId : undefined,
             };
           })
@@ -171,7 +175,7 @@ export function markdownBookProjectFromBody(body: string, title: string): Markdo
             return {
               id: item.id,
               text: typeof item.text === 'string' ? item.text : '',
-              level: item.level === 3 ? 3 : 2,
+              level: bookLevel(item.level),
               html: item.html,
             };
           })
@@ -248,10 +252,10 @@ export function addMarkdownBookSection(
 
 function markdownBookSubtreeSize(files: MarkdownBookFile[], startIndex: number) {
   const root = files[startIndex];
-  if (!root || root.level !== 2) return 1;
+  if (!root) return 1;
   let size = 1;
   for (let index = startIndex + 1; index < files.length; index += 1) {
-    if (files[index].parentId !== root.id) break;
+    if (files[index].level <= root.level) break;
     size += 1;
   }
   return size;
