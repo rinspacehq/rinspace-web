@@ -53,6 +53,8 @@ try {
   if (!fs.existsSync(path.join(dependencyRoot, '.vite'))) fs.mkdirSync(path.join(dependencyRoot, '.vite'));
   sandbox.push('--tmpfs', '/app/node_modules/.vite');
   sandbox.push('--setenv', 'PATH', '/tools:/usr/bin:/bin', '--setenv', 'CI', 'true', '--setenv', 'NODE_OPTIONS', '--max-old-space-size=2048');
+  // esbuild shares the same bounded worker as Node; do not size it from host CPUs.
+  sandbox.push('--setenv', 'GOMAXPROCS', '1');
   if (build) for (const [key, value] of Object.entries(publicConfig)) sandbox.push('--setenv', key, value);
   sandbox.push('--chdir', '/app', '--');
   function run(command) {
@@ -84,7 +86,9 @@ try {
     if (command !== 'node scripts/build-latex-template-archives.mjs && node scripts/generate-core-font-css.mjs && vite build') throw Error('Build entry changed; review the isolated build pipeline');
     run(['scripts/build-latex-template-archives.mjs']);
     run(['scripts/generate-core-font-css.mjs']);
-    run(['node_modules/vite/bin/vite.js', 'build']);
+    // Leave room for esbuild's native memory, the runner and the HTTPS relay.
+    // A V8 heap limit alone is not the memory limit of this complete process tree.
+    run(['--max-old-space-size=1536', 'node_modules/vite/bin/vite.js', 'build']);
     run(['scripts/check-vite-artifact.mjs']);
     run(['scripts/check-i18n-bundle-budget.mjs']);
     checks['vite-artifact'] = 'passed';
