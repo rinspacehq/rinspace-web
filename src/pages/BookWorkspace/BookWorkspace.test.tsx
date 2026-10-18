@@ -5,7 +5,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { ToastProvider } from 'components/ui';
 import { ensureLocaleNamespaces, i18n } from '@/i18n';
-import { loadContentDetail } from '@/services/domains/article';
+import { loadContentDetail, updateContent } from '@/services/domains/article';
+import { loadMarkdownEditorSource } from '@/services/markdownEditorSource';
 import type { PostDetail } from '@/services/feed';
 import { getCurrentUser } from '@/services/profile';
 import type { PublicationProgress } from '@/services/publicationProgress';
@@ -38,6 +39,7 @@ vi.mock('@/services/domains/book', () => ({
 }));
 
 vi.mock('@/services/profile', () => ({ getCurrentUser: vi.fn() }));
+vi.mock('@/services/markdownEditorSource', () => ({ loadMarkdownEditorSource: vi.fn() }));
 vi.mock('@/services/publicationProgress', () => ({
   PublicationProgressPoller: class {
     constructor(_ref: string, private callback: (value: PublicationProgress | null) => void) {
@@ -104,6 +106,8 @@ beforeEach(() => {
   progressDriver.initial = null;
   progressDriver.emit = null;
   vi.mocked(loadContentDetail).mockReset();
+  vi.mocked(updateContent).mockReset();
+  vi.mocked(loadMarkdownEditorSource).mockReset();
   vi.mocked(getCurrentUser).mockReset();
   vi.mocked(loadContentDetail).mockResolvedValue(authoredBook);
   vi.mocked(getCurrentUser).mockResolvedValue({ id: 'author-1' });
@@ -275,6 +279,41 @@ test('refreshes the workspace when its first publication becomes active', async 
   await act(async () => { progressDriver.emit?.({ ...progress, state: 'published' }); });
   expect(await view.findByRole('link', { name: 'Reading page' })).toBeTruthy();
   expect(loadContentDetail).toHaveBeenCalledTimes(2);
+});
+
+test('an earlier publication poll cannot erase a later saved chapter', async () => {
+  await ensureLocaleNamespaces('en', ['creation', 'common']);
+  await act(async () => { await i18n.changeLanguage('en'); });
+  const initial: PostDetail = {
+    ...authoredBook, editor: 'markdown', publicationPending: true, pendingCommit: 'a'.repeat(40),
+    repositorySource: { commit: '0'.repeat(40), entrypoint: 'main.md', url: `/repos/b/book-42/raw/commit/${'0'.repeat(40)}/main.md` },
+  };
+  const progress: PublicationProgress = {
+    schemaVersion: 'rin-publication-progress/v1', view: 'author', projectId: 'book:42',
+    state: 'validating', displayingPreviousVersion: true, updatedAt: '2026-10-19T00:00:00Z',
+  };
+  progressDriver.initial = progress;
+  let finishEarlierPoll: ((value: PostDetail) => void) | undefined;
+  const earlierPoll = new Promise<PostDetail>((resolve) => { finishEarlierPoll = resolve; });
+  vi.mocked(loadContentDetail).mockResolvedValueOnce(initial).mockReturnValueOnce(earlierPoll);
+  let savedSource = '';
+  vi.mocked(loadMarkdownEditorSource).mockImplementation(async (post) => post.pendingCommit === 'b'.repeat(40) ? savedSource : authoredBook.body);
+  vi.mocked(updateContent).mockImplementation(async (_ref, input) => {
+    expect(input.sourceCommit).toBe(initial.pendingCommit);
+    savedSource = input.body;
+    return { ...initial, pendingCommit: 'b'.repeat(40) };
+  });
+  const view = renderWorkspace();
+  await view.findByText('概形');
+  await act(async () => { progressDriver.emit?.({ ...progress, state: 'published' }); });
+  expect(loadContentDetail).toHaveBeenCalledTimes(2);
+  fireEvent.change(view.getByLabelText('New chapter title'), { target: { value: 'New saved chapter' } });
+  fireEvent.click(view.getByRole('button', { name: 'Create chapter' }));
+  await view.findByText('New saved chapter');
+  expect(updateContent).toHaveBeenCalledOnce();
+  await act(async () => { finishEarlierPoll?.(initial); });
+  expect(view.getByText('New saved chapter')).toBeTruthy();
+  expect(vi.mocked(loadMarkdownEditorSource).mock.calls.at(-1)?.[0].pendingCommit).toBe('b'.repeat(40));
 });
 
 test('renders the Typst workspace without obsolete editor prompts', async () => {

@@ -360,7 +360,7 @@ export default function BookWorkspacePage() {
       cancelled = true;
       poller.stop();
     };
-  }, [postId, post?.type, post?.publicationPending]);
+  }, [postId, post?.type, post?.publicationPending, post?.pendingCommit]);
 
   useEffect(() => {
     let cancelled = false;

@@ -51,6 +51,41 @@ test('never falls back to stale source when repository delivery fails', async ()
   await expect(loadMarkdownEditorSource(post)).rejects.toThrow('could not be loaded');
 });
 
+test.each(['blog', 'book'] as const)('loads %s pending edits without reading the previous published commit', async (type) => {
+  vi.stubGlobal('crypto', webcrypto);
+  const pendingCommit = 'b'.repeat(40);
+  const owner = type === 'book' ? 'b' : 'a';
+  const editing = {
+    ...post, type, pendingCommit, publicationPending: true,
+    repositorySource: { commit, entrypoint: 'main.md', url: `/repos/${owner}/345/raw/commit/${commit}/main.md` },
+  } as PostDetail;
+  const fetcher = vi.fn().mockImplementation(async (url: string) => {
+    expect(url).toContain(`/commit/${pendingCommit}/`);
+    const main = type === 'book' ? '# New title\n\n- new-chapter.md\n' : '# Newly saved article';
+    return new Response(url.endsWith('/main.md') ? main : '# Newly saved chapter', { headers: { 'content-type': 'text/plain' } });
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const source = await loadMarkdownEditorSource(editing);
+  if (type === 'book') {
+    const project = markdownBookProjectFromBody(source, '');
+    expect(project.title).toBe('New title');
+    expect(project.files.map(({ path, body }) => ({ path, body }))).toEqual([{ path: 'new-chapter.md', body: '# Newly saved chapter' }]);
+  } else expect(source).toBe('# Newly saved article');
+  expect(fetcher).toHaveBeenCalledTimes(type === 'book' ? 2 : 1);
+});
+
+test.each(['main', '../other', 'b'.repeat(39), 'b'.repeat(40) + '/main.md'])('rejects invalid pending commit %s before fetching', async (pendingCommit) => {
+  const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
+  await expect(loadMarkdownEditorSource({ ...post, pendingCommit })).rejects.toThrow('Invalid repository');
+  expect(syncGiteaSession).not.toHaveBeenCalled();
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+test('does not let a pending commit bypass repository URL validation', async () => {
+  await expect(loadMarkdownEditorSource({ ...post, pendingCommit: 'b'.repeat(40), repositorySource: { ...post.repositorySource!, url: 'https://example.org/main.md' } })).rejects.toThrow('Invalid repository');
+  expect(syncGiteaSession).not.toHaveBeenCalled();
+});
+
 test('rejects foreign or traversing repository references before session synchronization', async () => {
   await expect(loadMarkdownEditorSource({ ...post, repositorySource: { ...post.repositorySource!, url: 'https://example.org/source.md' } })).rejects.toThrow('Invalid repository');
   expect(syncGiteaSession).not.toHaveBeenCalled();
