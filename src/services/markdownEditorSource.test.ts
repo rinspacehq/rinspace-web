@@ -28,11 +28,14 @@ test('loads a Markdown Book source from its exact book repository commit', async
     repositorySource: { commit, entrypoint: 'main.md', url: `/repos/b/345/raw/commit/${commit}/main.md` },
   } as PostDetail;
   vi.stubGlobal('crypto', webcrypto);
-  const bodies: Record<string, string> = { 'main.md': '- intro.md\n  - chapters/child.md\n', 'intro.md': '# Introduction', 'chapters/child.md': '# Child' };
+  const bodies: Record<string, string> = { 'main.md': '# 入口书名\n\n- intro.md\n  - chapters/child.md\n', 'intro.md': '# Introduction', 'chapters/child.md': '# Child' };
   const fetcher = vi.fn().mockImplementation(async (url: string) => new Response(bodies[url.split(`/commit/${commit}/`)[1]], { headers: { 'Content-Type': 'text/plain' } }));
   vi.stubGlobal('fetch', fetcher);
 
-  const project = markdownBookProjectFromBody(await loadMarkdownEditorSource(book), 'Book');
+  const source = await loadMarkdownEditorSource(book);
+  const project = markdownBookProjectFromBody(source, '');
+  expect(project.title).toBe('入口书名');
+  expect(source).toMatch(/"title":\s*"入口书名"/);
   expect(project.files.map(({ path, body, level }) => ({ path, body, level }))).toEqual([
     { path: 'intro.md', body: '# Introduction', level: 2 },
     { path: 'chapters/child.md', body: '# Child', level: 3 },

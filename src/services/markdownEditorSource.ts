@@ -9,6 +9,7 @@ import {
 } from "@/utils/markdownBook";
 import {
   markdownCatalogChapterID,
+  markdownCatalogTitle,
   parseMarkdownCatalog,
 } from "@/utils/markdownCatalog";
 
@@ -89,7 +90,7 @@ export async function loadMarkdownEditorSource(
       return bodyFromMarkdownBookProject(
         normalizeMarkdownBookProject(
           { files },
-          post.book?.bookTitle || post.title,
+          markdownCatalogTitle(main) || post.book?.bookTitle || post.title,
         ),
       );
     } catch (error) {

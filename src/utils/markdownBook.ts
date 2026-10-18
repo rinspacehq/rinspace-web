@@ -184,7 +184,7 @@ export function markdownBookProjectFromBody(body: string, title: string): Markdo
     return normalizeMarkdownBookProject(
       {
         version: '0.1',
-        title,
+        title: typeof payload.title === 'string' ? payload.title : title,
         files,
         pages,
       },
