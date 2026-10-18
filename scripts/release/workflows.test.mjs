@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { execFileSync } from 'node:child_process';
 
 const workflow = (name) => fs.readFileSync(path.resolve(import.meta.dirname, `../../.github/workflows/${name}.yml`), 'utf8');
 
@@ -85,4 +86,20 @@ test('both isolation layers provide only an empty ephemeral home, never a host p
   for (const text of [outer, inner]) {
     assert.doesNotMatch(text, /--(?:ro-)?bind[^\n]*(?:os\.homedir\(|process\.env\.HOME|\/etc\/passwd|\/root)/);
   }
+});
+
+test('candidate build budgets V8 and esbuild together without removing complete checks', () => {
+  const outer = fs.readFileSync(path.join(import.meta.dirname, 'run-isolated-checks.mjs'), 'utf8');
+  assert.match(outer, /'--setenv', 'GOMAXPROCS', '1'/);
+  assert.match(outer, /run\(\['--max-old-space-size=1536', 'node_modules\/vite\/bin\/vite\.js', 'build'\]\)/);
+  assert.match(outer, /Formal build requires the complete check suite/);
+  assert.match(outer, /run\(\['scripts\/check-source-independence\.mjs'\]\)/);
+  assert.match(outer, /run\(\['--test', \.\.\.toolingTests\]\)/);
+  assert.match(outer, /run\(\['scripts\/check-vite-artifact\.mjs'\]\)/);
+  assert.match(outer, /run\(\['scripts\/check-i18n-bundle-budget\.mjs'\]\)/);
+  const heapLimit = Number(execFileSync(process.execPath, [
+    '--max-old-space-size=1536', '-e', "console.log(require('node:v8').getHeapStatistics().heap_size_limit)",
+  ], { encoding: 'utf8', env: { NODE_OPTIONS: '--max-old-space-size=2048' } }).trim());
+  assert(heapLimit > 1536 * 1024 ** 2 && heapLimit < 1700 * 1024 ** 2,
+    'the Vite CLI budget must override the inherited 2048 MiB heap');
 });
