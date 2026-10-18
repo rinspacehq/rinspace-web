@@ -45,7 +45,12 @@ export function giteaPath(...segments: Array<string | number>) {
 }
 
 export function openGiteaPath(...segments: Array<string | number>) {
-  window.location.assign(giteaPath(...segments));
+  window.location.assign(giteaAuthPath(...segments));
+}
+
+export function giteaAuthPath(...segments: Array<string | number>) {
+  const next = new URLSearchParams({ next: giteaPath(...segments) });
+  return `/git-auth?${next.toString()}`;
 }
 
 export function articleGiteaSourcePath(articleId: string | number) {

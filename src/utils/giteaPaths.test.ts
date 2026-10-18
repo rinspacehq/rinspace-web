@@ -1,8 +1,12 @@
+import { vi } from 'vitest';
+
 import {
   articleGiteaSourcePath,
   canonicalGiteaPathname,
+  giteaAuthPath,
   giteaPath,
   normalizeGiteaBasePath,
+  openGiteaPath,
   safeGiteaRedirectPath,
 } from './giteaPaths';
 
@@ -31,6 +35,24 @@ test('links article source to its canonical standalone repository', () => {
 test('builds standalone article and tag repository paths', () => {
   expect(giteaPath('a', 269)).toBe('/repos/a/269');
   expect(giteaPath('tags', 42)).toBe('/repos/tags/42');
+});
+
+test('opens repositories through the existing session renewal and SSO route', () => {
+  expect(giteaAuthPath('b', 632)).toBe('/git-auth?next=%2Frepos%2Fb%2F632');
+  expect(giteaAuthPath('a', 269)).toBe('/git-auth?next=%2Frepos%2Fa%2F269');
+  expect(giteaAuthPath('tags', 42)).toBe('/git-auth?next=%2Frepos%2Ftags%2F42');
+  expect(giteaAuthPath()).toBe('/git-auth?next=%2Frepos%2F');
+});
+
+test('the shared repository button navigates through authentication, not directly to Gitea', () => {
+  const assign = vi.fn();
+  vi.stubGlobal('window', { location: { assign } });
+  try {
+    openGiteaPath('b', 632);
+    expect(assign.mock.calls[0]?.[0]).toBe('/git-auth?next=%2Frepos%2Fb%2F632');
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });
 
 test('keeps redirects same-origin and canonical', () => {
