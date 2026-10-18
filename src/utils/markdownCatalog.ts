@@ -4,8 +4,13 @@ export function parseMarkdownCatalog(source: string): MarkdownCatalogEntry[] {
   const entries: MarkdownCatalogEntry[] = [];
   const paths = new Set<string>();
   let previousDepth = 0;
+  let titleSeen = false;
   for (const raw of source.replaceAll('\r\n', '\n').split('\n')) {
     if (!raw.trim()) continue;
+    if (!entries.length && !titleSeen && raw.startsWith('# ') && raw.slice(2).trim() && !/[\t\r\0]/.test(raw)) {
+      titleSeen = true;
+      continue;
+    }
     const match = /^( *)- (.+)$/.exec(raw);
     if (!match || match[1].length % 2 || /[\t\r\0]/.test(raw)) throw new Error('Invalid main.md chapter list.');
     const depth = match[1].length / 2 + 1;
@@ -21,6 +26,12 @@ export function parseMarkdownCatalog(source: string): MarkdownCatalogEntry[] {
   }
   if (!entries.length) throw new Error('main.md requires at least one chapter.');
   return entries;
+}
+
+// Call after parseMarkdownCatalog: a leading title is metadata, never a chapter.
+export function markdownCatalogTitle(source: string): string {
+  const first = source.replaceAll('\r\n', '\n').split('\n').find((line) => line.trim());
+  return first?.startsWith('# ') && !/[\t\r\0]/.test(first) ? first.slice(2).trim() : '';
 }
 
 export async function markdownCatalogChapterID(path: string): Promise<string> {

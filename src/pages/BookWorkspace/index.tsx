@@ -408,7 +408,7 @@ export default function BookWorkspacePage() {
       setMarkdownProject(null);
       setProjectLoading(true);
       void loadMarkdownEditorSource(post, controller.signal).then((body) => {
-        if (!cancelled) setMarkdownProject(markdownBookProjectFromBody(body, title));
+        if (!cancelled) setMarkdownProject(markdownBookProjectFromBody(body, ''));
       }).catch((error: unknown) => {
         if (!cancelled) setProjectError(messageFromError(error, 'creation.bookProjectLoadFailed'));
       }).finally(() => { if (!cancelled) setProjectLoading(false); });
