@@ -40,7 +40,7 @@ function TagWikiHistoryPage() {
   const [tag, setTag] = useState<TagDetail | null>(null);
   const [error, setError] = useState('');
   const displaySlug = tag?.slugName || fallbackSlug || tagLookup;
-  const historyPath = tagWikiGiteaHistoryPath(tag || displaySlug);
+  const historyPath = tag ? tagWikiGiteaHistoryPath(tag) : '';
   const wikiInfoPath = useMemo(() => {
     if (tag) return tagWikiPath(tag.id, tag.slugName || tagName(tag));
     if (effectiveRouteTagId) return tagWikiPath(effectiveRouteTagId, fallbackSlug || effectiveRouteTagId);
@@ -53,14 +53,8 @@ function TagWikiHistoryPage() {
   useEffect(() => {
     if (!tagLookup) return;
     let cancelled = false;
-    if (!effectiveRouteTagId) {
-      window.location.replace(tagWikiGiteaHistoryPath(effectiveRouteTagName));
-      return () => {
-        cancelled = true;
-      };
-    }
     setError('');
-    void loadTagDetail({ tagId: effectiveRouteTagId })
+    void loadTagDetail(effectiveRouteTagId ? { tagId: effectiveRouteTagId } : { name: effectiveRouteTagName })
       .then((detail) => {
         if (cancelled) return;
         setTag(detail);
@@ -92,7 +86,7 @@ function TagWikiHistoryPage() {
             </div>
             <div className="wiki-entry-actions">
               {wikiInfoPath ? <a href={wikiInfoPath}>{t('tagWikiHistory.back')}</a> : null}
-              <a href={historyPath}>{t('tagWikiHistory.open')}</a>
+              {historyPath ? <a href={historyPath}>{t('tagWikiHistory.open')}</a> : null}
             </div>
           </header>
           {error ? <Alert className="notice error">{error}</Alert> : null}

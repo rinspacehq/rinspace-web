@@ -95,6 +95,24 @@ test("counts web pages from reader pages and ignores unusable PDF metadata", () 
   expect(bookPdfPageCount(null)).toBeNull();
 });
 
+test("uses canonical pageCount instead of guessing from outline headings", async () => {
+  await ensureLocaleNamespaces("zh-CN", ["reader"]);
+  const view = render(
+    <MemoryRouter>
+      <BookReaderTableOfContents
+        items={readerTocItems}
+        activeId="section-1"
+        pageId="section-1"
+        webPageCount={4}
+        onSelect={() => undefined}
+      />
+    </MemoryRouter>,
+  );
+  expect(view.getByText("4 网页页")).toBeTruthy();
+  expect(bookReaderPageCounts(readerTocItems, undefined, 4).webPages).toBe(4);
+  expect(bookReaderPageCounts(readerTocItems, undefined, Number.NaN).webPages).toBe(2);
+});
+
 test("builds navigation only from renderer-owned heading anchors", () => {
   expect(rinWriterTocItems(
     '<h2 id="native.section">Section 4</h2><h3>Unanchored authored heading</h3>',

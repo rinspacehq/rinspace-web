@@ -1,5 +1,6 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
+import { useState } from 'react';
 import { vi } from 'vitest';
 
 import { AnimateButton } from 'components/ui';
@@ -32,6 +33,12 @@ vi.mock('react-router-dom', () => {
 });
 
 vi.mock('@/services/domains/tag', () => ({
+  loadTagDetail: async ({ tagId }: { tagId: string }) => {
+    const response = await fetch(`/api/tag?tag_id=${encodeURIComponent(tagId)}`);
+    const value: unknown = await response.json();
+    if (value && typeof value === 'object' && 'displayName' in value && typeof value.displayName === 'string') return value;
+    throw new Error('Synthetic tag is unavailable');
+  },
   suggestTags: async (query: string, limit = 20) => {
     const response = await fetch(
       `/api/question/tags?tag=${encodeURIComponent(query)}&limit=${String(limit)}`,
@@ -72,6 +79,26 @@ beforeEach(() => {
 
 test('normalizes Latin diacritics in new tag slugs', () => {
   expect(normalizeTagInput('Néron-Severi group')).toBe('neron-severi-group');
+});
+
+test('keeps a newly created name without an external selected-label controller', async () => {
+  function Picker() {
+    const [value, setValue] = useState<string[]>([]);
+    return <TagPicker value={value} onChange={setValue} ariaLabel="新标签名称" />;
+  }
+  const view = renderPicker(<Picker />);
+  fireEvent.change(view.getByLabelText('新标签名称'), { target: { value: '新建标签名称' } });
+  fireEvent.click(await view.findByText('新标签：新建标签名称'));
+  fireEvent.click(view.getByText('确认创建'));
+  await waitFor(() => expect(view.container.querySelector('.tag-picker-selected')?.textContent).toBe('新建标签名称'));
+});
+
+test('resolves the name of a restored stable selection without changing its identity', async () => {
+  global.fetch = async () => new Response(JSON.stringify({ displayName: '恢复的标签名称', name: '恢复的标签名称', slugName: 'tag-42' }));
+  const onChange = vi.fn();
+  const view = renderPicker(<TagPicker value={['42']} onChange={onChange} ariaLabel="已有标签" />);
+  await waitFor(() => expect(view.container.querySelector('.tag-picker-selected')?.textContent).toBe('恢复的标签名称'));
+  expect(onChange.mock.calls.length).toBe(0);
 });
 
 test('adds a new normalized tag by clicking the create suggestion', async () => {
