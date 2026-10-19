@@ -145,6 +145,10 @@ export function plainRinCodePreHtml(source: string): string {
 export function addLineNumbersToHighlightedCode(code: HTMLElement) {
   const lines = Array.from(code.querySelectorAll<HTMLElement>('.line'));
   if (!lines.length) {
+    // Native renderers (e.g. Typst) own their token spans and <br> breaks.
+    // Only synthesize line markup for plain text; textContent would destroy
+    // already-rendered highlighting, annotations and explicit line breaks.
+    if (code.childElementCount > 0) return;
     const sourceLines = (code.textContent || '').split('\n');
     code.replaceChildren();
     sourceLines.forEach((lineText) => {
