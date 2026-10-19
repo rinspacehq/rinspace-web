@@ -254,20 +254,20 @@ export type BookContextResponse = {
 export type BookReaderTocItem = {
   id: string;
   text: string;
-  level: 2 | 3 | 4;
+  level: 2 | 3 | 4 | 5 | 6;
 };
 
 export type BookReaderPage = {
   id: string;
   text: string;
-  level: 2 | 3 | 4;
+  level: 2 | 3 | 4 | 5 | 6;
   html: string;
 };
 
 export type BookReaderPageLink = {
   id: string;
   text: string;
-  level: 2 | 3 | 4;
+  level: 2 | 3 | 4 | 5 | 6;
 };
 
 export type BookReaderPageResponse = {
@@ -2066,6 +2066,12 @@ export type TagDetail = {
   texSource: string;
   rendererFinal: boolean;
   wikiSourceFile?: SourceFileInfo;
+  wikiPublication?: {
+    repositoryOwner: string;
+    repositoryName: string;
+    sourceCommit: string;
+    entrypoint: string;
+  };
   followCount: number;
   readCount: number;
   questionCount: number;
@@ -4836,8 +4842,8 @@ function parseBookImportJob(value: unknown): BookImportJob | null {
   };
 }
 
-function bookReaderLevel(value: unknown): 2 | 3 | 4 | null {
-  return value === 2 || value === 3 || value === 4 ? value : null;
+function bookReaderLevel(value: unknown): 2 | 3 | 4 | 5 | 6 | null {
+  return value === 2 || value === 3 || value === 4 || value === 5 || value === 6 ? value : null;
 }
 
 function cleanBookReaderLatexLabel(value: string) {
@@ -7312,6 +7318,17 @@ function tagDetail(value: unknown): TagDetail | null {
         : value.originalText,
     rendererFinal: value.rendererFinal === true,
     wikiSourceFile: wikiSourceFile || undefined,
+    wikiPublication: isRecord(value.wikiPublication)
+      && typeof value.wikiPublication.repositoryOwner === 'string'
+      && typeof value.wikiPublication.repositoryName === 'string'
+      && typeof value.wikiPublication.sourceCommit === 'string'
+      && typeof value.wikiPublication.entrypoint === 'string'
+      ? {
+        repositoryOwner: value.wikiPublication.repositoryOwner,
+        repositoryName: value.wikiPublication.repositoryName,
+        sourceCommit: value.wikiPublication.sourceCommit,
+        entrypoint: value.wikiPublication.entrypoint,
+      } : undefined,
     followCount: value.followCount,
     readCount:
       typeof value.readCount === "number"

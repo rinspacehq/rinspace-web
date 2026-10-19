@@ -1,39 +1,27 @@
-import {
-  tagWikiGiteaFolder,
-  tagWikiGiteaHistoryPath,
-  tagWikiGiteaSourcePath,
-} from './gitea';
+import { describe, expect, it } from 'vitest';
+import { tagWikiGiteaHistoryPath, tagWikiGiteaSourcePath } from './gitea';
 
-declare function test(name: string, callback: () => void): void;
-declare function expect(actual: unknown): {
-  toBe(expected: unknown): void;
-};
+describe('tag Wiki repository authority', () => {
+  it('uses the independent repository, never the obsolete shared source folder', () => {
+    const tag = { id: 42, tagId: '42', slugName: 'renamed', wikiSourceFile: { filename: '42-old-name/main.tex' } };
+    expect(tagWikiGiteaSourcePath(tag)).toBe('/repos/tags/42/src/branch/main');
+    expect(tagWikiGiteaHistoryPath(tag)).toBe('/repos/tags/42/commits/branch/main');
+  });
 
-test('builds id-first Gitea folder paths for canonical tags', () => {
-  const tag = { id: 5815, tagId: '5815', slugName: 'weil-pairings' };
+  it('pins source and history to the publication actually being read', () => {
+    const sourceCommit = 'a'.repeat(40);
+    const tag = { id: 400, wikiPublication: { repositoryOwner: 'tags', repositoryName: '42', sourceCommit, entrypoint: 'sections/main.tex' } };
+    expect(tagWikiGiteaSourcePath(tag)).toBe(`/repos/tags/42/src/commit/${sourceCommit}/sections/main.tex`);
+    expect(tagWikiGiteaHistoryPath(tag)).toBe(`/repos/tags/42/commits/commit/${sourceCommit}`);
+  });
 
-  expect(tagWikiGiteaFolder(tag)).toBe('5815-weil-pairings');
-  expect(tagWikiGiteaSourcePath(tag)).toBe('/repos/rinspace/tags/src/branch/main/5815-weil-pairings');
-  expect(tagWikiGiteaHistoryPath(tag)).toBe('/repos/rinspace/tags/commits/branch/main/5815-weil-pairings');
-});
+  it('does not guess repository identity from a slug', () => {
+    expect(tagWikiGiteaSourcePath('abelian-variety')).toBe('');
+    expect(tagWikiGiteaHistoryPath('42')).toBe('/repos/tags/42/commits/branch/main');
+  });
 
-test('keeps the persisted wiki source folder across slug changes', () => {
-  const tag = {
-    id: 42,
-    tagId: '42',
-    slugName: 'abelian-variety',
-    wikiSourceFile: {
-      filename: '42-abelian-varieties/main.tex',
-    },
-  };
-
-  expect(tagWikiGiteaFolder(tag)).toBe('42-abelian-varieties');
-  expect(tagWikiGiteaSourcePath(tag)).toBe('/repos/rinspace/tags/src/branch/main/42-abelian-varieties');
-});
-
-test('keeps legacy slug-only Gitea paths as a fallback', () => {
-  expect(tagWikiGiteaFolder('abelian-variety')).toBe('abelian-variety');
-  expect(tagWikiGiteaHistoryPath('abelian-variety')).toBe(
-    '/repos/rinspace/tags/commits/branch/main/abelian-variety',
-  );
+  it.each(['../main.tex', '/main.tex', 'sections//main.tex', 'main\\evil.tex'])('rejects unsafe publication source %s', (entrypoint) => {
+    const tag = { id: 42, wikiPublication: { repositoryOwner: 'tags', repositoryName: '42', sourceCommit: 'a'.repeat(40), entrypoint } };
+    expect(tagWikiGiteaSourcePath(tag)).toBe('');
+  });
 });

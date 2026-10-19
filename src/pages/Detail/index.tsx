@@ -97,6 +97,7 @@ import { prefixInlineSvgIds } from "@/utils/inlineSvgIds";
 import { markdownWithoutMatchingTitle } from "@/utils/markdownTitle";
 import { contentTypeMetaChar } from "@/utils/contentTypeMeta";
 import { contentEditDestination } from "@/utils/contentEditDestination";
+import { canLoadPublicBookFeatures, isPrivatePublication } from "@/utils/contentPublicFeatures";
 import {
   rinArticleHydrationPlan,
   rinDeferredMathDisplayMode,
@@ -465,7 +466,7 @@ type RinArchiveInfo = {
 type BlogTocItem = {
   id: string;
   text: string;
-  level: 2 | 3 | 4;
+  level: 2 | 3 | 4 | 5 | 6;
 };
 
 type BlogTocNode = BlogTocItem & {
@@ -2949,6 +2950,7 @@ function bookReaderPageItems(items: BlogTocItem[]) {
 function bookReaderPageCounts(
   items: BlogTocItem[],
   pdfPageCount?: number | null,
+  webPageCount?: number | null,
 ) {
   const pdfPages =
     typeof pdfPageCount === "number" &&
@@ -2957,7 +2959,10 @@ function bookReaderPageCounts(
       ? Math.trunc(pdfPageCount)
       : null;
   return {
-    webPages: bookReaderPageItems(items).length,
+    webPages:
+      typeof webPageCount === "number" && Number.isInteger(webPageCount) && webPageCount > 0
+        ? webPageCount
+        : bookReaderPageItems(items).length,
     tocNodes: items.length,
     pdfPages,
   };
@@ -3853,12 +3858,14 @@ function BookReaderTableOfContents({
   activeId,
   pageId,
   pdfPageCount,
+  webPageCount,
   onSelect,
 }: {
   items: BlogTocItem[];
   activeId: string;
   pageId: string;
   pdfPageCount?: number | null;
+  webPageCount?: number | null;
   onSelect: (id: string) => void;
 }) {
   const { t } = useFeatureTranslation("reader");
@@ -3866,8 +3873,8 @@ function BookReaderTableOfContents({
   const activeItemRef = useRef<HTMLLIElement | null>(null);
   const listRef = useRef<HTMLOListElement | null>(null);
   const navigationItems = useMemo(
-    () => bookReaderNavigationItems(items),
-    [items],
+    () => webPageCount ? bookReaderContentItems(items) : bookReaderNavigationItems(items),
+    [items, webPageCount],
   );
   const tocTree = useMemo(
     () => blogTocTree(navigationItems),
@@ -3881,8 +3888,8 @@ function BookReaderTableOfContents({
     () => new Set(),
   );
   const pageCounts = useMemo(
-    () => bookReaderPageCounts(items, pdfPageCount),
-    [items, pdfPageCount],
+    () => bookReaderPageCounts(items, pdfPageCount, webPageCount),
+    [items, pdfPageCount, webPageCount],
   );
 
   useEffect(() => {
@@ -5355,7 +5362,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
 
   useContentReadEvent({
     target: post ? { id: post.id, slug: post.slug || contentRef, type: post.type } : null,
-    enabled: kind !== "question" && !isBlogTypographyTest,
+    enabled: kind !== "question" && !isBlogTypographyTest && !isPrivatePublication(post),
     onReadCount: (readCount) => {
       setPost((current) => (
         current && current.id === post?.id
@@ -5663,7 +5670,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     if (renderedItems.some((item) => item.level === 3)) {
       return renderedItems.map((item) => ({
         title: item.text,
-        level: item.level,
+        level: item.level === 3 ? 3 : 2,
       }));
     }
     return post?.type === "book" ? post.book?.toc || [] : [];
@@ -5729,7 +5736,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   }, [activeArticleTocItems, isBookReadingPage, kind]);
 
   useEffect(() => {
-    if (!post || post.type !== "book") {
+    if (!post || post.type !== "book" || !canLoadPublicBookFeatures(post)) {
       setBookReviews([]);
       setBookRating(null);
       setBookReviewError("");
@@ -5770,7 +5777,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   }, [post, bookReviewOrder]);
 
   useEffect(() => {
-    if (!post || post.type !== "book") return undefined;
+    if (!post || post.type !== "book" || !canLoadPublicBookFeatures(post)) return undefined;
     let cancelled = false;
     setRelatedBooksLoading(true);
     setRelatedBooksError("");
@@ -5795,7 +5802,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   }, [post]);
 
   useEffect(() => {
-    if (!post || post.type !== "book") {
+    if (!post || post.type !== "book" || !canLoadPublicBookFeatures(post)) {
       setBookActivityItems([]);
       setBookActivityTotal(0);
       setBookActivityError("");
@@ -5907,6 +5914,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
       !isBookReadingPage ||
       !post ||
       post.type !== "book" ||
+      !canLoadPublicBookFeatures(post) ||
       !post.book?.toc?.length
     ) {
       setBookChapterActivity(null);
@@ -12834,6 +12842,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                   }
                   pageId={currentBookReaderPage?.id || ""}
                   pdfPageCount={bookPdfPageCount(post.book)}
+                  webPageCount={bookReaderPage?.pageCount}
                   onSelect={navigateBookReaderTarget}
                 />
               </aside>
@@ -13704,7 +13713,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
               ) : null}
             </div>
 
-            {isBookReadingPage && bookReaderPage?.publicationCommit ? (
+            {isBookReadingPage && canLoadPublicBookFeatures(post) && bookReaderPage?.publicationCommit ? (
               <BookAnnotationsLayer
                 bookRef={contentRef}
                 pageId={bookReaderPage.page.id}

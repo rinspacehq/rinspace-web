@@ -68,7 +68,7 @@ describe('tag Wiki source actions', () => {
     );
 
     const source = await view.findByRole('link', { name: '源码' });
-    expect(source.getAttribute('href')).toBe('/repos/rinspace/tags/src/branch/main/5815-weil-pairings');
+    expect(source.getAttribute('href')).toBe('/repos/tags/5815/src/branch/main');
     expect(view.queryByRole('button', { name: '编辑' })).toBeNull();
   });
 

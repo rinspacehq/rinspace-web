@@ -2,7 +2,7 @@ import { Icon, AnimateButton} from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { suggestTags } from '@/services/domains/tag';
+import { loadTagDetail, suggestTags } from '@/services/domains/tag';
 import type { TagSummary } from '@/services/contracts';
 import TagCreationFlow from '@/features/tags/TagCreationFlow';
 import { formatNumber } from '@/i18n/format';
@@ -117,6 +117,7 @@ export default function TagPicker({
   const [error, setError] = useState('');
   const [creationOpen, setCreationOpen] = useState(false);
   const [creationName, setCreationName] = useState('');
+  const [knownLabels, setKnownLabels] = useState<Record<string, string>>({});
   const selected = useMemo(() => {
     const seen = new Set<string>();
     return value
@@ -140,6 +141,32 @@ export default function TagPicker({
   const exactSuggestion = suggestions.find((item) =>
     [item.slug, item.name, item.displayName].some((candidate) => sameTag(candidate, query)),
   );
+  const missingLabelsKey = selected
+    .filter((item) => !selectedLabels?.[item]?.trim() && !knownLabels[item])
+    .join('\u0000');
+
+  useEffect(() => {
+    if (!missingLabelsKey) return undefined;
+    const missing = missingLabelsKey.split('\u0000');
+    let cancelled = false;
+    // Selection is bounded by max (six by default); resolve each missing
+    // identity once, never infer its display name from a slug or numeric ID.
+    void Promise.all(missing.map(async (item) => {
+      try {
+        const tag = await loadTagDetail({ tagId: item });
+        return [item, tag.displayName.trim() || tag.name || tag.slugName] as const;
+      } catch {
+        // A deleted/unavailable tag keeps its stable existing value. Do not
+        // drop the association or create another tag to replace it.
+        return null;
+      }
+    })).then((items) => {
+      if (cancelled) return;
+      const resolved = items.filter((item): item is readonly [string, string] => Boolean(item?.[1]));
+      if (resolved.length) setKnownLabels((current) => ({ ...current, ...Object.fromEntries(resolved) }));
+    });
+    return () => { cancelled = true; };
+  }, [missingLabelsKey]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -173,6 +200,7 @@ export default function TagPicker({
   }, [query, t]);
 
   const updateLabels = (slug: string, label: string) => {
+    setKnownLabels((current) => ({ ...current, [slug]: label }));
     if (!onSelectedLabelsChange) return;
     onSelectedLabelsChange({
       ...(selectedLabels || {}),
@@ -218,7 +246,7 @@ export default function TagPicker({
                 disabled={disabled}
                 onClick={() => removeTag(item)}
               >
-                <span>{selectedLabels?.[item] || item}</span>
+                <span>{selectedLabels?.[item]?.trim() || knownLabels[item] || item}</span>
                 <Icon name="x" />
               </AnimateButton>
             ))}
