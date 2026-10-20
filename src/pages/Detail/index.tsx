@@ -30,6 +30,7 @@ import {
 } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import AuthorPDFReadingLink, {
+  AuthorPDFInline,
   authorPDFFromFragment,
 } from "@/components/AuthorPDFReadingLink";
 import SiteIcpLink from "@/components/SiteIcpLink";
@@ -3428,6 +3429,7 @@ const RinWriterArticle = memo(function RinWriterArticle({
   serverFinal,
   enableBibliographyHashNavigation,
   enableInternalLinkPreviews,
+  inlineAuthorPDF,
 }: {
   html: string;
   title: string;
@@ -3437,6 +3439,7 @@ const RinWriterArticle = memo(function RinWriterArticle({
   serverFinal?: boolean;
   enableBibliographyHashNavigation?: boolean;
   enableInternalLinkPreviews?: boolean;
+  inlineAuthorPDF?: boolean;
 }) {
   const { t } = useFeatureTranslation("reader");
   const authorPDF = useMemo(
@@ -3551,7 +3554,16 @@ const RinWriterArticle = memo(function RinWriterArticle({
     [],
   );
 
-  if (authorPDF) return <AuthorPDFReadingLink pdf={authorPDF} />;
+  if (authorPDF)
+    return inlineAuthorPDF ? (
+      <AuthorPDFInline
+        key={`${authorPDF.commit}:${authorPDF.sha256}`}
+        pdf={authorPDF}
+        title={title}
+      />
+    ) : (
+      <AuthorPDFReadingLink pdf={authorPDF} />
+    );
 
   return (
     <section
@@ -13105,6 +13117,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                                 <MilkdownMarkdownArticle markdown={post.body} />
                               ) : bodyHtml ? (
                                 <RinWriterArticle
+                                  inlineAuthorPDF={kind === "blog"}
                                   html={bodyHtml}
                                   title={post.title}
                                   removeGeneratedToc={isBookReadingPage}

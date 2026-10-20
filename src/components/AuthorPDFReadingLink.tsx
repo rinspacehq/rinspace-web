@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFeatureTranslation } from "@/i18n/useFeatureTranslation";
+import "./AuthorPDFInline.css";
 
 const maxBytes = 4 * 1024 * 1024;
 export type AuthorPDF = {
@@ -119,5 +120,26 @@ export default function AuthorPDFReadingLink({
         <span role="status">{t("pdfReading.loading")}</span>
       )}
     </span>
+  );
+}
+
+export function AuthorPDFInline({ pdf, title }: { pdf: AuthorPDF; title: string }) {
+  const { t } = useFeatureTranslation("reader");
+  const { url, error } = useAuthorPDFURL(pdf);
+  return (
+    <section
+      className="rin-author-pdf-inline"
+      data-rin-reading-mode="author-pdf"
+      data-source-commit={pdf.commit}
+      aria-label={`${title} — PDF`}
+    >
+      {error ? (
+        <span role="alert">{t("pdfReading.error")}</span>
+      ) : url ? (
+        <iframe title={`${title} — PDF`} src={url} />
+      ) : (
+        <span role="status">{t("pdfReading.loading")}</span>
+      )}
+    </section>
   );
 }

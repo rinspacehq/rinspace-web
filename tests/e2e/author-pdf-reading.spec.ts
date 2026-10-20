@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { createHash } from "node:crypto";
+// The headless shell omits Chromium's native PDF viewer. Exercise the full
+// browser's new headless mode so an empty frame cannot stand in for a PDF.
+test.use({ channel: "chromium" });
+// Each article test includes two cold navigations and native viewer painting.
+test.setTimeout(120000);
 function readingPDF(): Buffer {
   let body = "%PDF-1.4\n";
   const offsets = [0];
@@ -29,9 +34,11 @@ function readingPDF(): Buffer {
   return Buffer.from(body);
 }
 for (const kind of ["book", "blog"] as const) {
-  test(`start reading opens the original PDF in the browser for ${kind}`, async ({
+  test(`${kind === "blog" ? "article embeds" : "start reading opens"} the original PDF for ${kind}`, async ({
     page,
-  }) => {
+  }, testInfo) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
     const pdf = readingPDF(),
       hash = createHash("sha256").update(pdf).digest("hex"),
       commit = "a".repeat(40);
@@ -104,6 +111,31 @@ for (const kind of ["book", "blog"] as const) {
     await expect(reader.getByRole("status")).toHaveCount(0, { timeout: 20000 });
     await expect(reader.getByRole("alert")).toHaveCount(0);
     await expect(reader).toHaveAttribute("data-source-commit", commit);
+    if (kind === "blog") {
+      const frame = reader.locator("iframe");
+      await expect(frame).toBeVisible();
+      await expect(frame).toHaveAttribute("title", "PDF 阅读验收 — PDF");
+      await expect(frame).toHaveAttribute("src", /^blob:/);
+      await expect(reader.getByRole("link", { name: "开始阅读" })).toHaveCount(0);
+      await expect(page.locator('.detail-body [data-rin-reading-mode="author-pdf"]')).toHaveCount(1);
+      const original = await frame.evaluate(async (element) => {
+        const response = await fetch((element as HTMLIFrameElement).src);
+        return {
+          type: response.headers.get("content-type"),
+          bytes: Array.from(new Uint8Array(await response.arrayBuffer())),
+        };
+      });
+      expect(original.type).toBe("application/pdf");
+      expect(createHash("sha256").update(Buffer.from(original.bytes)).digest("hex")).toBe(hash);
+      const bounds = await frame.boundingBox();
+      expect(bounds?.height).toBeGreaterThan(300);
+      expect(bounds?.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      await page.screenshot({ path: testInfo.outputPath("inline-pdf.png"), fullPage: true });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page.locator('.detail-body iframe[title="PDF 阅读验收 — PDF"]')).toBeVisible({ timeout: 20000 });
+      expect(pageErrors).toEqual([]);
+      return;
+    }
     const link = reader.getByRole("link", { name: "开始阅读" });
     await expect(link).toHaveAttribute("href", /^blob:/);
     await expect(link).toHaveAttribute("target", "_blank");
@@ -139,5 +171,6 @@ for (const kind of ["book", "blog"] as const) {
     expect(opened).not.toBeNull();
     if (opened && "popup" in opened) await opened.popup.close();
     await expect(page).toHaveURL(sourceURL);
+    expect(pageErrors).toEqual([]);
   });
 }

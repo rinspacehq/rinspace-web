@@ -1,6 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, test, vi } from "vitest";
+import { createHash, webcrypto } from "node:crypto";
 
 import { ensureLocaleNamespaces, i18n } from "@/i18n";
 
@@ -17,6 +18,25 @@ const readerTocItems = [
   { id: "section-1", text: "第一节", level: 3 as const },
   { id: "section-2", text: "第二节", level: 3 as const },
 ];
+
+test("only the article opt-in embeds a server-final PDF; book reading keeps its link", async () => {
+  const bytes = Buffer.from("%PDF-1.7 reader integration fixture");
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  const fragment = `<div class="rin-author-pdf" data-rin-pdf="${bytes.toString("base64")}" data-rin-pdf-sha256="${sha}" data-rin-pdf-pages="1" data-rin-pdf-commit="${"a".repeat(40)}" data-rin-pdf-path="main.pdf"></div>`;
+  vi.stubGlobal("crypto", webcrypto);
+  vi.stubGlobal("URL", { createObjectURL: () => "blob:reader-fixture", revokeObjectURL: vi.fn() });
+  const view = render(<RinWriterArticle html={fragment} title="Article" serverFinal inlineAuthorPDF />);
+  try {
+    expect(await view.findByTitle("Article — PDF")).toBeTruthy();
+    expect(view.queryByRole("link")).toBeNull();
+    view.rerender(<RinWriterArticle html={fragment} title="Book" serverFinal />);
+    expect((await view.findByRole("link")).getAttribute("href")).toBe("blob:reader-fixture");
+    expect(view.container.querySelector("iframe")).toBeNull();
+  } finally {
+    view.unmount();
+    vi.unstubAllGlobals();
+  }
+});
 
 afterEach(async () => {
   await act(async () => {

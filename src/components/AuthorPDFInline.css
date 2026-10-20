@@ -1,0 +1,11 @@
+.rin-author-pdf-inline {
+  width: 100%;
+  min-width: 0;
+}
+
+.rin-author-pdf-inline > iframe {
+  display: block;
+  width: 100%;
+  height: clamp(24rem, 78vh, 64rem);
+  border: 0;
+}
