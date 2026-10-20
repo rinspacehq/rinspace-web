@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { createHash } from "node:crypto";
+// The headless shell omits Chromium's native PDF viewer. Exercise the full
+// browser's new headless mode so an empty frame cannot stand in for a PDF.
+test.use({ channel: "chromium" });
+// Each article test includes two cold navigations and native viewer painting.
+test.setTimeout(120000);
 function readingPDF(): Buffer {
   let body = "%PDF-1.4\n";
   const offsets = [0];
@@ -127,7 +132,7 @@ for (const kind of ["book", "blog"] as const) {
       expect(bounds?.width).toBeLessThanOrEqual(page.viewportSize()!.width);
       await page.screenshot({ path: testInfo.outputPath("inline-pdf.png"), fullPage: true });
       await page.reload({ waitUntil: "domcontentloaded" });
-      await expect(page.locator('.detail-body iframe[title="PDF 阅读验收 — PDF"]')).toBeVisible();
+      await expect(page.locator('.detail-body iframe[title="PDF 阅读验收 — PDF"]')).toBeVisible({ timeout: 20000 });
       expect(pageErrors).toEqual([]);
       return;
     }
