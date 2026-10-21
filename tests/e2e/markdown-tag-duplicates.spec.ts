@@ -40,6 +40,7 @@ test('Markdown editor keeps the explicit creation path for an exact same-name ta
         json: {
           items: [{
             id: 8,
+            slugName: 'tag-8',
             displayName: 'Sheaf',
             normalizedName: 'sheaf',
             usageScope: 'Algebraic geometry',
@@ -50,6 +51,25 @@ test('Markdown editor keeps the explicit creation path for an exact same-name ta
             repositoryId: 18,
             version: 3,
           }],
+        },
+      });
+      return;
+    }
+    if (pathname === '/api/v2/tags' && route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 202,
+        json: {
+          operationId: 'tag-create-browser-42',
+          state: 'active',
+          tag: {
+            id: 42,
+            slugName: 'tag-42',
+            displayName: 'Sheaf',
+            normalizedName: 'sheaf',
+            usageScope: 'Category theory',
+            parentTagIds: [],
+            version: 1,
+          },
         },
       });
       return;
@@ -77,4 +97,9 @@ test('Markdown editor keeps the explicit creation path for an exact same-name ta
   await expect(dialog.getByLabel('名称')).toHaveValue('Sheaf');
   await expect(dialog.getByRole('region', { name: '同名标签' })).toContainText('ID 8');
   await expect(dialog.getByRole('region', { name: '同名标签' })).toContainText('Algebraic geometry');
+  await dialog.getByPlaceholder('它在这里具体指什么？').fill('Category theory');
+  await dialog.getByRole('button', { name: '创建标签' }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.tag-picker-selected')).toContainText('Sheaf');
 });

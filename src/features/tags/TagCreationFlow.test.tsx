@@ -14,8 +14,8 @@ vi.mock('@/services/tagV2', () => tagServiceMocks);
 vi.mock('@/services/domains/tag', () => ({ suggestTags: async () => [] }));
 
 beforeEach(() => {
-  tagServiceMocks.compareCanonicalTags.mockResolvedValue([{ id: 8, displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Algebraic geometry', parentTagIds: [2], version: 1 }]);
-  tagServiceMocks.createCanonicalTag.mockResolvedValue({ operationId: 'op-42', state: 'active', tag: { id: 42, displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Category theory', parentTagIds: [], version: 1 } });
+  tagServiceMocks.compareCanonicalTags.mockResolvedValue([{ id: 8, slugName: 'tag-8', displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Algebraic geometry', parentTagIds: [2], version: 1 }]);
+  tagServiceMocks.createCanonicalTag.mockResolvedValue({ operationId: 'op-42', state: 'active', tag: { id: 42, slugName: 'tag-42', displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Category theory', parentTagIds: [], version: 1 } });
   tagServiceMocks.loadTagCreationOperation.mockResolvedValue({ operationId: 'op-42', tagId: 42, state: 'active', currentStep: 'active', retryable: false, version: 2 });
   tagServiceMocks.retryTagCreationOperation.mockResolvedValue({ operationId: 'op-42', tagId: 42, state: 'pending', currentStep: 'delivery', retryable: true, version: 2 });
 });
@@ -93,7 +93,7 @@ test('polls a pending operation immediately until the Tag becomes active', async
   tagServiceMocks.createCanonicalTag.mockResolvedValueOnce({
     operationId: 'op-pending',
     state: 'pending',
-    tag: { id: 73, displayName: '逆向工程', normalizedName: '逆向工程', usageScope: '软件与硬件分析', parentTagIds: [], version: 1 },
+    tag: { id: 73, slugName: 'tag-73', displayName: '逆向工程', normalizedName: '逆向工程', usageScope: '软件与硬件分析', parentTagIds: [], version: 1 },
   });
   tagServiceMocks.loadTagCreationOperation.mockResolvedValueOnce({
     operationId: 'op-pending',
@@ -141,7 +141,7 @@ test('keeps polling a retryable failure until the background delivery succeeds',
   tagServiceMocks.createCanonicalTag.mockResolvedValueOnce({
     operationId: 'op-retryable',
     state: 'pending',
-    tag: { id: 78, displayName: '孤本', normalizedName: '孤本', usageScope: '版本鉴定', parentTagIds: [], version: 1 },
+    tag: { id: 78, slugName: 'tag-78', displayName: '孤本', normalizedName: '孤本', usageScope: '版本鉴定', parentTagIds: [], version: 1 },
   });
   tagServiceMocks.loadTagCreationOperation
     .mockResolvedValueOnce({
@@ -177,7 +177,7 @@ test('keeps polling while the operation is activating', async () => {
   tagServiceMocks.createCanonicalTag.mockResolvedValueOnce({
     operationId: 'op-activating',
     state: 'pending',
-    tag: { id: 79, displayName: '手稿', normalizedName: '手稿', usageScope: '文献整理', parentTagIds: [], version: 1 },
+    tag: { id: 79, slugName: 'tag-79', displayName: '手稿', normalizedName: '手稿', usageScope: '文献整理', parentTagIds: [], version: 1 },
   });
   tagServiceMocks.loadTagCreationOperation
     .mockResolvedValueOnce({
