@@ -57,7 +57,7 @@ vi.mock('@/services/domains/tag', () => ({
 }));
 
 vi.mock('@/features/tags/TagCreationFlow', () => ({
-  default: ({ open, invocation, onCreated }: { open: boolean; invocation: { initialName?: string }; onCreated?(tag: { id: number; displayName: string }): void }) => open ? <AnimateButton unstyled type="button" onClick={() => onCreated?.({ id: 42, displayName: invocation.initialName || 'Tag' })}>确认创建</AnimateButton> : null,
+  default: ({ open, invocation, onCreated }: { open: boolean; invocation: { initialName?: string }; onCreated?(tag: { id: number; slugName: string; displayName: string }): void }) => open ? <AnimateButton unstyled type="button" onClick={() => onCreated?.({ id: 42, slugName: 'tag-42', displayName: invocation.initialName || 'Tag' })}>确认创建</AnimateButton> : null,
 }));
 
 function tagSuggestResponse(items: unknown[]) {
@@ -128,9 +128,9 @@ test('adds a new normalized tag by clicking the create suggestion', async () => 
   fireEvent.click(createButton);
 	fireEvent.click(view.getByText('确认创建'));
 
-  expect(selected).toEqual(['42']);
+  expect(selected).toEqual(['tag-42']);
   expect(pickedSource).toBe('new');
-  expect(pickedSlug).toBe('42');
+  expect(pickedSlug).toBe('tag-42');
   expect(pickedLabel).toBe('Algebraic Topology');
 });
 
@@ -152,7 +152,7 @@ test('adds a new normalized tag with Enter after suggestions finish loading', as
   fireEvent.keyDown(input, { key: 'Enter' });
 	fireEvent.click(view.getByText('确认创建'));
 
-  expect(selected).toEqual(['42']);
+  expect(selected).toEqual(['tag-42']);
 });
 
 test('picks an existing tag suggestion without creating a duplicate label', async () => {
@@ -225,7 +225,7 @@ test('keeps an explicit creation path when an existing tag has the same name', a
   fireEvent.click(await view.findByText('新标签：Sheaf'));
   fireEvent.click(view.getByText('确认创建'));
 
-  expect(selected).toEqual(['42']);
+  expect(selected).toEqual(['tag-42']);
 });
 
 test('shows tag id, readable label, slug, and parent context in suggestions', async () => {
@@ -358,6 +358,34 @@ test('does not show an already selected suggestion again but keeps same-name cre
 
   await view.findByText('新标签：analysis');
   expect(view.container.textContent || '').toContain('analysis');
+});
+
+test('stores the canonical numeric id when a new tag is created in id mode', async () => {
+  let selected: string[] = [];
+  let labels: Record<string, string> = {};
+  const view = renderPicker(
+    <TagPicker
+      value={selected}
+      onChange={(next) => {
+        selected = next;
+      }}
+      selectedLabels={labels}
+      onSelectedLabelsChange={(next) => {
+        labels = next;
+      }}
+      valueMode="id"
+      ariaLabel="新建父标签"
+    />,
+  );
+
+  fireEvent.change(view.getByLabelText('新建父标签'), {
+    target: { value: '新父标签' },
+  });
+  fireEvent.click(await view.findByText('新标签：新父标签'));
+  fireEvent.click(view.getByText('确认创建'));
+
+  expect(selected).toEqual(['42']);
+  expect(labels).toEqual({ '42': '新父标签' });
 });
 
 test('stores one id-backed selection for a parent tag', async () => {

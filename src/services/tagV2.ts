@@ -9,6 +9,7 @@ import {
 
 export type CanonicalTag = {
   id: number;
+  slugName: string;
   displayName: string;
   normalizedName: string;
   usageScope: string;
@@ -210,6 +211,8 @@ function parseTag(value: unknown): CanonicalTag | null {
   const parentTagIds = numberArray(value.parentTagIds);
   if (
     typeof value.id !== "number" ||
+    typeof value.slugName !== "string" ||
+    !value.slugName.trim() ||
     typeof value.displayName !== "string" ||
     typeof value.normalizedName !== "string" ||
     typeof value.usageScope !== "string" ||
@@ -219,6 +222,7 @@ function parseTag(value: unknown): CanonicalTag | null {
     return null;
   return {
     id: value.id,
+    slugName: value.slugName,
     displayName: value.displayName,
     normalizedName: value.normalizedName,
     usageScope: value.usageScope,

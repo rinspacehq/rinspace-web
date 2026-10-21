@@ -322,7 +322,7 @@ export default function TagPicker({
         onOpenChange={setCreationOpen}
         invocation={{ source: 'picker', initialName: creationName }}
         onCreated={(tag) => {
-          addTag(String(tag.id), tag.displayName);
+          addTag(valueMode === 'id' ? String(tag.id) : tag.slugName, tag.displayName);
           setCreationOpen(false);
         }}
       />

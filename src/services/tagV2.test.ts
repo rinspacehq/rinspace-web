@@ -49,6 +49,7 @@ describe("Tag v2 private bridge routing", () => {
           state: "pending",
           tag: {
             id: 73,
+            slugName: "tag-73",
             displayName: "逆向工程",
             normalizedName: "逆向工程",
             usageScope: "软件与硬件分析",
@@ -60,12 +61,14 @@ describe("Tag v2 private bridge routing", () => {
       ),
     );
 
-    await createCanonicalTag({
+    await expect(createCanonicalTag({
       displayName: "逆向工程",
       usageScope: "软件与硬件分析",
       parentTagIds: [],
       idempotencyKey: "request-1",
-    });
+    })).resolves.toEqual(expect.objectContaining({
+      tag: expect.objectContaining({ id: 73, slugName: "tag-73", displayName: "逆向工程" }),
+    }));
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/rinspace/api/v2/tags",
@@ -82,7 +85,7 @@ describe("Tag v2 private bridge routing", () => {
   it("parses readable parent and child references from relationship responses", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({
-        tag: { id: 50, displayName: "代数几何", normalizedName: "代数几何", usageScope: "数学", parentTagIds: [2], version: 3 },
+        tag: { id: 50, slugName: "tag-50", displayName: "代数几何", normalizedName: "代数几何", usageScope: "数学", parentTagIds: [2], version: 3 },
         parentTagIds: [2],
         childTagIds: [10750],
         parentTags: [{ id: 2, displayName: "几何", normalizedName: "几何" }],

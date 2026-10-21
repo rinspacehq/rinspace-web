@@ -7,7 +7,7 @@ import TagKnowledgeConnections from './TagKnowledgeConnections';
 
 vi.mock('@/services/tagV2', () => ({
   loadCanonicalTagConnections: async (id: number, view: string) => ({
-    tag: { id, displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Geometry', parentTagIds: [2], version: 3 },
+    tag: { id, slugName: `tag-${id}`, displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Geometry', parentTagIds: [2], version: 3 },
     parentTagIds: [2],
     childTagIds: [9],
     parentTags: [{ id: 2, displayName: 'Geometry', normalizedName: 'geometry' }],
@@ -24,7 +24,7 @@ vi.mock('@/services/tagV2', () => ({
   loadTagAliases: async () => [],
   loadTagGovernanceHistory: async () => [],
   suggestTagParents: async () => ({ id: 'suggestion', tagId: 42, proposedParentTagIds: [2], baseVersion: 3, reason: 'reason', state: 'pending', proposedByUid: 'reader', createdAt: '2026-08-20T10:00:00Z' }),
-  renameCanonicalTag: async () => ({ id: 42, displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Geometry', parentTagIds: [2], version: 4 }),
+  renameCanonicalTag: async () => ({ id: 42, slugName: 'tag-42', displayName: 'Sheaf', normalizedName: 'sheaf', usageScope: 'Geometry', parentTagIds: [2], version: 4 }),
   addCanonicalTagAlias: async () => ({ id: 1, tagId: 42, tagVersion: 4, displayName: 'Faisceau', normalizedName: 'faisceau', reviewState: 'unreviewed' }),
   loadTagStatements: async (_id: number, direction: string) => direction === 'requires' ? [{ id: 'statement-1', subjectTagId: 42, subjectTagDisplayName: 'Sheaf', predicateTagId: 70, objectTagId: 6, objectTagDisplayName: 'Category', evidence: {}, reviewState: 'approved', rank: 0, reason: 'Prerequisite', version: 2, createdAt: '2026-08-20T10:00:00Z' }] : [],
 }));
