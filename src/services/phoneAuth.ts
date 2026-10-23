@@ -628,7 +628,15 @@ export function clearStoredSession() {
 }
 
 export function getStoredSession(): StoredSession | null {
-  const hint = parseHint();
+  const hint = parseHint() || (
+    currentState === "authenticated" && currentEnvelope?.user?.id
+      ? {
+          sub: currentEnvelope.user.id,
+          sessionEpoch: currentEnvelope.user.sessionEpoch,
+          identityVersion: currentEnvelope.user.identityVersion,
+        }
+      : null
+  );
   if (!hint) return null;
   return {
     access_token: "",

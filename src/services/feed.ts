@@ -12,6 +12,7 @@ import {
   contentDeletionStepUpHeader,
 } from "./contentDeletion";
 import { ServiceError } from "./httpClient";
+import { clearContentCreateIdempotencyKey, contentCreateIdempotencyKey } from "./contentCreateIdempotency";
 
 export type CachedSnapshot<T> = {
   data: T;
@@ -12205,12 +12206,7 @@ export async function createContent(input: CreateContentInput) {
       value.toString(16).padStart(2, "0"),
     ).join("");
     idempotencyStorageKey = `rinspace:content-create:${fingerprint}`;
-    let idempotencyKey =
-      window.sessionStorage.getItem(idempotencyStorageKey) || "";
-    if (!idempotencyKey) {
-      idempotencyKey = window.crypto.randomUUID();
-      window.sessionStorage.setItem(idempotencyStorageKey, idempotencyKey);
-    }
+    const idempotencyKey = contentCreateIdempotencyKey(idempotencyStorageKey);
     requestInput = { ...input, idempotencyKey };
   }
 
@@ -12238,7 +12234,7 @@ export async function createContent(input: CreateContentInput) {
     throw new Error("内容发布返回格式异常。");
   }
   if (idempotencyStorageKey) {
-    window.sessionStorage.removeItem(idempotencyStorageKey);
+    clearContentCreateIdempotencyKey(idempotencyStorageKey);
   }
   return parsed;
 }
