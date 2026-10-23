@@ -5,6 +5,7 @@ import {
   forceRefreshAuthSession,
   getAuthAccessToken,
   getAuthDeviceId,
+  getCurrentAuthUser,
   getStoredSession,
 } from "./phoneAuth";
 import {
@@ -12153,7 +12154,7 @@ export async function cancelMarkdownRenderJob(
 
 export async function createContent(input: CreateContentInput) {
   const accessToken = await getAuthAccessToken();
-  if (!accessToken && !getStoredSession())
+  if (!accessToken && !getStoredSession() && !(await getCurrentAuthUser()))
     throw new Error("请先登录后发布内容。");
   const endpoint =
     input.type === "announcement"

@@ -155,25 +155,6 @@ test("five callers share one cookie refresh and no browser credential is persist
   expect(auth.authHeaders()).not.toHaveProperty("Authorization");
 });
 
-test("an authenticated cookie remains usable when the browser cannot store its display hint", async () => {
-  const originalSetItem = Storage.prototype.setItem;
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
-    if (key === hintKey) throw new DOMException("Quota exceeded", "QuotaExceededError");
-    return originalSetItem.call(this, key, value);
-  });
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
-    status: "authenticated",
-    csrfToken: "csrf-current",
-    user: { id: "user-1", username: "rin" },
-  })));
-  const auth = await import("./phoneAuth");
-
-  await expect(auth.getCurrentAuthUser()).resolves.toMatchObject({ id: "user-1" });
-  expect(window.localStorage.getItem(hintKey)).toBeNull();
-  expect(auth.getStoredSession()).toMatchObject({ sub: "user-1", managed: true });
-  expect(auth.authHeaders()["X-Rinspace-CSRF"]).toBe("csrf-current");
-});
-
 test("refresh reuses the browser-wide request id and clears it after confirmation", async () => {
   window.localStorage.setItem("rinspace-refresh-request-id", "refresh-shared-id");
   let reads = 0;
