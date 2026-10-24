@@ -12,7 +12,11 @@ const baseFeatureBudgetBytes = 72 * 1024;
 // locales. The measured increase is 328 gzip bytes; reserve 1 KiB for this
 // safety copy while retaining the per-chunk 12 KiB ceiling.
 const markdownDraftRecoveryBudgetBytes = 1024;
-const totalBudgetBytes = baseFeatureBudgetBytes + markdownDraftRecoveryBudgetBytes;
+// Rin's admin price controls add two locales of policy and provider-price
+// messages. The reviewed v0.2.15 build grew by 629 gzip bytes; allow 1 KiB
+// for this feature while keeping the per-chunk ceiling and wallet limit.
+const rinPriceAdminBudgetBytes = 1024;
+const totalBudgetBytes = baseFeatureBudgetBytes + markdownDraftRecoveryBudgetBytes + rinPriceAdminBudgetBytes;
 // The wallet owns a
 // separate 4 KiB two-locale read-flow budget. The newly implemented confirmation,
 // storage failure and unknown-result recovery flow owns an additional 1 KiB;
@@ -66,7 +70,7 @@ if (totalGzipBytes - walletGzipBytes > totalBudgetBytes || walletGzipBytes > wal
 
 const report = {
   profile: 'two locales; feature namespaces only; core shell namespaces excluded',
-  budgets: { perChunkGzipBytes: perChunkBudgetBytes, baseFeatureGzipBytes: baseFeatureBudgetBytes, markdownDraftRecoveryGzipBytes: markdownDraftRecoveryBudgetBytes, retainedFeatureGzipBytes: totalBudgetBytes, walletReadGzipBytes: walletReadBudgetBytes, walletConversionGzipBytes: walletConversionBudgetBytes, walletTipGzipBytes: walletTipBudgetBytes, walletRefundGzipBytes: walletRefundBudgetBytes, walletGzipBytes: walletBudgetBytes, totalFeatureGzipBytes: totalBudgetBytes + walletBudgetBytes },
+  budgets: { perChunkGzipBytes: perChunkBudgetBytes, baseFeatureGzipBytes: baseFeatureBudgetBytes, markdownDraftRecoveryGzipBytes: markdownDraftRecoveryBudgetBytes, rinPriceAdminGzipBytes: rinPriceAdminBudgetBytes, retainedFeatureGzipBytes: totalBudgetBytes, walletReadGzipBytes: walletReadBudgetBytes, walletConversionGzipBytes: walletConversionBudgetBytes, walletTipGzipBytes: walletTipBudgetBytes, walletRefundGzipBytes: walletRefundBudgetBytes, walletGzipBytes: walletBudgetBytes, totalFeatureGzipBytes: totalBudgetBytes + walletBudgetBytes },
   actual: { totalFeatureGzipBytes: totalGzipBytes, chunks: resources },
 };
 fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
