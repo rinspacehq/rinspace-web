@@ -468,7 +468,15 @@ test("saving changes to a published article keeps the public version intact", as
   act(() => crepeState.markdownUpdated(undefined, crepeState.markdown));
   fireEvent.click(view.getByRole("button", { name: "保存草稿" }));
 
-  await waitFor(() => expect(view.getByText(/当前公开版本未改变/)).toBeTruthy());
+  // IndexedDB and the account draft can take longer on the isolated one-CPU
+  // release runner. Wait for the durable write, then assert the user notice.
+  await waitFor(() => {
+    expect(vi.mocked(globalThis.fetch).mock.calls.some(([url, init]) =>
+      String(url).includes('/api/rin-writer/draft') && init?.method === 'PUT')).toBe(true);
+  }, { timeout: 10_000 });
+  await waitFor(() => {
+    expect(view.getByText(/当前公开版本未改变/)).toBeTruthy();
+  }, { timeout: 10_000 });
   expect(updateContent).not.toHaveBeenCalled();
   expect(createContent).not.toHaveBeenCalled();
   expect(submitMarkdownRenderJob).not.toHaveBeenCalled();
