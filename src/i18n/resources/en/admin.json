@@ -158,7 +158,21 @@
     "save": "Save pricing",
     "loadFailed": "Rin pricing is temporarily unavailable.",
     "invalid": "Enter valid SG amounts, limits, and a daily turn count.",
-    "updateUnknown": "The result is unknown. The current version was reloaded."
+    "updateUnknown": "The result is unknown. The current version was reloaded.",
+    "providerTitle": "Official DeepSeek prices",
+    "providerMetric": "Metric",
+    "inputCacheHit": "Input (cache hit)",
+    "inputCacheMiss": "Input (cache miss)",
+    "output": "Output",
+    "offPeak": "Off-peak",
+    "peak": "Peak",
+    "previousOffPeak": "Previous off-peak",
+    "previousPeak": "Previous peak",
+    "providerUnit": "USD / million tokens",
+    "providerCurrent": "Prices unchanged",
+    "providerChanged": "Prices have changed",
+    "providerStale": "Price monitoring is stale",
+    "providerUnavailable": "No official price snapshot yet"
   },
   "statuses": {
     "active": "Active",

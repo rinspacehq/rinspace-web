@@ -4,8 +4,8 @@ import { Button, Input, Surface } from 'components/ui';
 import { formatFenAsYuan, parseYuanToFen } from '@/features/wallet/amount';
 import { parseWalletInteger } from '@/features/wallet/amount';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
-import { loadWalletAdminAIPrice, loadWalletAdminPolicy, updateWalletAdminAIPrice,
-  updateWalletAdminPolicy, type WalletAdminAIPrice, type WalletAdminPolicy } from '@/services/domains/walletAdmin';
+import { loadWalletAdminAIPrice, loadWalletAdminDeepSeekPrice, loadWalletAdminPolicy, updateWalletAdminAIPrice,
+  updateWalletAdminPolicy, type WalletAdminAIPrice, type WalletAdminDeepSeekPrice, type WalletAdminPolicy } from '@/services/domains/walletAdmin';
 
 export function WalletPolicyPanel({ uid, canConfigure }: { uid: string; canConfigure: boolean }) {
   const { t } = useFeatureTranslation('admin');
@@ -64,6 +64,7 @@ export function WalletPolicyPanel({ uid, canConfigure }: { uid: string; canConfi
 function RinAIPricePanel({ uid, canConfigure }: { uid: string; canConfigure: boolean }) {
   const { t } = useFeatureTranslation('admin');
   const [policy, setPolicy] = useState<WalletAdminAIPrice | null>(null);
+  const [provider, setProvider] = useState<WalletAdminDeepSeekPrice | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [price, setPrice] = useState('0');
   const [single, setSingle] = useState('0');
@@ -87,6 +88,7 @@ function RinAIPricePanel({ uid, canConfigure }: { uid: string; canConfigure: boo
     finally { setBusy(false); }
   }, [t]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void loadWalletAdminDeepSeekPrice().then(setProvider).catch(() => setProvider(null)); }, []);
   const save = async () => {
     if (!policy || !reason.trim() || busy) return;
     let parsedCalls: number;
@@ -121,6 +123,24 @@ function RinAIPricePanel({ uid, canConfigure }: { uid: string; canConfigure: boo
         <div><dt>{t('rinPrice.version')}</dt><dd>{policy.version}</dd></div>
         <div><dt>{t('rinPrice.reason')}</dt><dd>{policy.reason}</dd></div>
       </dl>
+      <div className="admin-risk-section-heading"><h3>{t('rinPrice.providerTitle')}</h3></div>
+      {provider?.latestPrices ? <>
+        <p>{provider.stale || provider.status === 'error' ? t('rinPrice.providerStale') :
+          provider.changedAt ? t('rinPrice.providerChanged') : t('rinPrice.providerCurrent')}</p>
+        <div className="admin-rin-provider-table"><table><thead><tr><th>{t('rinPrice.providerMetric')}</th><th>{t('rinPrice.offPeak')}</th><th>{t('rinPrice.peak')}</th>
+          {provider.previousPrices ? <><th>{t('rinPrice.previousOffPeak')}</th><th>{t('rinPrice.previousPeak')}</th></> : null}</tr></thead><tbody>
+          {([
+            ['input_cache_hit', 'rinPrice.inputCacheHit'],
+            ['input_cache_miss', 'rinPrice.inputCacheMiss'],
+            ['output', 'rinPrice.output'],
+          ] as const).map(([metric, label]) => <tr key={metric}><th scope="row">{t(label)}</th>
+            <td>${provider.latestPrices?.[`${metric}_off_peak`]}</td>
+            <td>${provider.latestPrices?.[`${metric}_peak`]}</td>
+            {provider.previousPrices ? <><td>${provider.previousPrices[`${metric}_off_peak`]}</td>
+              <td>${provider.previousPrices[`${metric}_peak`]}</td></> : null}</tr>)}
+        </tbody></table></div>
+        <p>{t('rinPrice.providerUnit')} · {new Date(provider.checkedAt ?? provider.lastAttemptAt).toLocaleString()}</p>
+      </> : <p>{t('rinPrice.providerUnavailable')}</p>}
       {canConfigure ? <form className="admin-risk-policy-form" onSubmit={(event) => { event.preventDefault(); void save(); }}>
         <label>{t('rinPrice.enable')}<input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} /></label>
         <label>{t('rinPrice.price')}<Input inputMode="numeric" value={price} onChange={(event) => setPrice(event.target.value)} /></label>

@@ -15,6 +15,7 @@ import {
   loadWalletAdminReconciliationItems,
   loadWalletAdminPolicy,
   loadWalletAdminAIPrice,
+  loadWalletAdminDeepSeekPrice,
   loadWalletAdminRefunds,
   releaseWalletAdminRestriction,
   recordWalletAdminCoverageSnapshot,
@@ -97,6 +98,25 @@ it("reads and replaces the complete Rin price under the managed admin session", 
         daily_limit_sg:"20",daily_calls_limit:10,reason:"reviewed"}),
     }),
   );
+});
+
+it("reads official DeepSeek prices separately from the SG charge", async () => {
+  const prices = {
+    input_cache_hit_off_peak: '0.003', input_cache_hit_peak: '0.006',
+    input_cache_miss_off_peak: '0.15', input_cache_miss_peak: '0.3',
+    output_off_peak: '0.6', output_peak: '1.2',
+  };
+  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    source_url: 'https://api-docs.deepseek.com/quick_start/pricing/',
+    latest_prices: prices, last_attempt_at: '2026-10-24T00:00:00Z',
+    checked_at: '2026-10-24T00:00:00Z', status: 'unchanged', stale: false,
+  }), {status: 200}));
+  vi.stubGlobal('fetch', fetcher);
+  await expect(loadWalletAdminDeepSeekPrice()).resolves.toMatchObject({
+    latestPrices: prices, status: 'unchanged', stale: false,
+  });
+  expect(fetcher).toHaveBeenCalledWith(expect.stringContaining('/admin/api/wallet/ai-provider-price'),
+    expect.objectContaining({credentials:'same-origin',cache:'no-store'}));
 });
 
 it("sends a CAS policy update with managed-cookie CSRF, permission and one stable key only", async () => {

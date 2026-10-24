@@ -225,6 +225,16 @@ export type WalletAdminAIPrice = Readonly<{
   reason: string;
   createdAt: string;
 }>;
+export type WalletAdminDeepSeekPrice = Readonly<{
+  latestPrices: Readonly<Record<string, string>> | null;
+  previousPrices: Readonly<Record<string, string>> | null;
+  checkedAt: string | null;
+  lastAttemptAt: string;
+  changedAt: string | null;
+  status: 'never' | 'first' | 'changed' | 'unchanged' | 'error';
+  errorCode: string | null;
+  stale: boolean;
+}>;
 
 export class WalletAdminError extends Error {
   constructor(
@@ -812,6 +822,37 @@ function aiPrice(value: unknown): WalletAdminAIPrice {
     createdAt: text(item.created_at),
   });
 }
+function deepSeekPrices(value: unknown): Readonly<Record<string, string>> | null {
+  if (value === undefined || value === null) return null;
+  const item = record(value);
+  const keys = [
+    'input_cache_hit_off_peak', 'input_cache_hit_peak',
+    'input_cache_miss_off_peak', 'input_cache_miss_peak',
+    'output_off_peak', 'output_peak',
+  ];
+  if (Object.keys(item).length !== keys.length || keys.some((key) =>
+    typeof item[key] !== 'string' || !/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(item[key] as string))) {
+    throw new WalletAdminError('INVALID_RESPONSE');
+  }
+  return Object.freeze(Object.fromEntries(keys.map((key) => [key, item[key] as string])));
+}
+function deepSeekPrice(value: unknown): WalletAdminDeepSeekPrice {
+  const item = record(value);
+  if (typeof item.last_attempt_at !== 'string' || typeof item.stale !== 'boolean' ||
+      !['never', 'first', 'changed', 'unchanged', 'error'].includes(String(item.status))) {
+    throw new WalletAdminError('INVALID_RESPONSE');
+  }
+  return Object.freeze({
+    latestPrices: deepSeekPrices(item.latest_prices),
+    previousPrices: deepSeekPrices(item.previous_prices),
+    checkedAt: item.checked_at === undefined ? null : text(item.checked_at),
+    lastAttemptAt: item.last_attempt_at,
+    changedAt: item.changed_at === undefined ? null : text(item.changed_at),
+    status: item.status as WalletAdminDeepSeekPrice['status'],
+    errorCode: item.error_code === undefined ? null : text(item.error_code),
+    stale: item.stale,
+  });
+}
 async function responseValue(response: Response) {
   let value: unknown;
   try {
@@ -1111,6 +1152,9 @@ export async function loadWalletAdminPolicy(): Promise<WalletAdminPolicy> {
 }
 export async function loadWalletAdminAIPrice(): Promise<WalletAdminAIPrice> {
   return aiPrice(await get("ai-price"));
+}
+export async function loadWalletAdminDeepSeekPrice(): Promise<WalletAdminDeepSeekPrice> {
+  return deepSeekPrice(await get('ai-provider-price'));
 }
 export async function updateWalletAdminAIPrice(
   uid: string,

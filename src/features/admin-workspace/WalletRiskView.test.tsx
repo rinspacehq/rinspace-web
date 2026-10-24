@@ -8,6 +8,7 @@ import {
   loadWalletAdminCoverageSnapshots,
   loadWalletAdminPolicy,
   loadWalletAdminAIPrice,
+  loadWalletAdminDeepSeekPrice,
   updateWalletAdminAIPrice,
   loadWalletAdminObligations,
   loadWalletAdminReconciliations,
@@ -26,6 +27,7 @@ vi.mock("@/services/domains/walletAdmin", () => ({
   loadWalletAdminCoverageSnapshots: vi.fn(),
   loadWalletAdminPolicy: vi.fn(),
   loadWalletAdminAIPrice: vi.fn(),
+  loadWalletAdminDeepSeekPrice: vi.fn(),
   updateWalletAdminAIPrice: vi.fn(),
   loadWalletAdminObligations: vi.fn(),
   loadWalletAdminReconciliations: vi.fn(),
@@ -79,6 +81,11 @@ beforeEach(() => {
   vi.mocked(loadWalletAdminCoverageSnapshots).mockResolvedValue([]);
   vi.mocked(loadWalletAdminPolicy).mockResolvedValue({version:'7',dailyRechargeLimitFen:'100000',rechargeEnabled:false,tipEnabled:true,convertEnabled:true,createdBy:'admin',reason:'approved default',createdAt:'2026-09-20T06:00:00Z'});
   vi.mocked(loadWalletAdminAIPrice).mockResolvedValue({version:'1',enabled:false,priceSg:'0',singleLimitSg:null,dailyLimitSg:null,dailyCallsLimit:null,createdBy:'system',reason:'disabled',createdAt:'2026-09-20T06:00:00Z'});
+  vi.mocked(loadWalletAdminDeepSeekPrice).mockResolvedValue({
+    latestPrices: {input_cache_hit_off_peak:'0.003',input_cache_hit_peak:'0.006',input_cache_miss_off_peak:'0.15',input_cache_miss_peak:'0.3',output_off_peak:'0.6',output_peak:'1.2'},
+    previousPrices: null, checkedAt:'2026-10-24T00:00:00Z', lastAttemptAt:'2026-10-24T00:00:00Z', changedAt:null,
+    status:'first',errorCode:null,stale:false,
+  });
   vi.mocked(updateWalletAdminAIPrice).mockResolvedValue({version:'2',enabled:true,priceSg:'2',singleLimitSg:'2',dailyLimitSg:'20',dailyCallsLimit:10,createdBy:'risk-reviewer',reason:'configured',createdAt:'2026-09-20T06:01:00Z'});
   vi.mocked(beginIdentityStepUp).mockResolvedValue({ challengeId: "challenge-1" });
   vi.mocked(completeIdentityStepUp).mockResolvedValue("proof-1");
@@ -123,6 +130,7 @@ it("keeps recharge limits under money risk, separate from refund review", async 
   expect(await screen.findByText("¥1000.00")).toBeTruthy();
   expect(screen.getByText("approved default")).toBeTruthy();
   expect(await screen.findByText("琳的善功费用")).toBeTruthy();
+  expect(await screen.findByText("DeepSeek 官方价格")).toBeTruthy();
   expect(screen.getByText("disabled")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "申请调整" })).toBeNull();
 });
