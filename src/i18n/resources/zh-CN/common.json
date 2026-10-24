@@ -12,6 +12,16 @@
     "editor": "编辑器",
     "editorTitle": "芥子环在线编辑器（新标签页打开）"
   },
+  "rinChat": {
+    "priceUpdated": "费用已更新，请确认后重新发送。",
+    "unavailable": "琳暂不可用，请稍后再试。",
+    "unavailableShort": "琳暂不可用",
+    "pending": "请先重试或隐藏上一条未确认的消息。",
+    "hide": "隐藏",
+    "hideTitle": "仅隐藏本地提示；已送达的消息仍会继续处理",
+    "freeTurn": "本轮免费",
+    "pricedTurn": "本轮 {{amount}} 善功"
+  },
   "actions": {
     "save": "保存",
     "saving": "保存中…",

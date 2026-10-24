@@ -12,6 +12,16 @@
     "editor": "Editor",
     "editorTitle": "Rinspace Online Editor (opens in a new tab)"
   },
+  "rinChat": {
+    "priceUpdated": "The price changed. Confirm it before sending again.",
+    "unavailable": "Rin is temporarily unavailable. Try again later.",
+    "unavailableShort": "Rin is unavailable",
+    "pending": "Retry or hide the previous unconfirmed message first.",
+    "hide": "Hide",
+    "hideTitle": "Hides only this local notice; a delivered message may still complete",
+    "freeTurn": "Free this turn",
+    "pricedTurn": "{{amount}} SG this turn"
+  },
   "actions": {
     "save": "Save",
     "saving": "Saving…",

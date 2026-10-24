@@ -14053,11 +14053,53 @@ export async function loadRinChat(): Promise<RinChatConversation> {
   return rinChatConversationFromPayload(payload);
 }
 
+export type RinChatPrice = {
+  mode: "legacy" | "gateway";
+  enabled: boolean;
+  priceSg: number;
+  policyVersion: number;
+  dailyCallsLimit: number;
+};
+
+export async function loadRinChatPrice(): Promise<RinChatPrice> {
+  const accessToken = await getAuthAccessToken();
+  if (!accessToken && !getStoredSession())
+    throw new Error("请先登录后查看琳的费用。");
+  const response = await fetch(`${rinChatEndpoint}/price`, {
+    headers: {
+      ...sessionAuthHeaders(accessToken),
+      Accept: "application/json",
+      "x-device-id": getAuthDeviceId(),
+    },
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(jsonMessageFromText(text, "琳的费用暂不可用。"));
+  const payload = parseUnknownJson(text);
+  if (!isRecord(payload) || (payload.mode !== "legacy" && payload.mode !== "gateway") ||
+      typeof payload.enabled !== "boolean" || typeof payload.priceSg !== "number" ||
+      typeof payload.policyVersion !== "number" ||
+      !Number.isSafeInteger(payload.priceSg) || !Number.isSafeInteger(payload.policyVersion) ||
+      payload.priceSg < 0 || payload.policyVersion < 0) {
+    throw new Error("琳的费用返回格式异常。");
+  }
+  return {
+    mode: payload.mode,
+    enabled: payload.enabled,
+    priceSg: payload.priceSg,
+    policyVersion: payload.policyVersion,
+    dailyCallsLimit: typeof payload.dailyCallsLimit === "number" &&
+      Number.isSafeInteger(payload.dailyCallsLimit) ? payload.dailyCallsLimit : 0,
+  };
+}
+
 export async function sendRinChatMessage(
   body: string,
   context: RinChatContext,
   messages: RinChatMessage[] = [],
   webSearchMode: RinWebSearchMode = "auto",
+  idempotencyKey: string = crypto.randomUUID(),
+  policyVersion = 0,
+  priceSg = 0,
 ): Promise<RinChatConversation> {
   const accessToken = await getAuthAccessToken();
   if (!accessToken && !getStoredSession())
@@ -14074,6 +14116,9 @@ export async function sendRinChatMessage(
       body,
       context,
       webSearchMode,
+      idempotencyKey,
+      policyVersion,
+      priceSg,
       messages: messages.slice(-12).map((message) => ({
         role: message.senderUid === "rin" ? "assistant" : "user",
         content: message.body,
@@ -14082,7 +14127,7 @@ export async function sendRinChatMessage(
   });
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(jsonMessageFromText(text, "消息发送失败。"));
+    throw new ApiRequestError(jsonMessageFromText(text, "消息发送失败。"), response.status);
   }
   const payload = parseUnknownJson(text);
   return rinChatConversationFromPayload(payload);

@@ -214,6 +214,27 @@ export type WalletAdminPolicy = Readonly<{
   reason: string;
   createdAt: string;
 }>;
+export type WalletAdminAIPrice = Readonly<{
+  version: string;
+  enabled: boolean;
+  priceSg: string;
+  singleLimitSg: string | null;
+  dailyLimitSg: string | null;
+  dailyCallsLimit: number | null;
+  createdBy: string;
+  reason: string;
+  createdAt: string;
+}>;
+export type WalletAdminDeepSeekPrice = Readonly<{
+  latestPrices: Readonly<Record<string, string>> | null;
+  previousPrices: Readonly<Record<string, string>> | null;
+  checkedAt: string | null;
+  lastAttemptAt: string;
+  changedAt: string | null;
+  status: 'never' | 'first' | 'changed' | 'unchanged' | 'error';
+  errorCode: string | null;
+  stale: boolean;
+}>;
 
 export class WalletAdminError extends Error {
   constructor(
@@ -779,6 +800,59 @@ function policy(value: unknown): WalletAdminPolicy {
     createdAt: text(item.created_at),
   });
 }
+function aiPrice(value: unknown): WalletAdminAIPrice {
+  const item = objectFields(value, [
+    "version", "enabled", "price_sg", "single_limit_sg", "daily_limit_sg",
+    "daily_calls_limit", "created_by", "reason", "created_at",
+  ]);
+  if (Object.keys(item).length !== 9 || typeof item.enabled !== "boolean" ||
+      (item.daily_calls_limit !== null && (!Number.isInteger(item.daily_calls_limit) ||
+        typeof item.daily_calls_limit !== "number" || item.daily_calls_limit <= 0))) {
+    throw new WalletAdminError("INVALID_RESPONSE");
+  }
+  return Object.freeze({
+    version: integer(item.version),
+    enabled: item.enabled,
+    priceSg: nonNegativeInteger(item.price_sg),
+    singleLimitSg: item.single_limit_sg === null ? null : nonNegativeInteger(item.single_limit_sg),
+    dailyLimitSg: item.daily_limit_sg === null ? null : nonNegativeInteger(item.daily_limit_sg),
+    dailyCallsLimit: typeof item.daily_calls_limit === "number" ? item.daily_calls_limit : null,
+    createdBy: text(item.created_by),
+    reason: text(item.reason),
+    createdAt: text(item.created_at),
+  });
+}
+function deepSeekPrices(value: unknown): Readonly<Record<string, string>> | null {
+  if (value === undefined || value === null) return null;
+  const item = record(value);
+  const keys = [
+    'input_cache_hit_off_peak', 'input_cache_hit_peak',
+    'input_cache_miss_off_peak', 'input_cache_miss_peak',
+    'output_off_peak', 'output_peak',
+  ];
+  if (Object.keys(item).length !== keys.length || keys.some((key) =>
+    typeof item[key] !== 'string' || !/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(item[key] as string))) {
+    throw new WalletAdminError('INVALID_RESPONSE');
+  }
+  return Object.freeze(Object.fromEntries(keys.map((key) => [key, item[key] as string])));
+}
+function deepSeekPrice(value: unknown): WalletAdminDeepSeekPrice {
+  const item = record(value);
+  if (typeof item.last_attempt_at !== 'string' || typeof item.stale !== 'boolean' ||
+      !['never', 'first', 'changed', 'unchanged', 'error'].includes(String(item.status))) {
+    throw new WalletAdminError('INVALID_RESPONSE');
+  }
+  return Object.freeze({
+    latestPrices: deepSeekPrices(item.latest_prices),
+    previousPrices: deepSeekPrices(item.previous_prices),
+    checkedAt: item.checked_at === undefined ? null : text(item.checked_at),
+    lastAttemptAt: item.last_attempt_at,
+    changedAt: item.changed_at === undefined ? null : text(item.changed_at),
+    status: item.status as WalletAdminDeepSeekPrice['status'],
+    errorCode: item.error_code === undefined ? null : text(item.error_code),
+    stale: item.stale,
+  });
+}
 async function responseValue(response: Response) {
   let value: unknown;
   try {
@@ -1075,6 +1149,52 @@ export async function revokeWalletAdminRefund(
 }
 export async function loadWalletAdminPolicy(): Promise<WalletAdminPolicy> {
   return policy(await get("policy"));
+}
+export async function loadWalletAdminAIPrice(): Promise<WalletAdminAIPrice> {
+  return aiPrice(await get("ai-price"));
+}
+export async function loadWalletAdminDeepSeekPrice(): Promise<WalletAdminDeepSeekPrice> {
+  return deepSeekPrice(await get('ai-provider-price'));
+}
+export async function updateWalletAdminAIPrice(
+  uid: string,
+  key: string,
+  input: {
+    expectedVersion: string;
+    enabled: boolean;
+    priceSg: string;
+    singleLimitSg: string | null;
+    dailyLimitSg: string | null;
+    dailyCallsLimit: number | null;
+    reason: string;
+  },
+): Promise<WalletAdminAIPrice> {
+  walletUUID(key);
+  const user = await getCurrentAuthUser();
+  const csrf = authHeaders()["X-Rinspace-CSRF"];
+  if (user?.id !== uid || !csrf) throw new WalletAdminError("UNAUTHENTICATED", 401);
+  const response = await fetch(`${root}/ai-price`, {
+    method: "PUT",
+    credentials: "same-origin",
+    cache: "no-store",
+    redirect: "error",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Rinspace-CSRF": csrf,
+      "Idempotency-Key": key,
+    },
+    body: JSON.stringify({
+      expected_version: input.expectedVersion,
+      enabled: input.enabled,
+      price_sg: input.priceSg,
+      single_limit_sg: input.singleLimitSg,
+      daily_limit_sg: input.dailyLimitSg,
+      daily_calls_limit: input.dailyCallsLimit,
+      reason: input.reason,
+    }),
+  });
+  return aiPrice(await responseValue(response));
 }
 export async function updateWalletAdminPolicy(
   uid: string,

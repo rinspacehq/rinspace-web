@@ -1073,6 +1073,22 @@
   align-self: end;
   justify-self: start;
 }
+.admin-rin-provider-table {
+  grid-column: 1 / -1;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.admin-rin-provider-table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+}
+.admin-rin-provider-table th,
+.admin-rin-provider-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--rin-border);
+}
 .admin-wallet-policy .admin-refund-verification {
   grid-column: 1 / -1;
 }
