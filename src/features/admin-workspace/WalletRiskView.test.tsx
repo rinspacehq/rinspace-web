@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { WalletRiskView } from "./WalletRiskView";
@@ -7,6 +7,8 @@ import {
   loadWalletAdminCaseSources,
   loadWalletAdminCoverageSnapshots,
   loadWalletAdminPolicy,
+  loadWalletAdminAIPrice,
+  updateWalletAdminAIPrice,
   loadWalletAdminObligations,
   loadWalletAdminReconciliations,
   loadWalletAdminReconciliationItems,
@@ -23,6 +25,8 @@ vi.mock("@/services/domains/walletAdmin", () => ({
   loadWalletAdminCaseSources: vi.fn(),
   loadWalletAdminCoverageSnapshots: vi.fn(),
   loadWalletAdminPolicy: vi.fn(),
+  loadWalletAdminAIPrice: vi.fn(),
+  updateWalletAdminAIPrice: vi.fn(),
   loadWalletAdminObligations: vi.fn(),
   loadWalletAdminReconciliations: vi.fn(),
   loadWalletAdminReconciliationItems: vi.fn(),
@@ -74,6 +78,8 @@ beforeEach(() => {
   });
   vi.mocked(loadWalletAdminCoverageSnapshots).mockResolvedValue([]);
   vi.mocked(loadWalletAdminPolicy).mockResolvedValue({version:'7',dailyRechargeLimitFen:'100000',rechargeEnabled:false,tipEnabled:true,convertEnabled:true,createdBy:'admin',reason:'approved default',createdAt:'2026-09-20T06:00:00Z'});
+  vi.mocked(loadWalletAdminAIPrice).mockResolvedValue({version:'1',enabled:false,priceSg:'0',singleLimitSg:null,dailyLimitSg:null,dailyCallsLimit:null,createdBy:'system',reason:'disabled',createdAt:'2026-09-20T06:00:00Z'});
+  vi.mocked(updateWalletAdminAIPrice).mockResolvedValue({version:'2',enabled:true,priceSg:'2',singleLimitSg:'2',dailyLimitSg:'20',dailyCallsLimit:10,createdBy:'risk-reviewer',reason:'configured',createdAt:'2026-09-20T06:01:00Z'});
   vi.mocked(beginIdentityStepUp).mockResolvedValue({ challengeId: "challenge-1" });
   vi.mocked(completeIdentityStepUp).mockResolvedValue("proof-1");
   vi.mocked(reviewWalletAdminCase).mockResolvedValue({
@@ -116,7 +122,26 @@ it("keeps recharge limits under money risk, separate from refund review", async 
   fireEvent.click(screen.getByRole("button", { name: /充值限额|policy\.title/ }));
   expect(await screen.findByText("¥1000.00")).toBeTruthy();
   expect(screen.getByText("approved default")).toBeTruthy();
+  expect(await screen.findByText("琳的善功费用")).toBeTruthy();
+  expect(screen.getByText("disabled")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "申请调整" })).toBeNull();
+});
+
+it("submits a complete versioned Rin price with the existing policy permission", async () => {
+  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict={false} canReconcile={false} canCoverage={false} canViewPolicy canConfigurePolicy />);
+  fireEvent.click(screen.getByRole("button", { name: /充值限额|policy\.title/ }));
+  await screen.findByText("琳的善功费用");
+  const rinPanel = within(document.getElementById("wallet-risk-ai-price") as HTMLElement);
+  fireEvent.click(rinPanel.getByLabelText("开启琳聊天"));
+  fireEvent.change(rinPanel.getByLabelText("每轮善功"), { target: { value: "2" } });
+  fireEvent.change(rinPanel.getByLabelText("单轮上限"), { target: { value: "2" } });
+  fireEvent.change(rinPanel.getByLabelText("单日善功上限"), { target: { value: "20" } });
+  fireEvent.change(rinPanel.getByLabelText("本次调整理由"), { target: { value: "configured" } });
+  fireEvent.click(rinPanel.getByRole("button", { name: "保存费用" }));
+  await waitFor(() => expect(updateWalletAdminAIPrice).toHaveBeenCalledWith(
+    "risk-reviewer", expect.stringMatching(/^[0-9a-f-]{36}$/),
+    expect.objectContaining({expectedVersion:"1",enabled:true,priceSg:"2",singleLimitSg:"2",dailyLimitSg:"20",dailyCallsLimit:10,reason:"configured"}),
+  ));
 });
 
 it("records an exact coverage snapshot behind step-up verification", async () => {

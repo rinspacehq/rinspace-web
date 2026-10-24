@@ -3,16 +3,22 @@ import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { i18n } from '@/i18n';
-import { loadRinChat } from '@/services/domains/assistant';
+import { loadRinChat, loadRinChatPrice, sendRinChatMessage } from '@/services/domains/assistant';
 
 import RinAssistant from './RinAssistant';
 
 vi.mock('@/pages/Profile', () => ({ CollectionFolderWorkspace: () => <div>收藏夹原有内容</div> }));
-vi.mock('@/components/CodeMirrorEditor', () => ({ default: () => <textarea aria-label="消息草稿" /> }));
+vi.mock('@/components/CodeMirrorEditor', () => ({
+  default: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+    <textarea aria-label="消息草稿" value={value} onChange={(event) => onChange(event.target.value)} />
+  ),
+}));
 vi.mock('@/components/MathText', () => ({ default: () => null }));
 vi.mock('@/components/RinStickerPicker', () => ({ default: () => null }));
 vi.mock('@/services/domains/assistant', () => ({
+  ApiRequestError: class ApiRequestError extends Error { status: number; constructor(message: string, status: number) { super(message); this.status = status; } },
   loadRinChat: vi.fn(async () => ({ id: 1, messages: [], participants: [] })),
+  loadRinChatPrice: vi.fn(async () => ({ mode: 'gateway', enabled: true, priceSg: 2, policyVersion: 3, dailyCallsLimit: 10 })),
   sendRinChatMessage: vi.fn(),
 }));
 
@@ -51,6 +57,28 @@ function openMenu() {
 }
 
 describe('blank-page radial context menu', () => {
+  it('retries an unconfirmed Rin message with the original operation key', async () => {
+    vi.mocked(sendRinChatMessage)
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce({ id: 1, type: 'direct', title: '琳', participants: [], messages: [], updatedAt: new Date().toISOString() });
+    renderPage();
+    const wedge = openMenu().querySelector('.rin-radial-menu__wedge');
+    fireEvent(wedge as Element, new MouseEvent('pointerup', { bubbles: true, button: 0 }));
+    await waitFor(() => expect(loadRinChat).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(loadRinChatPrice).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('本轮 2 善功')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: '消息草稿' }), { target: { value: '你好，琳' } });
+    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '重试' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    await waitFor(() => expect(sendRinChatMessage).toHaveBeenCalledTimes(2));
+    const firstKey = vi.mocked(sendRinChatMessage).mock.calls[0]?.[4];
+    const secondKey = vi.mocked(sendRinChatMessage).mock.calls[1]?.[4];
+    expect(firstKey).toMatch(/^[a-f0-9-]{36}$/i);
+    expect(secondKey).toBe(firstKey);
+    expect(vi.mocked(sendRinChatMessage).mock.calls[0]?.slice(5, 7)).toEqual([3, 2]);
+  });
+
   it('offers the two existing actions and the editor as a real new-tab link', () => {
     renderPage();
     openMenu();

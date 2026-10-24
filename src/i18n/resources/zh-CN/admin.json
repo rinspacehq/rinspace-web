@@ -138,6 +138,25 @@
     "updateUnknown": "更新结果暂时无法确认，已重新读取当前版本；请先核对后再操作。",
     "confirm": "确认调整"
   },
+  "rinPrice": {
+    "title": "琳的善功费用",
+    "current": "每轮费用",
+    "state": "状态",
+    "enabled": "已开启",
+    "disabled": "已关闭",
+    "version": "规则版本",
+    "reason": "上次调整理由",
+    "enable": "开启琳聊天",
+    "price": "每轮善功",
+    "singleLimit": "单轮上限",
+    "dailyLimit": "单日善功上限",
+    "dailyCalls": "单日轮数上限",
+    "changeReason": "本次调整理由",
+    "save": "保存费用",
+    "loadFailed": "琳的费用暂时无法加载。",
+    "invalid": "请输入有效的善功、上限与轮数。",
+    "updateUnknown": "更新结果暂时无法确认，已重新读取当前版本。"
+  },
   "statuses": {
     "active": "进行中",
     "available": "公开",

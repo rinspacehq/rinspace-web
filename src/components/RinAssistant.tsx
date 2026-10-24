@@ -7,7 +7,8 @@ import CodeMirrorEditor from '@/components/CodeMirrorEditor';
 import MathText from '@/components/MathText';
 import RinStickerPicker from '@/components/RinStickerPicker';
 import { CollectionFolderWorkspace } from '@/pages/Profile';
-import { loadRinChat, sendRinChatMessage } from '@/services/domains/assistant';
+import { ApiRequestError, loadRinChat, loadRinChatPrice, sendRinChatMessage } from '@/services/domains/assistant';
+import type { RinChatPrice } from '@/services/domains/assistant';
 import { messageFromError } from '@/services/errors';
 import type { RinChatContext, RinChatConversation, RinChatMessage, RinWebSearchMode } from '@/services/contracts';
 import type {
@@ -51,6 +52,17 @@ type DragState =
       startY: number;
       frame: WindowFrame;
     };
+
+type PendingRinSend = {
+  body: string;
+  context: RinChatContext;
+  messages: RinChatMessage[];
+  webSearchMode: RinWebSearchMode;
+  idempotencyKey: string;
+  policyVersion: number;
+  priceSg: number;
+  optimisticId: number;
+};
 
 const frameStorageKey = 'rinspace-rin-assistant-frame';
 const collectionFrameStorageKey = 'rinspace-collection-window-frame';
@@ -464,7 +476,9 @@ export default function RinAssistant() {
   const [webSearchMode, setWebSearchMode] = useState<RinWebSearchMode>('on');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [price, setPrice] = useState<RinChatPrice | null>(null);
   const sendingRef = useRef(false);
+  const pendingSendRef = useRef<PendingRinSend | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const collectionDragRef = useRef<DragState | null>(null);
   const messagesRef = useRef<HTMLDivElement | null>(null);
@@ -564,6 +578,10 @@ export default function RinAssistant() {
     setContext(nextContext);
     setMenuPoint(null);
     setOpen(true);
+    setPrice(null);
+    loadRinChatPrice()
+      .then(setPrice)
+      .catch((err: unknown) => setError(messageFromError(err, 'assistant.chatLoadFailed')));
     setFrame((current) =>
       clampFrame({
         ...current,
@@ -689,9 +707,35 @@ export default function RinAssistant() {
     collectionDragRef.current = null;
   };
 
+  const handleSendFailure = (pending: PendingRinSend, err: unknown) => {
+    if (err instanceof ApiRequestError && err.status === 409) {
+      pendingSendRef.current = null;
+      setCachedMessages((current) => current.filter((message) => message.id !== pending.optimisticId));
+      setDraft(pending.body);
+      setPrice(null);
+      loadRinChatPrice()
+        .then(setPrice)
+        .catch((priceError: unknown) => setError(messageFromError(priceError, 'assistant.chatLoadFailed')));
+      setError(t('rinChat.priceUpdated'));
+      return;
+    }
+    setCachedMessages((current) => current.map((message) =>
+      message.id === pending.optimisticId ? { ...message, status: 'failed' } : message,
+    ));
+    setError(messageFromError(err, 'assistant.messageSendFailed'));
+  };
+
   const submitMessage = () => {
     const body = draft.trim();
     if (!body || busy || sendingRef.current) return;
+    if (!price || !price.enabled) {
+      setError(t('rinChat.unavailable'));
+      return;
+    }
+    if (pendingSendRef.current) {
+      setError(t('rinChat.pending'));
+      return;
+    }
     sendingRef.current = true;
     const optimisticMessage: RinChatMessage = {
       id: -Date.now(),
@@ -709,29 +753,68 @@ export default function RinAssistant() {
     setDraft('');
     const nextContext = pageContext();
     setContext(nextContext);
+    const pending: PendingRinSend = {
+      body,
+      context: nextContext,
+      messages: nextMessages,
+      webSearchMode,
+      idempotencyKey: crypto.randomUUID(),
+      policyVersion: price.policyVersion,
+      priceSg: price.priceSg,
+      optimisticId: optimisticMessage.id,
+    };
+    pendingSendRef.current = pending;
     setBusy(true);
     setError('');
-    sendRinChatMessage(body, nextContext, nextMessages, webSearchMode)
+    sendRinChatMessage(body, nextContext, nextMessages, webSearchMode, pending.idempotencyKey,
+      pending.policyVersion, pending.priceSg)
       .then((nextConversation) => {
+        pendingSendRef.current = null;
         setCachedMessages((current) =>
           current.filter((message) => message.id !== optimisticMessage.id),
         );
         setConversation(nextConversation);
       })
       .catch((err: unknown) => {
-        setCachedMessages((current) =>
-          current.map((message) =>
-            message.id === optimisticMessage.id
-              ? { ...message, status: 'failed' }
-              : message,
-          ),
-        );
-        setError(messageFromError(err, 'assistant.messageSendFailed'));
+        handleSendFailure(pending, err);
       })
       .finally(() => {
         sendingRef.current = false;
         setBusy(false);
       });
+  };
+
+  const retryMessage = () => {
+    const pending = pendingSendRef.current;
+    if (!pending || busy || sendingRef.current) return;
+    sendingRef.current = true;
+    setCachedMessages((current) => current.map((message) =>
+      message.id === pending.optimisticId ? { ...message, status: 'sending' } : message,
+    ));
+    setBusy(true);
+    setError('');
+    sendRinChatMessage(pending.body, pending.context, pending.messages,
+      pending.webSearchMode, pending.idempotencyKey, pending.policyVersion, pending.priceSg)
+      .then((nextConversation) => {
+        pendingSendRef.current = null;
+        setCachedMessages((current) => current.filter((message) => message.id !== pending.optimisticId));
+        setConversation(nextConversation);
+      })
+      .catch((err: unknown) => {
+        handleSendFailure(pending, err);
+      })
+      .finally(() => {
+        sendingRef.current = false;
+        setBusy(false);
+      });
+  };
+
+  const discardFailedMessage = () => {
+    const pending = pendingSendRef.current;
+    if (!pending || busy) return;
+    pendingSendRef.current = null;
+    setCachedMessages((current) => current.filter((message) => message.id !== pending.optimisticId));
+    setError('');
   };
 
   const send = (event: FormEvent) => {
@@ -877,6 +960,12 @@ export default function RinAssistant() {
                           ? '发送失败'
                           : messageTime(message.createdAt)}
                     </time>
+                    {!fromRin && message.status === 'failed' && pendingSendRef.current?.optimisticId === message.id ? (
+                      <span className="rin-assistant-message-retry">
+                        <button type="button" onClick={retryMessage}>{t('actions.retry')}</button>
+                        <button type="button" onClick={discardFailedMessage} title={t('rinChat.hideTitle')}>{t('rinChat.hide')}</button>
+                      </span>
+                    ) : null}
                   </div>
                   {!fromRin ? (
                     avatar ? (
@@ -932,6 +1021,11 @@ export default function RinAssistant() {
               <span className="rin-assistant-search-state">
                 {webSearchMode === 'on' ? '联网' : '自动'}
               </span>
+              {price?.mode === 'gateway' ? (
+                <span className="rin-assistant-search-state" aria-live="polite">
+                  {price.enabled ? (price.priceSg === 0 ? t('rinChat.freeTurn') : t('rinChat.pricedTurn', { amount: price.priceSg })) : t('rinChat.unavailableShort')}
+                </span>
+              ) : null}
             </div>
             <div className="rin-assistant-editor">
               <CodeMirrorEditor
@@ -943,7 +1037,7 @@ export default function RinAssistant() {
                 onChange={setDraft}
               />
             </div>
-            <AnimateButton unstyled type="submit" disabled={!draft.trim() || busy} aria-label="发送">
+            <AnimateButton unstyled type="submit" disabled={!draft.trim() || busy || !price?.enabled} aria-label="发送">
               <Icon name="send-fill" />
             </AnimateButton>
           </form>
