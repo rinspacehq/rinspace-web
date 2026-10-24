@@ -26,3 +26,20 @@
 [data-theme="dark"] .legal-page {
   background: var(--rin-canvas);
 }
+
+/* Give both sides of the chat their own readable surface in dark mode. */
+[data-theme="dark"] .rin-assistant-message.is-me .rin-assistant-bubble {
+  background: #376d91;
+  border-color: #8ebad8;
+  color: #fff;
+}
+
+[data-theme="dark"] .rin-assistant-message:not(.is-me) .rin-assistant-bubble {
+  background: #e7f0f6;
+  border-color: #a5c1d4;
+  color: #172b3a;
+}
+
+[data-theme="dark"] .rin-assistant-bubble .math-text {
+  color: inherit;
+}
