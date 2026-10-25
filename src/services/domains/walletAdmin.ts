@@ -226,6 +226,8 @@ export type WalletAdminAIPrice = Readonly<{
   createdAt: string;
 }>;
 export type WalletAdminDeepSeekPrice = Readonly<{
+  currency: 'CNY';
+  priceUnit: 'yuan_per_million_tokens';
   latestPrices: Readonly<Record<string, string>> | null;
   previousPrices: Readonly<Record<string, string>> | null;
   checkedAt: string | null;
@@ -838,11 +840,14 @@ function deepSeekPrices(value: unknown): Readonly<Record<string, string>> | null
 }
 function deepSeekPrice(value: unknown): WalletAdminDeepSeekPrice {
   const item = record(value);
-  if (typeof item.last_attempt_at !== 'string' || typeof item.stale !== 'boolean' ||
+  if (item.currency !== 'CNY' || item.price_unit !== 'yuan_per_million_tokens' ||
+      typeof item.last_attempt_at !== 'string' || typeof item.stale !== 'boolean' ||
       !['never', 'first', 'changed', 'unchanged', 'error'].includes(String(item.status))) {
     throw new WalletAdminError('INVALID_RESPONSE');
   }
   return Object.freeze({
+    currency: item.currency,
+    priceUnit: item.price_unit,
     latestPrices: deepSeekPrices(item.latest_prices),
     previousPrices: deepSeekPrices(item.previous_prices),
     checkedAt: item.checked_at === undefined ? null : text(item.checked_at),

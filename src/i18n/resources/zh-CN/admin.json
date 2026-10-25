@@ -165,7 +165,7 @@
     "peak": "高峰",
     "previousOffPeak": "上次离峰",
     "previousPeak": "上次高峰",
-    "providerUnit": "美元／百万 token",
+    "providerUnit": "人民币元／百万 token",
     "providerCurrent": "价格未变化",
     "providerChanged": "价格曾变化",
     "providerStale": "价格监测已过期",
