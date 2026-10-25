@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { WalletRiskView } from "./WalletRiskView";
@@ -9,7 +15,10 @@ import {
   loadWalletAdminPolicy,
   loadWalletAdminAIPrice,
   loadWalletAdminDeepSeekPrice,
+  loadWalletAdminAgentPolicy,
+  loadWalletAdminAgentUsage,
   updateWalletAdminAIPrice,
+  updateWalletAdminAgentPolicy,
   loadWalletAdminObligations,
   loadWalletAdminReconciliations,
   loadWalletAdminReconciliationItems,
@@ -19,7 +28,10 @@ import {
   resolveWalletAdminReconciliation,
   reviewWalletAdminCase,
 } from "@/services/domains/walletAdmin";
-import { beginIdentityStepUp, completeIdentityStepUp } from "@/services/phoneAuth";
+import {
+  beginIdentityStepUp,
+  completeIdentityStepUp,
+} from "@/services/phoneAuth";
 
 vi.mock("@/services/domains/walletAdmin", () => ({
   loadWalletAdminCases: vi.fn(),
@@ -28,7 +40,10 @@ vi.mock("@/services/domains/walletAdmin", () => ({
   loadWalletAdminPolicy: vi.fn(),
   loadWalletAdminAIPrice: vi.fn(),
   loadWalletAdminDeepSeekPrice: vi.fn(),
+  loadWalletAdminAgentPolicy: vi.fn(),
+  loadWalletAdminAgentUsage: vi.fn(),
   updateWalletAdminAIPrice: vi.fn(),
+  updateWalletAdminAgentPolicy: vi.fn(),
   loadWalletAdminObligations: vi.fn(),
   loadWalletAdminReconciliations: vi.fn(),
   loadWalletAdminReconciliationItems: vi.fn(),
@@ -45,6 +60,14 @@ vi.mock("@/services/phoneAuth", () => ({
 }));
 
 beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   vi.mocked(loadWalletAdminCases).mockResolvedValue({
     items: [
       {
@@ -66,7 +89,11 @@ beforeEach(() => {
   });
   vi.mocked(loadWalletAdminReconciliations).mockResolvedValue([]);
   vi.mocked(loadWalletAdminReconciliationItems).mockResolvedValue([]);
-  vi.mocked(loadWalletAdminCaseSources).mockResolvedValue({ sources: [], restrictions: [], appeals: [] });
+  vi.mocked(loadWalletAdminCaseSources).mockResolvedValue({
+    sources: [],
+    restrictions: [],
+    appeals: [],
+  });
   vi.mocked(loadWalletAdminObligations).mockResolvedValue({
     asOf: "2026-09-20T08:00:00Z",
     refundablePrincipalFen: "1000",
@@ -79,16 +106,125 @@ beforeEach(() => {
     reconciliationDifferenceCount: "3",
   });
   vi.mocked(loadWalletAdminCoverageSnapshots).mockResolvedValue([]);
-  vi.mocked(loadWalletAdminPolicy).mockResolvedValue({version:'7',dailyRechargeLimitFen:'100000',rechargeEnabled:false,tipEnabled:true,convertEnabled:true,createdBy:'admin',reason:'approved default',createdAt:'2026-09-20T06:00:00Z'});
-  vi.mocked(loadWalletAdminAIPrice).mockResolvedValue({version:'1',enabled:false,priceSg:'0',singleLimitSg:null,dailyLimitSg:null,dailyCallsLimit:null,createdBy:'system',reason:'disabled',createdAt:'2026-09-20T06:00:00Z'});
-  vi.mocked(loadWalletAdminDeepSeekPrice).mockResolvedValue({
-    currency:'CNY',priceUnit:'yuan_per_million_tokens',
-    latestPrices: {input_cache_hit_off_peak:'0.02',input_cache_hit_peak:'0.04',input_cache_miss_off_peak:'1',input_cache_miss_peak:'2',output_off_peak:'4',output_peak:'8'},
-    previousPrices: null, checkedAt:'2026-10-24T00:00:00Z', lastAttemptAt:'2026-10-24T00:00:00Z', changedAt:null,
-    status:'first',errorCode:null,stale:false,
+  vi.mocked(loadWalletAdminPolicy).mockResolvedValue({
+    version: "7",
+    dailyRechargeLimitFen: "100000",
+    rechargeEnabled: false,
+    tipEnabled: true,
+    convertEnabled: true,
+    createdBy: "admin",
+    reason: "approved default",
+    createdAt: "2026-09-20T06:00:00Z",
   });
-  vi.mocked(updateWalletAdminAIPrice).mockResolvedValue({version:'2',enabled:true,priceSg:'2',singleLimitSg:'2',dailyLimitSg:'20',dailyCallsLimit:10,createdBy:'risk-reviewer',reason:'configured',createdAt:'2026-09-20T06:01:00Z'});
-  vi.mocked(beginIdentityStepUp).mockResolvedValue({ challengeId: "challenge-1" });
+  vi.mocked(loadWalletAdminAIPrice).mockResolvedValue({
+    version: "1",
+    enabled: false,
+    priceSg: "0",
+    singleLimitSg: null,
+    dailyLimitSg: null,
+    dailyCallsLimit: null,
+    createdBy: "system",
+    reason: "disabled",
+    createdAt: "2026-09-20T06:00:00Z",
+  });
+  vi.mocked(loadWalletAdminDeepSeekPrice).mockResolvedValue({
+    currency: "CNY",
+    priceUnit: "yuan_per_million_tokens",
+    latestPrices: {
+      input_cache_hit_off_peak: "0.02",
+      input_cache_hit_peak: "0.04",
+      input_cache_miss_off_peak: "1",
+      input_cache_miss_peak: "2",
+      output_off_peak: "4",
+      output_peak: "8",
+    },
+    previousPrices: null,
+    checkedAt: "2026-10-24T00:00:00Z",
+    lastAttemptAt: "2026-10-24T00:00:00Z",
+    changedAt: null,
+    status: "first",
+    errorCode: null,
+    stale: false,
+  });
+  vi.mocked(updateWalletAdminAIPrice).mockResolvedValue({
+    version: "2",
+    enabled: true,
+    priceSg: "2",
+    singleLimitSg: "2",
+    dailyLimitSg: "20",
+    dailyCallsLimit: 10,
+    createdBy: "risk-reviewer",
+    reason: "configured",
+    createdAt: "2026-09-20T06:01:00Z",
+  });
+  vi.mocked(loadWalletAdminAgentPolicy).mockResolvedValue({
+    version: "3",
+    enabled: true,
+    model: "deepseek-flash",
+    providerPriceVersion: "deepseek-reviewed-v3",
+    providerInputCnyMicrosPerMillion: "2000000",
+    providerCachedInputCnyMicrosPerMillion: "200000",
+    providerOutputCnyMicrosPerMillion: "3000000",
+    inputSgPerMillion: "10000",
+    cachedInputSgPerMillion: "1000",
+    outputSgPerMillion: "20000",
+    maxIterations: 12,
+    maxOutputTokens: 1024,
+    taskBudgetSg: "100",
+    dailyCallsLimit: 20,
+    dailyTokensLimit: "100000",
+    dailySgLimit: "1000",
+    sgCnyMicrosPerUnit: "1000",
+    createdBy: "risk-reviewer",
+    reason: "reviewed Agent policy",
+    createdAt: "2026-10-25T08:00:00Z",
+  });
+  vi.mocked(loadWalletAdminAgentUsage).mockResolvedValue([
+    {
+      runId: "22345678-1234-4234-8234-123456789abc",
+      operationId: "32345678-1234-4234-8234-123456789abc",
+      actorUid: "managed-user",
+      projectId: "article:42",
+      model: "deepseek-flash",
+      providerPriceVersion: "deepseek-reviewed-v3",
+      state: "RESULT_UNKNOWN",
+      inputTokens: null,
+      cachedInputTokens: null,
+      outputTokens: null,
+      providerCostCnyMicros: null,
+      goodnessChargedSg: null,
+      goodnessRevenueCnyMicros: null,
+      profitCnyMicros: null,
+      providerRequestId: "",
+      createdAt: "2026-10-25T08:00:00Z",
+      updatedAt: "2026-10-25T08:01:00Z",
+    },
+  ]);
+  vi.mocked(updateWalletAdminAgentPolicy).mockResolvedValue({
+    version: "4",
+    enabled: false,
+    model: "deepseek-flash",
+    providerPriceVersion: "deepseek-reviewed-v3",
+    providerInputCnyMicrosPerMillion: "2000000",
+    providerCachedInputCnyMicrosPerMillion: "200000",
+    providerOutputCnyMicrosPerMillion: "3000000",
+    inputSgPerMillion: "10000",
+    cachedInputSgPerMillion: "1000",
+    outputSgPerMillion: "20000",
+    maxIterations: 12,
+    maxOutputTokens: 1024,
+    taskBudgetSg: "100",
+    dailyCallsLimit: 20,
+    dailyTokensLimit: "100000",
+    dailySgLimit: "1000",
+    sgCnyMicrosPerUnit: "1000",
+    createdBy: "risk-reviewer",
+    reason: "emergency disable",
+    createdAt: "2026-10-25T08:02:00Z",
+  });
+  vi.mocked(beginIdentityStepUp).mockResolvedValue({
+    challengeId: "challenge-1",
+  });
   vi.mocked(completeIdentityStepUp).mockResolvedValue("proof-1");
   vi.mocked(reviewWalletAdminCase).mockResolvedValue({
     caseId: "12345678-1234-4234-8234-123456789abc",
@@ -107,78 +243,233 @@ beforeEach(() => {
     createdAt: "2026-09-20T08:02:00Z",
   });
   vi.mocked(assignWalletAdminReconciliation).mockResolvedValue({
-    itemId: "92345678-1234-4234-8234-123456789abc", state: "ASSIGNED", version: "2",
-    assignedTo: "risk-reviewer", resolution: "", evidenceReference: "", createdAt: "2026-09-20T08:02:00Z",
+    itemId: "92345678-1234-4234-8234-123456789abc",
+    state: "ASSIGNED",
+    version: "2",
+    assignedTo: "risk-reviewer",
+    resolution: "",
+    evidenceReference: "",
+    createdAt: "2026-09-20T08:02:00Z",
   });
   vi.mocked(resolveWalletAdminReconciliation).mockResolvedValue({
-    itemId: "92345678-1234-4234-8234-123456789abc", state: "RESOLVED", version: "3",
-    assignedTo: "risk-reviewer", resolution: "EVIDENCE_ACCEPTED", evidenceReference: "controlled://evidence/1",
+    itemId: "92345678-1234-4234-8234-123456789abc",
+    state: "RESOLVED",
+    version: "3",
+    assignedTo: "risk-reviewer",
+    resolution: "EVIDENCE_ACCEPTED",
+    evidenceReference: "controlled://evidence/1",
     createdAt: "2026-09-20T08:03:00Z",
   });
   vi.mocked(recordWalletAdminCoverageSnapshot).mockResolvedValue({
-    snapshotId: "52345678-1234-4234-8234-123456789abc", evidenceAsOf: "2026-09-20T08:00:00Z",
-    availableCashFen: "100", approvedRequiredFen: "120", state: "SHORTFALL", shortfallFen: "20",
-    methodologyReference: "controlled://methodology/v1", evidenceSha256: "a".repeat(64),
-    evidenceReference: "controlled://statement/1", refundablePrincipalFen: "90", refundReservedFen: "20",
-    approvedUnpaidRefundFen: "10", openDisputeExposureFen: "5", unresolvedPaymentFen: "0", alertState: "OPEN",
-    createdBy: "risk-reviewer", reason: "日终核对", createdAt: "2026-09-20T08:01:00Z",
+    snapshotId: "52345678-1234-4234-8234-123456789abc",
+    evidenceAsOf: "2026-09-20T08:00:00Z",
+    availableCashFen: "100",
+    approvedRequiredFen: "120",
+    state: "SHORTFALL",
+    shortfallFen: "20",
+    methodologyReference: "controlled://methodology/v1",
+    evidenceSha256: "a".repeat(64),
+    evidenceReference: "controlled://statement/1",
+    refundablePrincipalFen: "90",
+    refundReservedFen: "20",
+    approvedUnpaidRefundFen: "10",
+    openDisputeExposureFen: "5",
+    unresolvedPaymentFen: "0",
+    alertState: "OPEN",
+    createdBy: "risk-reviewer",
+    reason: "日终核对",
+    createdAt: "2026-09-20T08:01:00Z",
   });
 });
 
 it("keeps recharge limits under money risk, separate from refund review", async () => {
-  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict={false} canReconcile={false} canCoverage={false} canViewPolicy canConfigurePolicy={false} />);
-  fireEvent.click(screen.getByRole("button", { name: /充值限额|policy\.title/ }));
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+      canViewPolicy
+      canConfigurePolicy={false}
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
   expect(await screen.findByText("¥1000.00")).toBeTruthy();
   expect(screen.getByText("approved default")).toBeTruthy();
   expect(await screen.findByText("琳的善功费用")).toBeTruthy();
   expect(await screen.findByText("DeepSeek 官方价格")).toBeTruthy();
-  expect(screen.getByText("人民币元／百万 token", { exact: false })).toBeTruthy();
+  expect(
+    screen.getByText("人民币元／百万 token", { exact: false }),
+  ).toBeTruthy();
   expect(screen.getByText("¥8")).toBeTruthy();
   expect(screen.getByText("disabled")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "申请调整" })).toBeNull();
 });
 
 it("submits a complete versioned Rin price with the existing policy permission", async () => {
-  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict={false} canReconcile={false} canCoverage={false} canViewPolicy canConfigurePolicy />);
-  fireEvent.click(screen.getByRole("button", { name: /充值限额|policy\.title/ }));
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+      canViewPolicy
+      canConfigurePolicy
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
   await screen.findByText("琳的善功费用");
-  const rinPanel = within(document.getElementById("wallet-risk-ai-price") as HTMLElement);
+  const rinPanel = within(
+    document.getElementById("wallet-risk-ai-price") as HTMLElement,
+  );
   fireEvent.click(rinPanel.getByLabelText("开启琳聊天"));
-  fireEvent.change(rinPanel.getByLabelText("每轮善功"), { target: { value: "2" } });
-  fireEvent.change(rinPanel.getByLabelText("单轮上限"), { target: { value: "2" } });
-  fireEvent.change(rinPanel.getByLabelText("单日善功上限"), { target: { value: "20" } });
-  fireEvent.change(rinPanel.getByLabelText("本次调整理由"), { target: { value: "configured" } });
+  fireEvent.change(rinPanel.getByLabelText("每轮善功"), {
+    target: { value: "2" },
+  });
+  fireEvent.change(rinPanel.getByLabelText("单轮上限"), {
+    target: { value: "2" },
+  });
+  fireEvent.change(rinPanel.getByLabelText("单日善功上限"), {
+    target: { value: "20" },
+  });
+  fireEvent.change(rinPanel.getByLabelText("本次调整理由"), {
+    target: { value: "configured" },
+  });
   fireEvent.click(rinPanel.getByRole("button", { name: "保存费用" }));
-  await waitFor(() => expect(updateWalletAdminAIPrice).toHaveBeenCalledWith(
-    "risk-reviewer", expect.stringMatching(/^[0-9a-f-]{36}$/),
-    expect.objectContaining({expectedVersion:"1",enabled:true,priceSg:"2",singleLimitSg:"2",dailyLimitSg:"20",dailyCallsLimit:10,reason:"configured"}),
-  ));
+  await waitFor(() =>
+    expect(updateWalletAdminAIPrice).toHaveBeenCalledWith(
+      "risk-reviewer",
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      expect.objectContaining({
+        expectedVersion: "1",
+        enabled: true,
+        priceSg: "2",
+        singleLimitSg: "2",
+        dailyLimitSg: "20",
+        dailyCallsLimit: 10,
+        reason: "configured",
+      }),
+    ),
+  );
+});
+
+it("renders exact Agent audit gaps and submits a complete emergency policy update", async () => {
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+      canViewPolicy
+      canConfigurePolicy
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+  const agentPanel = within(
+    await screen
+      .findByText("琳 Agent 策略与审计")
+      .then(
+        (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
+      ),
+  );
+  expect(agentPanel.getByText("结果待查证")).toBeTruthy();
+  expect(agentPanel.getAllByText("—").length).toBeGreaterThanOrEqual(3);
+  fireEvent.click(
+    agentPanel.getByRole("switch", { name: /允许新的 Agent 回合/ }),
+  );
+  fireEvent.change(agentPanel.getByLabelText("本次调整理由"), {
+    target: { value: "emergency disable" },
+  });
+  fireEvent.click(agentPanel.getByRole("button", { name: "保存 Agent 策略" }));
+  await waitFor(() =>
+    expect(updateWalletAdminAgentPolicy).toHaveBeenCalledWith(
+      "risk-reviewer",
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      expect.objectContaining({
+        expectedVersion: "3",
+        enabled: false,
+        model: "deepseek-flash",
+        reason: "emergency disable",
+      }),
+    ),
+  );
 });
 
 it("records an exact coverage snapshot behind step-up verification", async () => {
-  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict={false} canReconcile={false} canCoverage />);
-  fireEvent.click(screen.getByRole("button", { name: /资金覆盖|risk\.coverage/ }));
-  fireEvent.change(screen.getByLabelText(/证据时间|adminRisk\.evidenceTime/), { target: { value: "2026-09-20T16:00" } });
-  fireEvent.change(screen.getByLabelText(/可用资金（分）|现金（分）|adminRisk\.availableFen/), { target: { value: "100" } });
-  fireEvent.change(screen.getByLabelText(/核准目标（分）|目标（分）|adminRisk\.targetFen/), { target: { value: "120" } });
-  fireEvent.change(screen.getByLabelText(/口径编号|adminRisk\.methodology/), { target: { value: "controlled://methodology/v1" } });
-  fireEvent.change(screen.getByLabelText(/证据 SHA-256|adminRisk\.evidenceHash/), { target: { value: "a".repeat(64) } });
-  fireEvent.change(screen.getByLabelText(/证据编号|risk\.evidenceReference/), { target: { value: "controlled://statement/1" } });
-  fireEvent.change(screen.getByLabelText(/快照理由|adminRisk\.coverageReason/), { target: { value: "日终核对" } });
-  fireEvent.click(screen.getByRole("button", { name: /记录快照|adminRisk\.recordCoverage/ }));
-  await waitFor(() => expect(beginIdentityStepUp).toHaveBeenCalledWith(
-    "wallet_coverage_record", expect.stringMatching(/^wallet:v1:[0-9a-f]{64}$/),
-  ));
-  fireEvent.change(screen.getByLabelText(/六位验证码|risk\.code/), { target: { value: "123456" } });
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: /资金覆盖|risk\.coverage/ }));
+  fireEvent.change(screen.getByLabelText(/证据时间|adminRisk\.evidenceTime/), {
+    target: { value: "2026-09-20T16:00" },
+  });
+  fireEvent.change(
+    screen.getByLabelText(/可用资金（分）|现金（分）|adminRisk\.availableFen/),
+    { target: { value: "100" } },
+  );
+  fireEvent.change(
+    screen.getByLabelText(/核准目标（分）|目标（分）|adminRisk\.targetFen/),
+    { target: { value: "120" } },
+  );
+  fireEvent.change(screen.getByLabelText(/口径编号|adminRisk\.methodology/), {
+    target: { value: "controlled://methodology/v1" },
+  });
+  fireEvent.change(
+    screen.getByLabelText(/证据 SHA-256|adminRisk\.evidenceHash/),
+    { target: { value: "a".repeat(64) } },
+  );
+  fireEvent.change(screen.getByLabelText(/证据编号|risk\.evidenceReference/), {
+    target: { value: "controlled://statement/1" },
+  });
+  fireEvent.change(
+    screen.getByLabelText(/快照理由|adminRisk\.coverageReason/),
+    { target: { value: "日终核对" } },
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: /记录快照|adminRisk\.recordCoverage/ }),
+  );
+  await waitFor(() =>
+    expect(beginIdentityStepUp).toHaveBeenCalledWith(
+      "wallet_coverage_record",
+      expect.stringMatching(/^wallet:v1:[0-9a-f]{64}$/),
+    ),
+  );
+  fireEvent.change(screen.getByLabelText(/六位验证码|risk\.code/), {
+    target: { value: "123456" },
+  });
   fireEvent.click(screen.getByRole("button", { name: /确认|risk\.confirm/ }));
-  await waitFor(() => expect(recordWalletAdminCoverageSnapshot).toHaveBeenCalledWith(
-    "risk-reviewer", expect.stringMatching(/^[0-9a-f-]{36}$/),
-    expect.objectContaining({ available_cash_fen: "100", approved_required_fen: "120" }), "proof-1",
-  ));
+  await waitFor(() =>
+    expect(recordWalletAdminCoverageSnapshot).toHaveBeenCalledWith(
+      "risk-reviewer",
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      expect.objectContaining({
+        available_cash_fen: "100",
+        approved_required_fen: "120",
+      }),
+      "proof-1",
+    ),
+  );
 });
 
 it("binds case review to the current account, case, version and SMS proof", async () => {
-  render(<WalletRiskView uid="risk-reviewer" canReview canRestrict={false} canReconcile={false} canCoverage={false} />);
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+    />,
+  );
   fireEvent.click(await screen.findByRole("button", { name: "处理" }));
   fireEvent.change(screen.getByLabelText("处理理由"), {
     target: { value: "核对渠道证据" },
@@ -208,7 +499,15 @@ it("binds case review to the current account, case, version and SMS proof", asyn
 });
 
 it("shows exact read-only case amounts", async () => {
-  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict={false} canReconcile={false} canCoverage={false} />);
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+    />,
+  );
   await waitFor(() =>
     expect(loadWalletAdminCases).toHaveBeenCalledWith("open", ""),
   );
@@ -233,8 +532,16 @@ it("shows signed reconciliation totals without a write action", async () => {
       completedAt: "2026-09-20T08:01:00Z",
     },
   ]);
-  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict={false} canReconcile={false} canCoverage={false} />);
-  fireEvent.click(screen.getByRole("button", { name: "渠道对账" }));
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: "渠道对账" }));
   expect(await screen.findByText("−¥9.94")).toBeTruthy();
   expect(
     screen.queryByRole("button", { name: /处理差异|resolve/i }),
@@ -244,61 +551,152 @@ it("shows signed reconciliation totals without a write action", async () => {
 it("claims a difference with a versioned, step-up-bound command", async () => {
   const runId = "32345678-1234-4234-8234-123456789abc";
   const itemId = "92345678-1234-4234-8234-123456789abc";
-  vi.mocked(loadWalletAdminReconciliations).mockResolvedValue([{ runId, billDate: "2026-09-20", billType: "trade",
-    state: "DIFFERENCES", grossFen: "1000", feeFen: "6", netFen: "994", differenceCount: "1",
-    createdAt: "2026-09-20T08:00:00Z", completedAt: "2026-09-20T08:01:00Z" }]);
-  vi.mocked(loadWalletAdminReconciliationItems).mockResolvedValue([{ itemId, differenceKey: "payment:x", code: "AMOUNT_MISMATCH",
-    operationId: "", caseId: "", expectedFen: "1000", actualFen: "994", state: "OPEN", version: "1",
-    assignedTo: "", resolution: "", evidenceReference: "", createdAt: "2026-09-20T08:00:00Z", updatedAt: "2026-09-20T08:00:00Z" }]);
-  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict={false} canReconcile canCoverage={false} />);
-  fireEvent.click(screen.getByRole("button", { name: "渠道对账" }));
+  vi.mocked(loadWalletAdminReconciliations).mockResolvedValue([
+    {
+      runId,
+      billDate: "2026-09-20",
+      billType: "trade",
+      state: "DIFFERENCES",
+      grossFen: "1000",
+      feeFen: "6",
+      netFen: "994",
+      differenceCount: "1",
+      createdAt: "2026-09-20T08:00:00Z",
+      completedAt: "2026-09-20T08:01:00Z",
+    },
+  ]);
+  vi.mocked(loadWalletAdminReconciliationItems).mockResolvedValue([
+    {
+      itemId,
+      differenceKey: "payment:x",
+      code: "AMOUNT_MISMATCH",
+      operationId: "",
+      caseId: "",
+      expectedFen: "1000",
+      actualFen: "994",
+      state: "OPEN",
+      version: "1",
+      assignedTo: "",
+      resolution: "",
+      evidenceReference: "",
+      createdAt: "2026-09-20T08:00:00Z",
+      updatedAt: "2026-09-20T08:00:00Z",
+    },
+  ]);
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile
+      canCoverage={false}
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: "渠道对账" }));
   fireEvent.click(await screen.findByRole("button", { name: "查看" }));
-  fireEvent.change(await screen.findByPlaceholderText("处理理由"), { target: { value: "核对差异" } });
+  fireEvent.change(await screen.findByPlaceholderText("处理理由"), {
+    target: { value: "核对差异" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "领取" }));
-  await waitFor(() => expect(beginIdentityStepUp).toHaveBeenCalledWith(
-    "wallet_reconciliation_assign", expect.stringMatching(/^wallet:v1:[0-9a-f]{64}$/),
-  ));
-  fireEvent.change(screen.getByLabelText("六位验证码"), { target: { value: "123456" } });
+  await waitFor(() =>
+    expect(beginIdentityStepUp).toHaveBeenCalledWith(
+      "wallet_reconciliation_assign",
+      expect.stringMatching(/^wallet:v1:[0-9a-f]{64}$/),
+    ),
+  );
+  fireEvent.change(screen.getByLabelText("六位验证码"), {
+    target: { value: "123456" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "确认" }));
-  await waitFor(() => expect(assignWalletAdminReconciliation).toHaveBeenCalledWith(
-    "risk-reviewer", itemId, expect.stringMatching(/^[0-9a-f-]{36}$/), "1", "risk-reviewer", "核对差异", "proof-1",
-  ));
+  await waitFor(() =>
+    expect(assignWalletAdminReconciliation).toHaveBeenCalledWith(
+      "risk-reviewer",
+      itemId,
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      "1",
+      "risk-reviewer",
+      "核对差异",
+      "proof-1",
+    ),
+  );
 });
 
 it("restricts only a selected source lot in integer Shangong units", async () => {
   vi.mocked(loadWalletAdminCases).mockResolvedValue({
-    items: [{
-      caseId: "12345678-1234-4234-8234-123456789abc", kind: "dispute",
-      state: "UNDER_REVIEW", version: "2", subjectUid: "synthetic-user",
-      paymentOperationId: "22345678-1234-4234-8234-123456789abc",
-      adjustmentCount: "1", amountFen: "700", reviewDueAt: "2026-09-21T08:00:00Z",
-      reason: "渠道争议", resolution: "", createdAt: "2026-09-20T08:00:00Z",
-    }],
+    items: [
+      {
+        caseId: "12345678-1234-4234-8234-123456789abc",
+        kind: "dispute",
+        state: "UNDER_REVIEW",
+        version: "2",
+        subjectUid: "synthetic-user",
+        paymentOperationId: "22345678-1234-4234-8234-123456789abc",
+        adjustmentCount: "1",
+        amountFen: "700",
+        reviewDueAt: "2026-09-21T08:00:00Z",
+        reason: "渠道争议",
+        resolution: "",
+        createdAt: "2026-09-20T08:00:00Z",
+      },
+    ],
     nextCursor: "",
   });
   vi.mocked(loadWalletAdminCaseSources).mockResolvedValue({
-    sources: [{
-      lotId: "42345678-1234-4234-8234-123456789abc", ownerUid: "author",
-      unit: "SG_BOUND", kind: "tip", issued: "10", remaining: "7",
-      reserved: "0", restricted: "0", available: "7", version: "2",
-    }],
+    sources: [
+      {
+        lotId: "42345678-1234-4234-8234-123456789abc",
+        ownerUid: "author",
+        unit: "SG_BOUND",
+        kind: "tip",
+        issued: "10",
+        remaining: "7",
+        reserved: "0",
+        restricted: "0",
+        available: "7",
+        version: "2",
+      },
+    ],
     restrictions: [],
     appeals: [],
   });
-  render(<WalletRiskView uid="risk-reviewer" canReview={false} canRestrict canReconcile={false} canCoverage={false} />);
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict
+      canReconcile={false}
+      canCoverage={false}
+    />,
+  );
   fireEvent.click(await screen.findByRole("button", { name: "处理" }));
-  fireEvent.change(screen.getByLabelText("处理理由"), { target: { value: "争议来源" } });
-  fireEvent.change(await screen.findByLabelText("数量"), { target: { value: "7" } });
+  fireEvent.change(screen.getByLabelText("处理理由"), {
+    target: { value: "争议来源" },
+  });
+  fireEvent.change(await screen.findByLabelText("数量"), {
+    target: { value: "7" },
+  });
   expect(screen.getByText("SG_BOUND · 7")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "限制" }));
-  await waitFor(() => expect(beginIdentityStepUp).toHaveBeenCalledWith(
-    "wallet_case_restrict", expect.stringMatching(/^wallet:v1:[0-9a-f]{64}$/),
-  ));
-  fireEvent.change(screen.getByLabelText("六位验证码"), { target: { value: "123456" } });
+  await waitFor(() =>
+    expect(beginIdentityStepUp).toHaveBeenCalledWith(
+      "wallet_case_restrict",
+      expect.stringMatching(/^wallet:v1:[0-9a-f]{64}$/),
+    ),
+  );
+  fireEvent.change(screen.getByLabelText("六位验证码"), {
+    target: { value: "123456" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "确认" }));
-  await waitFor(() => expect(restrictWalletAdminCase).toHaveBeenCalledWith(
-    "risk-reviewer", "12345678-1234-4234-8234-123456789abc",
-    expect.stringMatching(/^[0-9a-f-]{36}$/), "42345678-1234-4234-8234-123456789abc",
-    "7", "2", "争议来源", "proof-1",
-  ));
+  await waitFor(() =>
+    expect(restrictWalletAdminCase).toHaveBeenCalledWith(
+      "risk-reviewer",
+      "12345678-1234-4234-8234-123456789abc",
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      "42345678-1234-4234-8234-123456789abc",
+      "7",
+      "2",
+      "争议来源",
+      "proof-1",
+    ),
+  );
 });

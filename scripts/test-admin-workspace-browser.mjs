@@ -177,6 +177,47 @@ try {
       } });
       return;
     }
+    if (pathname === '/admin/api/wallet/ai-price') {
+      await route.fulfill({ json: {
+        version: '1', enabled: false, price_sg: '0', single_limit_sg: null,
+        daily_limit_sg: null, daily_calls_limit: null, created_by: 'system',
+        reason: 'disabled', created_at: '2026-10-25T08:00:00Z',
+      } });
+      return;
+    }
+    if (pathname === '/admin/api/wallet/ai-provider-price') {
+      await route.fulfill({ json: {
+        currency: 'CNY', price_unit: 'yuan_per_million_tokens',
+        latest_prices: { input_cache_hit_off_peak: '0.02', input_cache_hit_peak: '0.04',
+          input_cache_miss_off_peak: '1', input_cache_miss_peak: '2', output_off_peak: '4', output_peak: '8' },
+        last_attempt_at: '2026-10-25T08:00:00Z', checked_at: '2026-10-25T08:00:00Z',
+        status: 'unchanged', stale: false,
+      } });
+      return;
+    }
+    if (pathname === '/admin/api/wallet/agent-policy') {
+      await route.fulfill({ json: {
+        version: '3', enabled: true, model: 'deepseek-flash', provider_price_version: 'deepseek-reviewed-v3',
+        provider_input_cny_micros_per_million: '2000000', provider_cached_input_cny_micros_per_million: '200000',
+        provider_output_cny_micros_per_million: '3000000', input_sg_per_million: '10000',
+        cached_input_sg_per_million: '1000', output_sg_per_million: '20000', max_iterations: 12,
+        max_output_tokens: 1024, task_budget_sg: '100', daily_calls_limit: 20,
+        daily_tokens_limit: '100000', daily_sg_limit: '1000', sg_cny_micros_per_unit: '1000',
+        created_by: 'admin-uid', reason: '已审查 Agent 策略', created_at: '2026-10-25T08:00:00Z',
+      } });
+      return;
+    }
+    if (pathname === '/admin/api/wallet/agent-usage') {
+      await route.fulfill({ json: { items: [{
+        run_id: '22345678-1234-4234-8234-123456789abc', operation_id: '32345678-1234-4234-8234-123456789abc',
+        actor_uid: 'managed-user', project_id: 'article:42', model: 'deepseek-flash',
+        provider_price_version: 'deepseek-reviewed-v3', state: 'RESULT_UNKNOWN', input_tokens: null,
+        cached_input_tokens: null, output_tokens: null, provider_cost_cny_micros: null,
+        goodness_charged_sg: null, goodness_revenue_cny_micros: null, profit_cny_micros: null,
+        created_at: '2026-10-25T08:00:00Z', updated_at: '2026-10-25T08:01:00Z',
+      }] } });
+      return;
+    }
     if (pathname === '/admin/api/wallet/cases/12345678-1234-4234-8234-123456789abc/review') {
       caseReviewRequests += 1;
       assert.equal(route.request().method(), 'POST');
@@ -351,7 +392,7 @@ try {
 
   await page.goto(`${baseURL}/admin`, { waitUntil: 'domcontentloaded' });
   try {
-    await page.getByRole('heading', { name: '管理中心', level: 1 }).waitFor({ timeout: 10_000 });
+    await page.locator('section[aria-label="管理中心"]').waitFor({ timeout: 10_000 });
   } catch (error) {
     console.error(`URL: ${page.url()}`);
     console.error(await page.locator('body').innerText());
@@ -360,6 +401,7 @@ try {
   const navigation = page.getByRole('complementary', { name: '管理中心导航' });
   const navigationText = (await navigation.textContent()) || '';
   for (const label of ['管理中心', '管理主页', '内容管理', '审核台', '系统运营']) assert.match(navigationText, new RegExp(label));
+  assert.equal(await page.getByRole('heading', { name: '管理中心', level: 1 }).count(), 0);
   assert.equal(await page.getByText(/你可以|请先|从这里/).count(), 0);
   assert.match(await page.locator('html').evaluate((node) => getComputedStyle(node).colorScheme), /dark/);
 
@@ -371,9 +413,14 @@ try {
 
   await page.getByRole('button', { name: '资金风险' }).click();
   await page.getByRole('heading', { name: '资金风险', level: 1 }).waitFor();
-  await page.getByRole('button', { name: '充值限额' }).click();
+  await page.getByRole('tab', { name: '充值限额' }).click();
   await page.getByText('¥1000.00').waitFor();
-  await page.getByRole('button', { name: '资金覆盖' }).click();
+  await page.getByText('琳 Agent 策略与审计').waitFor();
+  await page.getByText('结果待查证').waitFor();
+  if (process.env.RINSPACE_BROWSER_AGENT_SCREENSHOT_PATH) {
+    await page.screenshot({ path: process.env.RINSPACE_BROWSER_AGENT_SCREENSHOT_PATH, fullPage: true });
+  }
+  await page.getByRole('tab', { name: '资金覆盖' }).click();
   await page.getByText('充足', { exact: true }).waitFor();
   await page.getByLabel('证据时间').fill('2026-09-20T07:00');
   await page.getByLabel('现金（分）').fill('1200');
@@ -387,7 +434,7 @@ try {
   await page.getByRole('button', { name: '确认' }).click();
   await page.getByRole('textbox', { name: '六位验证码' }).waitFor({ state: 'detached' });
   assert.equal(coverageRequests, 1);
-  await page.getByRole('button', { name: '风险案例' }).click();
+  await page.getByRole('tab', { name: '风险案例' }).click();
   if (process.env.RINSPACE_BROWSER_RISK_SCREENSHOT_PATH) {
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: process.env.RINSPACE_BROWSER_RISK_SCREENSHOT_PATH, fullPage: true });
