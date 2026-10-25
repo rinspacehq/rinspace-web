@@ -18,7 +18,13 @@ test('Rin and user message text stays readable in both themes', async ({ page },
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#root')).toHaveAttribute('data-rin-interactive', 'true');
   await page.clock.fastForward(16_000); // The chat component loads after the first page paint.
-  await expect(page.locator('link[rel="stylesheet"][href*="RinAssistant"]')).toHaveCount(1);
+  await page.waitForFunction(() => [...document.styleSheets].some((sheet) => {
+    try {
+      return Boolean(sheet.href?.includes('RinAssistant') && sheet.cssRules.length > 0);
+    } catch {
+      return false;
+    }
+  }));
   await page.locator('body').evaluate((body) => {
     body.insertAdjacentHTML('beforeend', `
       <section id="rin-chat-contrast-fixture" class="rin-assistant-messages">
