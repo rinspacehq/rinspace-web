@@ -134,10 +134,10 @@ function RinAIPricePanel({ uid, canConfigure }: { uid: string; canConfigure: boo
             ['input_cache_miss', 'rinPrice.inputCacheMiss'],
             ['output', 'rinPrice.output'],
           ] as const).map(([metric, label]) => <tr key={metric}><th scope="row">{t(label)}</th>
-            <td>${provider.latestPrices?.[`${metric}_off_peak`]}</td>
-            <td>${provider.latestPrices?.[`${metric}_peak`]}</td>
-            {provider.previousPrices ? <><td>${provider.previousPrices[`${metric}_off_peak`]}</td>
-              <td>${provider.previousPrices[`${metric}_peak`]}</td></> : null}</tr>)}
+            <td>¥{provider.latestPrices?.[`${metric}_off_peak`]}</td>
+            <td>¥{provider.latestPrices?.[`${metric}_peak`]}</td>
+            {provider.previousPrices ? <><td>¥{provider.previousPrices[`${metric}_off_peak`]}</td>
+              <td>¥{provider.previousPrices[`${metric}_peak`]}</td></> : null}</tr>)}
         </tbody></table></div>
         <p>{t('rinPrice.providerUnit')} · {new Date(provider.checkedAt ?? provider.lastAttemptAt).toLocaleString()}</p>
       </> : <p>{t('rinPrice.providerUnavailable')}</p>}

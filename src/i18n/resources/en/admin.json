@@ -168,7 +168,7 @@
     "peak": "Peak",
     "previousOffPeak": "Previous off-peak",
     "previousPeak": "Previous peak",
-    "providerUnit": "USD / million tokens",
+    "providerUnit": "CNY / million tokens",
     "providerCurrent": "Prices unchanged",
     "providerChanged": "Prices have changed",
     "providerStale": "Price monitoring is stale",

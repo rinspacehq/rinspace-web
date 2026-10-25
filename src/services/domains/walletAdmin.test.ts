@@ -102,17 +102,19 @@ it("reads and replaces the complete Rin price under the managed admin session", 
 
 it("reads official DeepSeek prices separately from the SG charge", async () => {
   const prices = {
-    input_cache_hit_off_peak: '0.003', input_cache_hit_peak: '0.006',
-    input_cache_miss_off_peak: '0.15', input_cache_miss_peak: '0.3',
-    output_off_peak: '0.6', output_peak: '1.2',
+    input_cache_hit_off_peak: '0.02', input_cache_hit_peak: '0.04',
+    input_cache_miss_off_peak: '1', input_cache_miss_peak: '2',
+    output_off_peak: '4', output_peak: '8',
   };
   const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-    source_url: 'https://api-docs.deepseek.com/quick_start/pricing/',
+    currency: 'CNY', price_unit: 'yuan_per_million_tokens',
+    source_url: 'https://api-docs.deepseek.com/zh-cn/quick_start/pricing/',
     latest_prices: prices, last_attempt_at: '2026-10-24T00:00:00Z',
     checked_at: '2026-10-24T00:00:00Z', status: 'unchanged', stale: false,
   }), {status: 200}));
   vi.stubGlobal('fetch', fetcher);
   await expect(loadWalletAdminDeepSeekPrice()).resolves.toMatchObject({
+    currency: 'CNY', priceUnit: 'yuan_per_million_tokens',
     latestPrices: prices, status: 'unchanged', stale: false,
   });
   expect(fetcher).toHaveBeenCalledWith(expect.stringContaining('/admin/api/wallet/ai-provider-price'),
