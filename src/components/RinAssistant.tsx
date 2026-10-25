@@ -1,4 +1,5 @@
 import { Icon, AnimateButton, AnimateRadialMenu } from 'components/ui';
+import './RinAssistant.css';
 import { publicEnv } from '@/app/config/env';
 import { FormEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
