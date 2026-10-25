@@ -1,0 +1,10 @@
+/* MathText has page-wide text colors. Keep chat content tied to its bubble. */
+.rin-assistant-message:is(.is-me, .is-rin) .rin-assistant-bubble .math-text,
+.rin-assistant-message:is(.is-me, .is-rin) .rin-assistant-bubble .math-text :is(p, blockquote, figcaption) {
+  color: inherit;
+}
+
+.rin-assistant-message:is(.is-me, .is-rin) .rin-assistant-bubble .math-text blockquote {
+  background: transparent;
+  border-left-color: currentColor;
+}
