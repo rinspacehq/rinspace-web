@@ -158,7 +158,8 @@ describe("AdminWorkspaceShell", () => {
     const onViewChange = vi.fn();
     const user = userEvent.setup();
     render(<AdminHomeView access={adminAccess} onViewChange={onViewChange} />);
-    expect(screen.getByRole("heading", { name: "管理中心" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "管理中心" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "管理中心" })).toBeNull();
     expect(screen.getAllByText("可用")).toHaveLength(2);
     expect(screen.queryByText(/你可以|请先|从这里/)).toBeNull();
     await user.click(screen.getAllByRole("button", { name: "打开" })[1]);

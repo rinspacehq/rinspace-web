@@ -824,40 +824,34 @@
   font-size: 1.5rem;
 }
 .admin-risk-tabs {
-  display: flex;
-  gap: 1.25rem;
+  max-inline-size: 100%;
   overflow-x: auto;
-  border-bottom: 1px solid var(--rin-border);
+  scrollbar-width: thin;
 }
-.admin-risk-tabs button {
+.admin-risk-tabs .rin-animate-tab {
   flex: none;
-  padding: 0.65rem 0.1rem 0.75rem;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--rin-ink-muted);
-  cursor: pointer;
-  font: inherit;
 }
-.admin-risk-tabs button[aria-current="page"] {
-  border-bottom-color: var(--rin-accent);
-  color: var(--rin-ink);
-  font-weight: 700;
+.admin-risk-section-heading h2 {
+  margin: 0;
+  font-size: 1rem;
 }
-.admin-risk-section-heading h2 { margin: 0; font-size: 1rem; }
 .admin-refund-workspace {
   display: grid;
   grid-template-columns: minmax(18rem, 0.9fr) minmax(22rem, 1.1fr);
   gap: 1rem;
   align-items: start;
 }
-.admin-refund-queue { min-width: 0; }
+.admin-refund-queue {
+  min-width: 0;
+}
 .admin-refund-filter label {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
-.admin-refund-filter select { max-width: 16rem; }
+.admin-refund-filter select {
+  max-width: 16rem;
+}
 .admin-refunds-heading p {
   margin: 0;
   color: var(--rin-ink-muted);
@@ -900,7 +894,10 @@
 }
 .admin-risk-card {
   display: grid;
-  grid-template-columns: minmax(7rem, 0.8fr) minmax(12rem, 2fr) minmax(8rem, 1fr) auto;
+  grid-template-columns: minmax(7rem, 0.8fr) minmax(12rem, 2fr) minmax(
+      8rem,
+      1fr
+    ) auto;
   gap: 0.75rem;
   align-items: center;
   padding: 0.75rem 0;
@@ -913,10 +910,21 @@
 .admin-risk-card :is(p, small) {
   margin: 0;
 }
-.admin-risk-card code { display: none; }
-.admin-risk-card .rin-ui-button { justify-self: end; white-space: nowrap; }
-.admin-risk-filter label { display: flex; align-items: center; gap: 0.75rem; }
-.admin-risk-filter select { max-width: 14rem; }
+.admin-risk-card code {
+  display: none;
+}
+.admin-risk-card .rin-ui-button {
+  justify-self: end;
+  white-space: nowrap;
+}
+.admin-risk-filter label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.admin-risk-filter select {
+  max-width: 14rem;
+}
 .admin-risk-reconciliation ol {
   display: grid;
   grid-column: 1 / -1;
@@ -974,7 +982,10 @@
   padding-top: 0.9rem;
   border-top: 1px solid var(--rin-border);
 }
-.admin-refund-history h3 { margin: 0; font-size: 0.9rem; }
+.admin-refund-history h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
 .admin-refund-history ol {
   display: grid;
   gap: 0.55rem;
@@ -988,7 +999,9 @@
   gap: 0.75rem;
   align-items: baseline;
 }
-.admin-refund-history small { color: var(--rin-ink-muted); }
+.admin-refund-history small {
+  color: var(--rin-ink-muted);
+}
 .admin-case-sources {
   display: grid;
   gap: 0.75rem;
@@ -1028,8 +1041,12 @@
   border-bottom: 1px solid var(--rin-border);
   background: transparent;
 }
-.admin-risk-obligations h2 { font-size: 1rem; }
-.admin-risk-section { align-content: start; }
+.admin-risk-obligations h2 {
+  font-size: 1rem;
+}
+.admin-risk-section {
+  align-content: start;
+}
 .admin-wallet-policy > div:first-child {
   grid-column: 1 / -1;
 }
@@ -1059,7 +1076,9 @@
   padding: 0.4rem 0.75rem 0.4rem 0;
   border-right: 1px solid var(--rin-border);
 }
-.admin-wallet-policy dl > div:last-child { border-right: 0; }
+.admin-wallet-policy dl > div:last-child {
+  border-right: 0;
+}
 .admin-wallet-policy dt {
   color: var(--rin-ink-muted);
   font-size: 0.8rem;
@@ -1106,14 +1125,77 @@
   padding-top: 1rem;
   border-top: 1px solid var(--rin-border);
 }
-.admin-risk-policy-form label { display: grid; gap: 0.35rem; }
-.admin-risk-policy-form .rin-ui-button { align-self: end; justify-self: start; }
+.admin-risk-policy-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+.admin-risk-policy-form .rin-ui-button {
+  align-self: end;
+  justify-self: start;
+}
+.admin-agent-policy-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.admin-agent-switch {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+}
+.admin-agent-audit-heading {
+  grid-column: 1 / -1;
+  padding-block-start: 0.5rem;
+  border-block-start: 1px solid var(--rin-border);
+}
+.admin-agent-audit-heading h3 {
+  margin-block: 0.5rem 0;
+}
+.admin-agent-audit-filter {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.admin-agent-audit-filter label {
+  display: grid;
+  gap: 0.35rem;
+}
+.admin-agent-audit-filter .rin-ui-button {
+  align-self: end;
+  justify-self: start;
+}
+.admin-agent-audit-table td {
+  vertical-align: top;
+}
+.admin-agent-audit-table td:nth-child(2) {
+  display: grid;
+  min-inline-size: 15rem;
+  gap: 0.2rem;
+}
+.admin-agent-audit-table small,
+.admin-agent-audit-table code {
+  color: var(--rin-ink-muted);
+}
+.admin-agent-audit-table code {
+  font-family: var(--rin-font-mono);
+}
 @media (max-width: 900px) {
-  .admin-refund-workspace { grid-template-columns: minmax(0, 1fr); }
-  .admin-risk-card { grid-template-columns: minmax(0, 1fr) auto; }
-  .admin-risk-card p { grid-column: 1 / -1; grid-row: 2; }
-  .admin-risk-card small { grid-column: 1; }
-  .admin-risk-card .rin-ui-button { grid-column: 2; grid-row: 1 / 4; }
+  .admin-refund-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-risk-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .admin-risk-card p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .admin-risk-card small {
+    grid-column: 1;
+  }
+  .admin-risk-card .rin-ui-button {
+    grid-column: 2;
+    grid-row: 1 / 4;
+  }
 }
 .admin-risk-coverage-form label {
   display: grid;
@@ -1131,7 +1213,10 @@
   .admin-refund-detail dl {
     grid-template-columns: 1fr;
   }
-  .admin-refund-history li { grid-template-columns: 1fr; gap: 0.2rem; }
+  .admin-refund-history li {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
 }
 @media (max-width: 640px) {
   .admin-wallet-policy {
@@ -1143,7 +1228,13 @@
   .admin-risk-coverage-form {
     grid-template-columns: 1fr;
   }
-  .admin-risk-policy-form { grid-template-columns: 1fr; }
+  .admin-risk-policy-form {
+    grid-template-columns: 1fr;
+  }
+  .admin-agent-policy-form,
+  .admin-agent-audit-filter {
+    grid-template-columns: 1fr;
+  }
   .admin-risk-reconciliation li {
     grid-template-columns: 1fr auto;
   }

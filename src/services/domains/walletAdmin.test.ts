@@ -16,6 +16,8 @@ import {
   loadWalletAdminPolicy,
   loadWalletAdminAIPrice,
   loadWalletAdminDeepSeekPrice,
+  loadWalletAdminAgentPolicy,
+  loadWalletAdminAgentUsage,
   loadWalletAdminRefunds,
   releaseWalletAdminRestriction,
   recordWalletAdminCoverageSnapshot,
@@ -24,6 +26,7 @@ import {
   resolveWalletAdminReconciliation,
   updateWalletAdminPolicy,
   updateWalletAdminAIPrice,
+  updateWalletAdminAgentPolicy,
   WalletAdminError,
 } from "./walletAdmin";
 
@@ -44,9 +47,56 @@ const rawPolicy = {
   created_at: "2026-09-20T08:00:00Z",
 };
 const rawAIPrice = {
-  version: "3", enabled: true, price_sg: "2", single_limit_sg: "2",
-  daily_limit_sg: "20", daily_calls_limit: 10, created_by: "wallet-admin",
-  reason: "reviewed", created_at: "2026-09-20T08:00:00Z",
+  version: "3",
+  enabled: true,
+  price_sg: "2",
+  single_limit_sg: "2",
+  daily_limit_sg: "20",
+  daily_calls_limit: 10,
+  created_by: "wallet-admin",
+  reason: "reviewed",
+  created_at: "2026-09-20T08:00:00Z",
+};
+const rawAgentPolicy = {
+  version: "3",
+  enabled: true,
+  model: "deepseek-flash",
+  provider_price_version: "deepseek-reviewed-v3",
+  provider_input_cny_micros_per_million: "2000000",
+  provider_cached_input_cny_micros_per_million: "200000",
+  provider_output_cny_micros_per_million: "3000000",
+  input_sg_per_million: "10000",
+  cached_input_sg_per_million: "1000",
+  output_sg_per_million: "20000",
+  max_iterations: 12,
+  max_output_tokens: 1024,
+  task_budget_sg: "100",
+  daily_calls_limit: 20,
+  daily_tokens_limit: "100000",
+  daily_sg_limit: "1000",
+  sg_cny_micros_per_unit: "1000",
+  created_by: "wallet-admin",
+  reason: "reviewed Agent policy",
+  created_at: "2026-10-25T08:00:00Z",
+};
+const rawAgentUsage = {
+  run_id: "22345678-1234-4234-8234-123456789abc",
+  operation_id: "32345678-1234-4234-8234-123456789abc",
+  actor_uid: "managed-user",
+  project_id: "article:42",
+  model: "deepseek-flash",
+  provider_price_version: "deepseek-reviewed-v3",
+  state: "SETTLED",
+  input_tokens: "9007199254740993",
+  cached_input_tokens: "2",
+  output_tokens: "3",
+  provider_cost_cny_micros: "20",
+  goodness_charged_sg: "1",
+  goodness_revenue_cny_micros: "1000",
+  profit_cny_micros: "980",
+  provider_request_id: "provider-receipt-1",
+  created_at: "2026-10-25T08:00:00Z",
+  updated_at: "2026-10-25T08:01:00Z",
 };
 
 beforeEach(() => {
@@ -82,43 +132,198 @@ it("reads integer policy values without converting them to JavaScript numbers", 
 });
 
 it("reads and replaces the complete Rin price under the managed admin session", async () => {
-  const fetcher = vi.fn().mockImplementation(async () => new Response(JSON.stringify(rawAIPrice), { status: 200 }));
+  const fetcher = vi
+    .fn()
+    .mockImplementation(
+      async () => new Response(JSON.stringify(rawAIPrice), { status: 200 }),
+    );
   vi.stubGlobal("fetch", fetcher);
-  await expect(loadWalletAdminAIPrice()).resolves.toMatchObject({priceSg:"2",dailyCallsLimit:10});
-  await expect(updateWalletAdminAIPrice("wallet-admin", key, {
-    expectedVersion: "3", enabled: true, priceSg: "2", singleLimitSg: "2",
-    dailyLimitSg: "20", dailyCallsLimit: 10, reason: "reviewed",
-  })).resolves.toMatchObject({version:"3",priceSg:"2"});
+  await expect(loadWalletAdminAIPrice()).resolves.toMatchObject({
+    priceSg: "2",
+    dailyCallsLimit: 10,
+  });
+  await expect(
+    updateWalletAdminAIPrice("wallet-admin", key, {
+      expectedVersion: "3",
+      enabled: true,
+      priceSg: "2",
+      singleLimitSg: "2",
+      dailyLimitSg: "20",
+      dailyCallsLimit: 10,
+      reason: "reviewed",
+    }),
+  ).resolves.toMatchObject({ version: "3", priceSg: "2" });
   expect(fetcher).toHaveBeenLastCalledWith(
     expect.stringContaining("/admin/api/wallet/ai-price"),
     expect.objectContaining({
-      method: "PUT", credentials: "same-origin",
-      headers: expect.objectContaining({"X-Rinspace-CSRF":"synthetic-csrf","Idempotency-Key":key}),
-      body: JSON.stringify({expected_version:"3",enabled:true,price_sg:"2",single_limit_sg:"2",
-        daily_limit_sg:"20",daily_calls_limit:10,reason:"reviewed"}),
+      method: "PUT",
+      credentials: "same-origin",
+      headers: expect.objectContaining({
+        "X-Rinspace-CSRF": "synthetic-csrf",
+        "Idempotency-Key": key,
+      }),
+      body: JSON.stringify({
+        expected_version: "3",
+        enabled: true,
+        price_sg: "2",
+        single_limit_sg: "2",
+        daily_limit_sg: "20",
+        daily_calls_limit: 10,
+        reason: "reviewed",
+      }),
     }),
   );
 });
 
 it("reads official DeepSeek prices separately from the SG charge", async () => {
   const prices = {
-    input_cache_hit_off_peak: '0.02', input_cache_hit_peak: '0.04',
-    input_cache_miss_off_peak: '1', input_cache_miss_peak: '2',
-    output_off_peak: '4', output_peak: '8',
+    input_cache_hit_off_peak: "0.02",
+    input_cache_hit_peak: "0.04",
+    input_cache_miss_off_peak: "1",
+    input_cache_miss_peak: "2",
+    output_off_peak: "4",
+    output_peak: "8",
   };
-  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-    currency: 'CNY', price_unit: 'yuan_per_million_tokens',
-    source_url: 'https://api-docs.deepseek.com/zh-cn/quick_start/pricing/',
-    latest_prices: prices, last_attempt_at: '2026-10-24T00:00:00Z',
-    checked_at: '2026-10-24T00:00:00Z', status: 'unchanged', stale: false,
-  }), {status: 200}));
-  vi.stubGlobal('fetch', fetcher);
+  const fetcher = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        currency: "CNY",
+        price_unit: "yuan_per_million_tokens",
+        source_url: "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+        latest_prices: prices,
+        last_attempt_at: "2026-10-24T00:00:00Z",
+        checked_at: "2026-10-24T00:00:00Z",
+        status: "unchanged",
+        stale: false,
+      }),
+      { status: 200 },
+    ),
+  );
+  vi.stubGlobal("fetch", fetcher);
   await expect(loadWalletAdminDeepSeekPrice()).resolves.toMatchObject({
-    currency: 'CNY', priceUnit: 'yuan_per_million_tokens',
-    latestPrices: prices, status: 'unchanged', stale: false,
+    currency: "CNY",
+    priceUnit: "yuan_per_million_tokens",
+    latestPrices: prices,
+    status: "unchanged",
+    stale: false,
   });
-  expect(fetcher).toHaveBeenCalledWith(expect.stringContaining('/admin/api/wallet/ai-provider-price'),
-    expect.objectContaining({credentials:'same-origin',cache:'no-store'}));
+  expect(fetcher).toHaveBeenCalledWith(
+    expect.stringContaining("/admin/api/wallet/ai-provider-price"),
+    expect.objectContaining({ credentials: "same-origin", cache: "no-store" }),
+  );
+});
+
+it("keeps Agent policy and audit accounting exact while sending a complete bounded update", async () => {
+  const fetcher = vi
+    .fn()
+    .mockImplementation(async (request: string | URL, init?: RequestInit) => {
+      const url = String(request);
+      if (url.includes("agent-usage"))
+        return new Response(JSON.stringify({ items: [rawAgentUsage] }), {
+          status: 200,
+        });
+      if (init?.method === "PUT")
+        return new Response(
+          JSON.stringify({ ...rawAgentPolicy, version: "4", enabled: false }),
+          { status: 200 },
+        );
+      return new Response(JSON.stringify(rawAgentPolicy), { status: 200 });
+    });
+  vi.stubGlobal("fetch", fetcher);
+  await expect(loadWalletAdminAgentPolicy()).resolves.toMatchObject({
+    version: "3",
+    providerInputCnyMicrosPerMillion: "2000000",
+    taskBudgetSg: "100",
+  });
+  await expect(
+    loadWalletAdminAgentUsage({
+      actorUid: "managed-user",
+      runId: rawAgentUsage.run_id,
+      model: "deepseek-flash",
+      state: "settled",
+      createdFrom: "2026-10-25T00:00:00Z",
+      createdTo: "2026-10-26T00:00:00Z",
+    }),
+  ).resolves.toMatchObject([
+    { inputTokens: "9007199254740993", profitCnyMicros: "980" },
+  ]);
+  await expect(
+    updateWalletAdminAgentPolicy("wallet-admin", key, {
+      expectedVersion: "3",
+      enabled: false,
+      model: "deepseek-flash",
+      providerPriceVersion: "deepseek-reviewed-v3",
+      providerInputCnyMicrosPerMillion: "2000000",
+      providerCachedInputCnyMicrosPerMillion: "200000",
+      providerOutputCnyMicrosPerMillion: "3000000",
+      inputSgPerMillion: "10000",
+      cachedInputSgPerMillion: "1000",
+      outputSgPerMillion: "20000",
+      maxIterations: 12,
+      maxOutputTokens: 1024,
+      taskBudgetSg: "100",
+      dailyCallsLimit: 20,
+      dailyTokensLimit: "100000",
+      dailySgLimit: "1000",
+      sgCnyMicrosPerUnit: "1000",
+      reason: "emergency disable",
+    }),
+  ).resolves.toMatchObject({ version: "4", enabled: false });
+  const usageCall = fetcher.mock.calls.find(([url]) =>
+    String(url).includes("agent-usage"),
+  );
+  expect(String(usageCall?.[0])).toContain("actor_uid=managed-user");
+  expect(String(usageCall?.[0])).toContain(`run_id=${rawAgentUsage.run_id}`);
+  expect(fetcher).toHaveBeenLastCalledWith(
+    expect.stringContaining("/admin/api/wallet/agent-policy"),
+    expect.objectContaining({
+      method: "PUT",
+      credentials: "same-origin",
+      body: JSON.stringify({
+        expected_version: 3,
+        enabled: false,
+        model: "deepseek-flash",
+        provider_price_version: "deepseek-reviewed-v3",
+        provider_input_cny_micros_per_million: 2000000,
+        provider_cached_input_cny_micros_per_million: 200000,
+        provider_output_cny_micros_per_million: 3000000,
+        input_sg_per_million: 10000,
+        cached_input_sg_per_million: 1000,
+        output_sg_per_million: 20000,
+        max_iterations: 12,
+        max_output_tokens: 1024,
+        task_budget_sg: 100,
+        daily_calls_limit: 20,
+        daily_tokens_limit: 100000,
+        daily_sg_limit: 1000,
+        sg_cny_micros_per_unit: 1000,
+        reason: "emergency disable",
+      }),
+    }),
+  );
+});
+
+it("does not reinterpret missing Agent receipts as zero accounting", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              ...rawAgentUsage,
+              state: "RESULT_UNKNOWN",
+              provider_request_id: undefined,
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    ),
+  );
+  await expect(loadWalletAdminAgentUsage()).rejects.toMatchObject({
+    code: "INVALID_RESPONSE",
+  });
 });
 
 it("sends a CAS policy update with managed-cookie CSRF, permission and one stable key only", async () => {
@@ -210,79 +415,254 @@ it("sends a versioned case workflow command without a money field", async () => 
 it("keeps case restrictions in integer Shangong units and sends exact source scope", async () => {
   const lot = "32345678-1234-4234-8234-123456789abc";
   const hold = "42345678-1234-4234-8234-123456789abc";
-  const fetcher = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({
-      sources: [{ lot_id: lot, owner_uid: "author", unit: "SG_BOUND", kind: "tip",
-        issued: "9007199254740993", remaining: "9", reserved: "1", restricted: "2", available: "6", version: "4" }],
-      restrictions: [],
-      appeals: [{ appeal_id: "72345678-1234-4234-8234-123456789abc", appellant_role: "subject", case_version: "3", reason: "申请复核", created_at: "2026-09-20T08:00:00Z" }],
-    }), { status: 200 }))
-    .mockResolvedValueOnce(new Response(JSON.stringify({
-      case_id: key, hold_id: hold, lot_id: lot, quantity: "6", hold_state: "ACTIVE",
-      case_version: "3", hold_version: "1", created_at: "2026-09-20T08:01:00Z",
-    }), { status: 201 }))
-    .mockResolvedValueOnce(new Response(JSON.stringify({
-      case_id: key, hold_id: hold, lot_id: lot, quantity: "6", hold_state: "RELEASED",
-      case_version: "4", hold_version: "2", created_at: "2026-09-20T08:02:00Z",
-    }), { status: 201 }));
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          sources: [
+            {
+              lot_id: lot,
+              owner_uid: "author",
+              unit: "SG_BOUND",
+              kind: "tip",
+              issued: "9007199254740993",
+              remaining: "9",
+              reserved: "1",
+              restricted: "2",
+              available: "6",
+              version: "4",
+            },
+          ],
+          restrictions: [],
+          appeals: [
+            {
+              appeal_id: "72345678-1234-4234-8234-123456789abc",
+              appellant_role: "subject",
+              case_version: "3",
+              reason: "申请复核",
+              created_at: "2026-09-20T08:00:00Z",
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          case_id: key,
+          hold_id: hold,
+          lot_id: lot,
+          quantity: "6",
+          hold_state: "ACTIVE",
+          case_version: "3",
+          hold_version: "1",
+          created_at: "2026-09-20T08:01:00Z",
+        }),
+        { status: 201 },
+      ),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          case_id: key,
+          hold_id: hold,
+          lot_id: lot,
+          quantity: "6",
+          hold_state: "RELEASED",
+          case_version: "4",
+          hold_version: "2",
+          created_at: "2026-09-20T08:02:00Z",
+        }),
+        { status: 201 },
+      ),
+    );
   vi.stubGlobal("fetch", fetcher);
   await expect(loadWalletAdminCaseSources(key)).resolves.toMatchObject({
-    sources: [{ available: "6", unit: "SG_BOUND" }], restrictions: [], appeals: [{ appellantRole: "subject", caseVersion: "3" }],
+    sources: [{ available: "6", unit: "SG_BOUND" }],
+    restrictions: [],
+    appeals: [{ appellantRole: "subject", caseVersion: "3" }],
   });
-  await expect(restrictWalletAdminCase("wallet-admin", key,
-    "52345678-1234-4234-8234-123456789abc", lot, "6", "2", "争议来源", "proof"))
-    .resolves.toMatchObject({ holdState: "ACTIVE", quantity: "6" });
-  await expect(releaseWalletAdminRestriction("wallet-admin", hold,
-    "62345678-1234-4234-8234-123456789abc", "3", "解除", "proof"))
-    .resolves.toMatchObject({ holdState: "RELEASED", caseVersion: "4" });
-  expect(fetcher.mock.calls[1]?.[1]?.body).toBe(JSON.stringify({
-    lot_id: lot, quantity: "6", expected_version: "2", reason: "争议来源",
-  }));
+  await expect(
+    restrictWalletAdminCase(
+      "wallet-admin",
+      key,
+      "52345678-1234-4234-8234-123456789abc",
+      lot,
+      "6",
+      "2",
+      "争议来源",
+      "proof",
+    ),
+  ).resolves.toMatchObject({ holdState: "ACTIVE", quantity: "6" });
+  await expect(
+    releaseWalletAdminRestriction(
+      "wallet-admin",
+      hold,
+      "62345678-1234-4234-8234-123456789abc",
+      "3",
+      "解除",
+      "proof",
+    ),
+  ).resolves.toMatchObject({ holdState: "RELEASED", caseVersion: "4" });
+  expect(fetcher.mock.calls[1]?.[1]?.body).toBe(
+    JSON.stringify({
+      lot_id: lot,
+      quantity: "6",
+      expected_version: "2",
+      reason: "争议来源",
+    }),
+  );
   expect(fetcher.mock.calls[1]?.[1]?.body).not.toContain("amount_fen");
 });
 
 it("lists, assigns and evidence-resolves reconciliation differences without a balance field", async () => {
   const run = "82345678-1234-4234-8234-123456789abc";
   const item = "92345678-1234-4234-8234-123456789abc";
-  const fetcher = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ item_id: item, difference_key: "payment:x",
-      code: "AMOUNT_MISMATCH", expected_fen: "1000", actual_fen: "994", state: "OPEN", version: "1",
-      created_at: "2026-09-20T08:00:00Z", updated_at: "2026-09-20T08:00:00Z" }] }), { status: 200 }))
-    .mockResolvedValueOnce(new Response(JSON.stringify({ item_id: item, state: "ASSIGNED", version: "2",
-      assigned_to: "wallet-admin", created_at: "2026-09-20T08:01:00Z" }), { status: 201 }))
-    .mockResolvedValueOnce(new Response(JSON.stringify({ item_id: item, state: "RESOLVED", version: "3",
-      assigned_to: "wallet-admin", resolution: "EVIDENCE_ACCEPTED", evidence_reference: "controlled://evidence/1",
-      created_at: "2026-09-20T08:02:00Z" }), { status: 201 }));
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              item_id: item,
+              difference_key: "payment:x",
+              code: "AMOUNT_MISMATCH",
+              expected_fen: "1000",
+              actual_fen: "994",
+              state: "OPEN",
+              version: "1",
+              created_at: "2026-09-20T08:00:00Z",
+              updated_at: "2026-09-20T08:00:00Z",
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          item_id: item,
+          state: "ASSIGNED",
+          version: "2",
+          assigned_to: "wallet-admin",
+          created_at: "2026-09-20T08:01:00Z",
+        }),
+        { status: 201 },
+      ),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          item_id: item,
+          state: "RESOLVED",
+          version: "3",
+          assigned_to: "wallet-admin",
+          resolution: "EVIDENCE_ACCEPTED",
+          evidence_reference: "controlled://evidence/1",
+          created_at: "2026-09-20T08:02:00Z",
+        }),
+        { status: 201 },
+      ),
+    );
   vi.stubGlobal("fetch", fetcher);
-  await expect(loadWalletAdminReconciliationItems(run)).resolves.toMatchObject([{ itemId: item, expectedFen: "1000", state: "OPEN" }]);
-  await expect(assignWalletAdminReconciliation("wallet-admin", item, key, "1", "wallet-admin", "领取", "proof"))
-    .resolves.toMatchObject({ state: "ASSIGNED", version: "2" });
-  await expect(resolveWalletAdminReconciliation("wallet-admin", item, "22345678-1234-4234-8234-123456789abc", "2",
-    "EVIDENCE_ACCEPTED", "controlled://evidence/1", "复核", "proof")).resolves.toMatchObject({ state: "RESOLVED", version: "3" });
-  expect(fetcher.mock.calls[1]?.[1]?.body).toBe(JSON.stringify({ expected_version: "1", assignee_uid: "wallet-admin", reason: "领取" }));
+  await expect(loadWalletAdminReconciliationItems(run)).resolves.toMatchObject([
+    { itemId: item, expectedFen: "1000", state: "OPEN" },
+  ]);
+  await expect(
+    assignWalletAdminReconciliation(
+      "wallet-admin",
+      item,
+      key,
+      "1",
+      "wallet-admin",
+      "领取",
+      "proof",
+    ),
+  ).resolves.toMatchObject({ state: "ASSIGNED", version: "2" });
+  await expect(
+    resolveWalletAdminReconciliation(
+      "wallet-admin",
+      item,
+      "22345678-1234-4234-8234-123456789abc",
+      "2",
+      "EVIDENCE_ACCEPTED",
+      "controlled://evidence/1",
+      "复核",
+      "proof",
+    ),
+  ).resolves.toMatchObject({ state: "RESOLVED", version: "3" });
+  expect(fetcher.mock.calls[1]?.[1]?.body).toBe(
+    JSON.stringify({
+      expected_version: "1",
+      assignee_uid: "wallet-admin",
+      reason: "领取",
+    }),
+  );
   expect(fetcher.mock.calls[2]?.[1]?.body).not.toContain("balance");
 });
 
 it("keeps coverage amounts exact and records only evidence-backed inputs", async () => {
-  const snapshot = { snapshot_id: key, evidence_as_of: "2026-09-20T08:00:00Z",
-    available_cash_fen: "900719925474100000000000", approved_required_fen: "900719925474100000000020",
-    state: "SHORTFALL", shortfall_fen: "20", methodology_reference: "controlled://methodology/v1",
-    evidence_sha256: "a".repeat(64), evidence_reference: "controlled://statement/1",
-    refundable_principal_fen: "90", refund_reserved_fen: "20", approved_unpaid_refund_fen: "10",
-    open_dispute_exposure_fen: "5", unresolved_payment_fen: "0", alert_state: "OPEN",
-    created_by: "wallet-admin", reason: "日终核对", created_at: "2026-09-20T08:01:00Z" };
-  const fetcher = vi.fn()
-    .mockResolvedValueOnce(new Response(JSON.stringify({ items: [snapshot] }), { status: 200 }))
-    .mockResolvedValueOnce(new Response(JSON.stringify(snapshot), { status: 201 }));
+  const snapshot = {
+    snapshot_id: key,
+    evidence_as_of: "2026-09-20T08:00:00Z",
+    available_cash_fen: "900719925474100000000000",
+    approved_required_fen: "900719925474100000000020",
+    state: "SHORTFALL",
+    shortfall_fen: "20",
+    methodology_reference: "controlled://methodology/v1",
+    evidence_sha256: "a".repeat(64),
+    evidence_reference: "controlled://statement/1",
+    refundable_principal_fen: "90",
+    refund_reserved_fen: "20",
+    approved_unpaid_refund_fen: "10",
+    open_dispute_exposure_fen: "5",
+    unresolved_payment_fen: "0",
+    alert_state: "OPEN",
+    created_by: "wallet-admin",
+    reason: "日终核对",
+    created_at: "2026-09-20T08:01:00Z",
+  };
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ items: [snapshot] }), { status: 200 }),
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify(snapshot), { status: 201 }),
+    );
   vi.stubGlobal("fetch", fetcher);
-  await expect(loadWalletAdminCoverageSnapshots()).resolves.toMatchObject([{ shortfallFen: "20", alertState: "OPEN" }]);
-  await expect(recordWalletAdminCoverageSnapshot("wallet-admin", "22345678-1234-4234-8234-123456789abc", {
-    evidence_as_of: "2026-09-20T08:00:00Z", available_cash_fen: "900719925474100000000000",
-    approved_required_fen: "900719925474100000000020", methodology_reference: "controlled://methodology/v1",
-    evidence_sha256: "a".repeat(64), evidence_reference: "controlled://statement/1", reason: "日终核对",
-  }, "proof")).resolves.toMatchObject({ availableCashFen: "900719925474100000000000" });
-  expect(Object.hasOwn(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body)), "state")).toBe(false);
-  expect(fetcher.mock.calls[1]?.[1]?.headers).toMatchObject({ "X-Rinspace-Step-Up": "proof" });
+  await expect(loadWalletAdminCoverageSnapshots()).resolves.toMatchObject([
+    { shortfallFen: "20", alertState: "OPEN" },
+  ]);
+  await expect(
+    recordWalletAdminCoverageSnapshot(
+      "wallet-admin",
+      "22345678-1234-4234-8234-123456789abc",
+      {
+        evidence_as_of: "2026-09-20T08:00:00Z",
+        available_cash_fen: "900719925474100000000000",
+        approved_required_fen: "900719925474100000000020",
+        methodology_reference: "controlled://methodology/v1",
+        evidence_sha256: "a".repeat(64),
+        evidence_reference: "controlled://statement/1",
+        reason: "日终核对",
+      },
+      "proof",
+    ),
+  ).resolves.toMatchObject({ availableCashFen: "900719925474100000000000" });
+  expect(
+    Object.hasOwn(
+      JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body)),
+      "state",
+    ),
+  ).toBe(false);
+  expect(fetcher.mock.calls[1]?.[1]?.headers).toMatchObject({
+    "X-Rinspace-Step-Up": "proof",
+  });
 });
 
 it("rejects a changed account and malformed policy responses before display", async () => {
