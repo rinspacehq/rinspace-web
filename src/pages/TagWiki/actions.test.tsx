@@ -7,10 +7,14 @@ import { ensureLocaleNamespaces, i18n } from '@/i18n';
 import type { TagDetail } from '@/services/contracts';
 import { loadTagDetail, loadTagSynonyms } from '@/services/domains/tag';
 import { TagDetailWikiArticle, TagSocialActions } from '@/pages/TagDetail';
+import TagWikiEditPage from '@/pages/TagWikiEdit';
+import { openOnlineEditorProject } from '@/utils/onlineEditor';
 import TagWikiPage from './index';
 
 vi.mock('@/components/SiteTopbarShell', () => ({ default: () => null }));
 vi.mock('@/components/SiteIcpLink', () => ({ default: () => null }));
+vi.mock('@/features/tags/TagCreationFlow', () => ({ default: () => null }));
+vi.mock('@/utils/onlineEditor', () => ({ openOnlineEditorProject: vi.fn() }));
 vi.mock('@/services/domains/tag', () => ({
   loadTagDetail: vi.fn(),
   loadTagSynonyms: vi.fn(),
@@ -53,7 +57,7 @@ beforeAll(async () => {
 });
 
 describe('tag Wiki source actions', () => {
-  it('keeps only source access on the standalone Info page', async () => {
+  it('opens the exact shared repository from Info while retaining source and history access', async () => {
     vi.mocked(loadTagDetail).mockResolvedValue(tag);
     vi.mocked(loadTagSynonyms).mockResolvedValue({ synonyms: [], memberActions: [] });
 
@@ -62,6 +66,7 @@ describe('tag Wiki source actions', () => {
         <MemoryRouter initialEntries={['/tags/5815/info/weil-pairings']}>
           <Routes>
             <Route path="/tags/:tagId/info/:tagName" element={<TagWikiPage />} />
+            <Route path="/tags/:tagId/edit/:tagName" element={<TagWikiEditPage />} />
           </Routes>
         </MemoryRouter>
       </HelmetProvider>,
@@ -69,10 +74,16 @@ describe('tag Wiki source actions', () => {
 
     const source = await view.findByRole('link', { name: '源码' });
     expect(source.getAttribute('href')).toBe('/repos/tags/5815/src/branch/main');
-    expect(view.queryByRole('button', { name: '编辑' })).toBeNull();
+    expect(view.getByRole('link', { name: '查看历史' }).getAttribute('href'))
+      .toBe('/repos/tags/5815/commits/branch/main');
+    fireEvent.click(view.getByRole('link', { name: '编辑' }));
+    fireEvent.click(await view.findByRole('button', { name: '在编辑器中打开' }));
+    expect(openOnlineEditorProject).toHaveBeenCalledWith('tags', '5815');
+    expect(view.getByRole('link', { name: '在新标签页打开 Gitea' }).getAttribute('href'))
+      .toBe('/repos/tags/5815');
   });
 
-  it('keeps only the detail link in the detail-page Wiki header', () => {
+  it('offers authenticated editing from the detail-page Wiki header', () => {
     const view = render(
       <MemoryRouter>
         <TagDetailWikiArticle tag={tag} intro={tag.excerpt} />
@@ -80,8 +91,24 @@ describe('tag Wiki source actions', () => {
     );
 
     expect(view.getByRole('link', { name: '详情' })).toBeTruthy();
+    expect(view.getByRole('link', { name: '编辑' }).getAttribute('href'))
+      .toBe('/tags/5815/edit/weil-pairings');
     expect(view.queryByRole('button', { name: '源码' })).toBeNull();
-    expect(view.queryByRole('button', { name: '编辑' })).toBeNull();
+  });
+
+  it('does not offer editor startup while the shared repository is pending', async () => {
+    vi.mocked(loadTagDetail).mockResolvedValue({ ...tag, repositoryState: 'pending' });
+    const view = render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/tags/5815/edit/weil-pairings']}>
+          <Routes>
+            <Route path="/tags/:tagId/edit/:tagName" element={<TagWikiEditPage />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(await view.findByRole('link', { name: '在新标签页打开 Gitea' })).toBeTruthy();
+    expect(view.queryByRole('button', { name: '在编辑器中打开' })).toBeNull();
   });
 
   it('renders independent homepage-style Like and Follow actions', () => {
