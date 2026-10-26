@@ -14,7 +14,7 @@ import { loadTagDetail, loadTagSynonyms } from '@/services/domains/tag';
 import type { ObjectReferenceSummary, TagDetail, TagReferenceSummary, TagSynonym } from '@/services/contracts';
 import { messageFromError } from '@/services/errors';
 import { useRinPageContext } from '@/utils/rinPageContext';
-import { legacyTagPath, tagReadPath, tagWikiPath } from '@/utils/routes';
+import { legacyTagPath, tagEditPath, tagReadPath, tagWikiPath } from '@/utils/routes';
 import { sanitizeReaderHtml } from '@/utils/sanitizeHtml';
 import {
   enhanceWikiTagLinks,
@@ -462,6 +462,9 @@ function TagWikiPage() {
               <header className="wiki-entry-header">
                 <div className="wiki-entry-actions">
                   <span>{t('tagWiki.read')}</span>
+                  {tag.repositoryState === 'active' && (
+                    <Link to={tagEditPath(tag.id, tag.slugName || tagName(tag))}>{t('tagWiki.edit')}</Link>
+                  )}
                   <a href={tagWikiGiteaSourcePath(tag)}>{t('tagWiki.source')}</a>
                   <a href={tagWikiGiteaHistoryPath(tag)}>{t('tagWiki.history')}</a>
                 </div>

@@ -12,6 +12,7 @@ import { loadTagDetail } from '@/services/domains/tag';
 import { messageFromError } from '@/services/errors';
 import type { TagDetail } from '@/services/contracts';
 import { openGiteaPath } from '@/utils/giteaPaths';
+import { openOnlineEditorProject } from '@/utils/onlineEditor';
 
 export default function TagWikiEditPage() {
   const { t } = useFeatureTranslation('reader');
@@ -94,6 +95,11 @@ export default function TagWikiEditPage() {
               </dl>
               <p>{t('tagWikiEdit.repositoryOnly')}</p>
               <div className="publish-actions">
+                {tag.repositoryState === 'active' && (
+                  <AnimateButton unstyled type="button" onClick={() => openOnlineEditorProject('tags', tag.tagId)}>
+                    <Icon name="pencil-square" />{t('tagWikiEdit.openInEditor')}
+                  </AnimateButton>
+                )}
                 <a href={repositoryURL} target="_blank" rel="noreferrer">
                   <AnimateButton unstyled type="button">
                     <Icon name="git" />{t('tagWikiEdit.openGitea')}

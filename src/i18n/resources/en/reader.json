@@ -666,7 +666,8 @@
     "giteaSource": "Gitea source",
     "giteaHistory": "Gitea history",
     "aliases": "Aliases",
-    "emptyAliases": "No aliases"
+    "emptyAliases": "No aliases",
+    "edit": "Edit"
   },
   "tagWikiEdit": {
     "createDocumentTitle": "Create tag · Rinspace",
@@ -677,10 +678,11 @@
     "repositoryState": "Repository state",
     "publicRevision": "Current public revision",
     "renderPending": "The first render has not completed",
-    "repositoryOnly": "Rinspace no longer stores a parallel Wiki body. Changes, reviews, issues, and pull requests are handled in the public repository.",
+    "repositoryOnly": "Edit, commit, and push to update the Wiki. Reviews, issues, and pull requests are available in the source repository.",
     "openGitea": "Open Gitea in a new tab",
     "popupFallback": "Use this link if the browser blocks the new tab",
-    "back": "Back to tag"
+    "back": "Back to tag",
+    "openInEditor": "Open in editor"
   },
   "linkedQuestions": {
     "documentTitle": "Questions citing this one · Rinspace",

@@ -666,7 +666,8 @@
     "giteaSource": "Gitea 源码",
     "giteaHistory": "Gitea 历史",
     "aliases": "别名",
-    "emptyAliases": "无别名"
+    "emptyAliases": "无别名",
+    "edit": "编辑"
   },
   "tagWikiEdit": {
     "createDocumentTitle": "创建标签 · 芥子环",
@@ -677,10 +678,11 @@
     "repositoryState": "仓库状态",
     "publicRevision": "当前公开修订",
     "renderPending": "首次渲染尚未完成",
-    "repositoryOnly": "芥子环 不再保存并行 Wiki 正文。修改、审阅、Issue 与 Pull Request 都在公开仓库完成。",
+    "repositoryOnly": "在编辑器中修改、提交并推送后更新 Wiki。审阅、Issue 和 Pull Request 可在源码仓库中进行。",
     "openGitea": "在新标签页打开 Gitea",
     "popupFallback": "若浏览器阻止弹窗，使用此链接",
-    "back": "返回 Tag"
+    "back": "返回 Tag",
+    "openInEditor": "在编辑器中打开"
   },
   "linkedQuestions": {
     "documentTitle": "被引用的题目 · 芥子环",

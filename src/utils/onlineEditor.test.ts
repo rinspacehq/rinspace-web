@@ -7,7 +7,7 @@ import { onlineEditorProjectPath } from './onlineEditor';
 
 beforeEach(() => { environment.localRealClient = false; });
 
-test.each(['a', 'b'] as const)('opens the exact %s project through the existing managed startup', (owner) => {
+test.each(['a', 'b', 'tags'] as const)('opens the exact %s project through the existing managed startup', (owner) => {
   const url = new URL(onlineEditorProjectPath(owner, 622), 'https://rinspace.com');
   expect(url.pathname).toBe('/editor/');
   expect(Object.fromEntries(url.searchParams)).toEqual({ mode: 'managed', owner, repository: '622' });

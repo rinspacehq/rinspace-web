@@ -39,6 +39,7 @@ import {
   legacyTagPath,
   profilePath as routeProfilePath,
   questionPath as routeQuestionPath,
+  tagEditPath,
   tagReadPath,
   tagWikiPath,
 } from "@/utils/routes";
@@ -694,6 +695,11 @@ export function TagDetailWikiArticle({
           <Link to={tagWikiPath(tag.id, tag.slugName || tagName(tag))}>
             {t('tagDetail.details')}
           </Link>
+          {tag.repositoryState === 'active' && (
+            <Link to={tagEditPath(tag.id, tag.slugName || tagName(tag))}>
+              {t('tagWiki.edit')}
+            </Link>
+          )}
         </div>
       </div>
       <div className="tag-detail-wiki-body detail-body">
