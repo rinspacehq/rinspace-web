@@ -2048,6 +2048,7 @@ export async function updateWalletAdminPolicy(
   expectedVersion: string,
   dailyRechargeLimitFen: string,
   reason: string,
+  rechargeEnabled?: boolean,
 ): Promise<WalletAdminPolicy> {
   walletUUID(key);
   const user = await getCurrentAuthUser();
@@ -2058,7 +2059,12 @@ export async function updateWalletAdminPolicy(
     "policy.update",
     {
       expected_version: expectedVersion,
-      patch: { daily_recharge_limit_fen: dailyRechargeLimitFen },
+      patch: {
+        daily_recharge_limit_fen: dailyRechargeLimitFen,
+        ...(rechargeEnabled === undefined
+          ? {}
+          : { recharge_enabled: rechargeEnabled }),
+      },
       reason,
     },
   );

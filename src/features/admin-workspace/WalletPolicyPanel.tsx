@@ -26,6 +26,7 @@ export function WalletPolicyPanel({
   const { t } = useFeatureTranslation("admin");
   const [policy, setPolicy] = useState<WalletAdminPolicy | null>(null);
   const [limit, setLimit] = useState("");
+  const [rechargeEnabled, setRechargeEnabled] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -36,6 +37,7 @@ export function WalletPolicyPanel({
       const value = await loadWalletAdminPolicy();
       setPolicy(value);
       setLimit(formatFenAsYuan(BigInt(value.dailyRechargeLimitFen)));
+      setRechargeEnabled(value.rechargeEnabled);
     } catch {
       setError(t("policy.loadFailed"));
     } finally {
@@ -64,9 +66,11 @@ export function WalletPolicyPanel({
         policy.version,
         fen.toString(),
         reason,
+        rechargeEnabled,
       );
       setPolicy(value);
       setLimit(formatFenAsYuan(BigInt(value.dailyRechargeLimitFen)));
+      setRechargeEnabled(value.rechargeEnabled);
       setReason("");
     } catch {
       setError(t("policy.updateUnknown"));
@@ -133,6 +137,12 @@ export function WalletPolicyPanel({
                     onChange={(event) => setLimit(event.target.value)}
                   />
                 </label>
+                <Switch
+                  label={t("policy.rechargeState")}
+                  checked={rechargeEnabled}
+                  disabled={busy}
+                  onCheckedChange={setRechargeEnabled}
+                />
                 <label>
                   {t("policy.changeReason")}
                   <Input
