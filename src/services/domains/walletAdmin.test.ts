@@ -368,6 +368,29 @@ it("sends a CAS policy update with managed-cookie CSRF, permission and one stabl
   );
 });
 
+it("keeps an explicit recharge disable in the versioned policy patch", async () => {
+  const fetcher = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(rawPolicy), { status: 200 }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  await updateWalletAdminPolicy(
+    "wallet-admin",
+    key,
+    "7",
+    "100000",
+    "disable reviewed recharge",
+    false,
+  );
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({
+    expected_version: "7",
+    patch: {
+      daily_recharge_limit_fen: "100000",
+      recharge_enabled: false,
+    },
+    reason: "disable reviewed recharge",
+  });
+});
+
 it("sends a versioned case workflow command without a money field", async () => {
   const fetcher = vi.fn().mockResolvedValue(
     new Response(

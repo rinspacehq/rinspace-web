@@ -19,6 +19,7 @@ import {
   loadWalletAdminAgentUsage,
   updateWalletAdminAIPrice,
   updateWalletAdminAgentPolicy,
+  updateWalletAdminPolicy,
   loadWalletAdminObligations,
   loadWalletAdminReconciliations,
   loadWalletAdminReconciliationItems,
@@ -44,6 +45,7 @@ vi.mock("@/services/domains/walletAdmin", () => ({
   loadWalletAdminAgentUsage: vi.fn(),
   updateWalletAdminAIPrice: vi.fn(),
   updateWalletAdminAgentPolicy: vi.fn(),
+  updateWalletAdminPolicy: vi.fn(),
   loadWalletAdminObligations: vi.fn(),
   loadWalletAdminReconciliations: vi.fn(),
   loadWalletAdminReconciliationItems: vi.fn(),
@@ -156,6 +158,16 @@ beforeEach(() => {
     createdBy: "risk-reviewer",
     reason: "configured",
     createdAt: "2026-09-20T06:01:00Z",
+  });
+  vi.mocked(updateWalletAdminPolicy).mockResolvedValue({
+    version: "8",
+    dailyRechargeLimitFen: "100000",
+    rechargeEnabled: true,
+    tipEnabled: true,
+    convertEnabled: true,
+    createdBy: "risk-reviewer",
+    reason: "enable reviewed recharge",
+    createdAt: "2026-10-29T02:00:00Z",
   });
   vi.mocked(loadWalletAdminAgentPolicy).mockResolvedValue({
     version: "3",
@@ -305,6 +317,47 @@ it("keeps recharge limits under money risk, separate from refund review", async 
   expect(screen.getByText("¥8")).toBeTruthy();
   expect(screen.getByText("disabled")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "申请调整" })).toBeNull();
+  expect(screen.queryByRole("switch", { name: "真实充值" })).toBeNull();
+});
+
+it("submits and adopts the authoritative recharge switch state", async () => {
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+      canViewPolicy
+      canConfigurePolicy
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+  const policyPanel = within(
+    document.getElementById("wallet-risk-policy") as HTMLElement,
+  );
+  const rechargeSwitch = await policyPanel.findByRole("switch", {
+    name: "真实充值",
+  });
+  expect(rechargeSwitch.getAttribute("data-state")).toBe("unchecked");
+  fireEvent.click(rechargeSwitch);
+  fireEvent.change(policyPanel.getByLabelText("本次调整理由"), {
+    target: { value: "enable reviewed recharge" },
+  });
+  fireEvent.click(policyPanel.getByRole("button", { name: "申请调整" }));
+  await waitFor(() =>
+    expect(updateWalletAdminPolicy).toHaveBeenCalledWith(
+      "risk-reviewer",
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      "7",
+      "100000",
+      "enable reviewed recharge",
+      true,
+    ),
+  );
+  await waitFor(() =>
+    expect(rechargeSwitch.getAttribute("data-state")).toBe("checked"),
+  );
 });
 
 it("submits a complete versioned Rin price with the existing policy permission", async () => {
