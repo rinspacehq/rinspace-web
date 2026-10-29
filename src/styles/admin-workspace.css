@@ -1162,15 +1162,6 @@
   align-content: start;
   justify-items: start;
 }
-.admin-agent-launch-note {
-  grid-column: 1 / -1;
-  margin: 0;
-  padding: 0.75rem 0.875rem;
-  border: 1px solid color-mix(in srgb, var(--rin-accent) 22%, var(--rin-border));
-  border-radius: var(--rin-radius-md);
-  background: color-mix(in srgb, var(--rin-accent) 6%, var(--rin-surface));
-  color: var(--rin-ink-muted);
-}
 .admin-agent-advanced {
   grid-column: 1 / -1;
   border: 1px solid var(--rin-border);

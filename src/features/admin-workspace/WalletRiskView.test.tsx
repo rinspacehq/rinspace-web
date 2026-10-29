@@ -502,13 +502,15 @@ it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async 
         (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
       ),
   );
-  expect(agentPanel.getByText(/已填入通过真实账号验收的启动参数/)).toBeTruthy();
+  expect(
+    (agentPanel.getByLabelText("提供商价格版本") as HTMLInputElement).value,
+  ).toBe("deepseek-flash-1017-cny-offpeak-20261026");
   fireEvent.click(
     agentPanel.getByRole("switch", { name: /允许新的 Agent 回合/ }),
   );
   expect(
     (agentPanel.getByLabelText("本次调整理由") as HTMLInputElement).value,
-  ).toBe("启用琳 Agent");
+  ).toBe("启用 Agent");
   fireEvent.click(agentPanel.getByRole("button", { name: "保存 Agent 策略" }));
 
   await waitFor(() =>
@@ -532,11 +534,11 @@ it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async 
         dailyTokensLimit: "2000000",
         dailySgLimit: "10000",
         sgCnyMicrosPerUnit: "1000",
-        reason: "启用琳 Agent",
+        reason: "启用 Agent",
       }),
     ),
   );
-  expect(await agentPanel.findByText("Agent 策略已保存并生效。")).toBeTruthy();
+  expect(await agentPanel.findByText("已保存。")).toBeTruthy();
 });
 
 it("records an exact coverage snapshot behind step-up verification", async () => {
