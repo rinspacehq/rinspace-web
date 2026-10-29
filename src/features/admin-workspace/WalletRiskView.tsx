@@ -24,7 +24,6 @@ import {
   beginIdentityStepUp,
   completeIdentityStepUp,
 } from "@/services/phoneAuth";
-import { WalletPolicyPanel } from "./WalletPolicyPanel";
 import {
   assignWalletAdminReconciliation,
   loadWalletAdminCaseSources,
@@ -104,22 +103,18 @@ export function WalletRiskView({
   canRestrict,
   canReconcile,
   canCoverage,
-  canViewPolicy = false,
-  canConfigurePolicy = false,
 }: {
   uid: string;
   canReview: boolean;
   canRestrict: boolean;
   canReconcile: boolean;
   canCoverage: boolean;
-  canViewPolicy?: boolean;
-  canConfigurePolicy?: boolean;
 }) {
   const { t, i18n } = useFeatureTranslation("admin");
   const { t: walletT } = useFeatureTranslation("wallet");
   const [status, setStatus] = useState("open");
   const [section, setSection] = useState<
-    "cases" | "reconciliation" | "coverage" | "policy"
+    "cases" | "reconciliation" | "coverage"
   >("cases");
   const [items, setItems] = useState<readonly WalletAdminCase[]>([]);
   const [cursor, setCursor] = useState("");
@@ -566,30 +561,20 @@ export function WalletRiskView({
           if (
             value === "cases" ||
             value === "reconciliation" ||
-            value === "coverage" ||
-            (value === "policy" && canViewPolicy)
+            value === "coverage"
           )
             setSection(value);
         }}
       >
         <TabsList className="admin-risk-tabs" aria-label={t("risk.title")}>
-          {(
-            [
-              "cases",
-              "reconciliation",
-              "coverage",
-              ...(canViewPolicy ? ["policy"] : []),
-            ] as const
-          ).map((tab) => (
+          {(["cases", "reconciliation", "coverage"] as const).map((tab) => (
             <TabsTrigger key={tab} value={tab}>
               {t(
                 tab === "cases"
                   ? "risk.cases"
                   : tab === "reconciliation"
                     ? "risk.reconciliation"
-                    : tab === "coverage"
-                      ? "risk.coverage"
-                      : "policy.title",
+                    : "risk.coverage",
               )}
             </TabsTrigger>
           ))}
@@ -782,9 +767,6 @@ export function WalletRiskView({
             </form>
           ) : null}
         </Surface>
-      ) : null}
-      {section === "policy" && canViewPolicy ? (
-        <WalletPolicyPanel uid={uid} canConfigure={canConfigurePolicy} />
       ) : null}
       {section === "reconciliation" ? (
         <Surface className="admin-wallet-policy admin-risk-reconciliation admin-risk-section">

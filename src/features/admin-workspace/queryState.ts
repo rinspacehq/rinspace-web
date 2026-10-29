@@ -9,6 +9,7 @@ export type AdminView =
   | "content"
   | "review"
   | "refunds"
+  | "pricing"
   | "risk"
   | "system";
 export type AdminContentSection =
@@ -33,6 +34,7 @@ const adminViews = new Set<AdminView>([
   "content",
   "review",
   "refunds",
+  "pricing",
   "risk",
   "system",
 ]);

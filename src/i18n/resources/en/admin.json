@@ -5,6 +5,7 @@
     "content": "Content management - Rinspace",
     "review": "Review workbench - Rinspace",
     "refunds": "Refund review - Rinspace",
+    "pricing": "Models & pricing - Rinspace",
     "risk": "Money risk - Rinspace",
     "system": "System operations - Rinspace"
   },
@@ -13,6 +14,7 @@
     "content": "Content management",
     "review": "Review workbench",
     "refunds": "Refund review",
+    "pricing": "Models & pricing",
     "risk": "Money risk",
     "system": "System operations"
   },
@@ -43,6 +45,10 @@
     "roleReviewer": "Review member"
   },
   "home": { "title": "Administration" },
+  "pricing": {
+    "title": "Models & pricing",
+    "description": "Manage recharge, Rin chat, and Rin Agent pricing, limits, and audits in one place."
+  },
   "refunds": {
     "title": "Refund review",
     "status": "Refund status",
@@ -128,7 +134,7 @@
     "confirm": "Confirm"
   },
   "policy": {
-    "title": "Recharge limit",
+    "title": "Recharge settings",
     "currentLimit": "Current daily limit",
     "version": "Policy version",
     "rechargeState": "Real recharge",
@@ -178,7 +184,7 @@
     "providerUnavailable": "No official price snapshot yet"
   },
   "agent": {
-    "title": "Rin Agent policy and audit",
+    "title": "Rin Agent pricing and audit",
     "state": "Service state",
     "enabled": "Enabled",
     "disabled": "Emergency disabled",
@@ -190,16 +196,17 @@
     "dailyTokens": "Daily token limit",
     "reason": "Last change reason",
     "enable": "Allow new Agent turns (switch off for emergency disable)",
-    "providerInputRate": "Provider input rate (CNY micros / million tokens)",
-    "providerCachedRate": "Provider cached-input rate (CNY micros / million tokens)",
-    "providerOutputRate": "Provider output rate (CNY micros / million tokens)",
+    "providerInputRate": "Provider input rate (CNY / million tokens)",
+    "providerCachedRate": "Provider cached-input rate (CNY / million tokens)",
+    "providerOutputRate": "Provider output rate (CNY / million tokens)",
     "inputSgRate": "Input SG rate (/ million tokens)",
     "cachedSgRate": "Cached-input SG rate (/ million tokens)",
     "outputSgRate": "Output SG rate (/ million tokens)",
     "maxIterations": "Maximum task iterations",
     "maxOutputTokens": "Maximum output tokens per turn",
     "dailyCalls": "Daily call limit",
-    "sgCnyValue": "Internal value per SG (CNY micros)",
+    "sgCnyValue": "Shangong conversion",
+    "sgCnyValueFixed": "1 SG = ¥0.10 (matches recharge conversion)",
     "changeReason": "Reason for this change",
     "advanced": "Billing",
     "defaultEnableReason": "Enable Agent",

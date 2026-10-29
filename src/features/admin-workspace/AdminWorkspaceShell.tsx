@@ -6,6 +6,7 @@ import {
   AnimateLayoutDashboard,
   AnimateShieldCheck,
   AnimateCircleAlert,
+  AnimateWallet,
   AnimateTerminal,
   AnimateSidebar,
   AnimateSidebarContent,
@@ -50,6 +51,10 @@ const navigationItems: ReadonlyArray<
   {
     view: "refunds",
     icon: <AnimateHeartHandshake animateOnHover size={18} aria-hidden="true" />,
+  },
+  {
+    view: "pricing",
+    icon: <AnimateWallet animateOnHover size={18} aria-hidden="true" />,
   },
   {
     view: "risk",

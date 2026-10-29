@@ -39,6 +39,7 @@ import {
   AdminWorkspaceShell,
   WalletRefundsView,
   WalletRiskView,
+  ModelPricingView,
   ReviewWorkbench,
   SystemOperationsView,
   adminContentSectionSearchParams,
@@ -2422,15 +2423,23 @@ function AdminPage() {
               canRevoke={access.walletCapabilities["wallet.refund.revoke"]}
             />
           ) : null}
+          {activeView === "pricing" ? (
+            <ModelPricingView
+              uid={access.actorUID}
+              canConfigure={
+                access.walletCapabilities["wallet.policy.configure"]
+              }
+            />
+          ) : null}
           {activeView === "risk" ? (
             <WalletRiskView
               uid={access.actorUID}
               canReview={access.walletCapabilities["wallet.risk.review"]}
               canRestrict={access.walletCapabilities["wallet.risk.restrict"]}
-              canReconcile={access.walletCapabilities["wallet.reconciliation.manage"]}
+              canReconcile={
+                access.walletCapabilities["wallet.reconciliation.manage"]
+              }
               canCoverage={access.walletCapabilities["wallet.coverage.manage"]}
-              canViewPolicy={access.walletCapabilities["wallet.policy.view"]}
-              canConfigurePolicy={access.walletCapabilities["wallet.policy.configure"]}
             />
           ) : null}
           {activeView === "system" ? (
