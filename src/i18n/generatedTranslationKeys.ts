@@ -26,7 +26,6 @@ export type TranslationKey =
   | "admin:agent.inputSgRate"
   | "admin:agent.invalid"
   | "admin:agent.invalidFilter"
-  | "admin:agent.launchDefaults"
   | "admin:agent.loadFailed"
   | "admin:agent.maxIterations"
   | "admin:agent.maxOutputTokens"

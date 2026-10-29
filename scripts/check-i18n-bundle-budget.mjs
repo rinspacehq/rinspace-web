@@ -21,7 +21,12 @@ const rinPriceAdminBudgetBytes = 1024;
 // bytes over the prior retained-feature ceiling; reserve exactly 1 KiB while
 // preserving both the per-chunk ceiling and the independent wallet budget.
 const rinAgentAdminBudgetBytes = 1024;
-const totalBudgetBytes = baseFeatureBudgetBytes + markdownDraftRecoveryBudgetBytes + rinPriceAdminBudgetBytes + rinAgentAdminBudgetBytes;
+// Explicit save confirmation, permission denial and optimistic-version conflict
+// feedback keep Agent policy changes actionable. The first fixed v0.2.22 build
+// measured 396 gzip bytes over the former ceiling; reserve a bounded 512-byte
+// increment while also removing the verbose bootstrap note and tightening copy.
+const rinAgentPolicySaveFeedbackBudgetBytes = 512;
+const totalBudgetBytes = baseFeatureBudgetBytes + markdownDraftRecoveryBudgetBytes + rinPriceAdminBudgetBytes + rinAgentAdminBudgetBytes + rinAgentPolicySaveFeedbackBudgetBytes;
 // The wallet owns a
 // separate 4 KiB two-locale read-flow budget. The newly implemented confirmation,
 // storage failure and unknown-result recovery flow owns an additional 1 KiB;
@@ -75,7 +80,7 @@ if (totalGzipBytes - walletGzipBytes > totalBudgetBytes || walletGzipBytes > wal
 
 const report = {
   profile: 'two locales; feature namespaces only; core shell namespaces excluded',
-  budgets: { perChunkGzipBytes: perChunkBudgetBytes, baseFeatureGzipBytes: baseFeatureBudgetBytes, markdownDraftRecoveryGzipBytes: markdownDraftRecoveryBudgetBytes, rinPriceAdminGzipBytes: rinPriceAdminBudgetBytes, rinAgentAdminGzipBytes: rinAgentAdminBudgetBytes, retainedFeatureGzipBytes: totalBudgetBytes, walletReadGzipBytes: walletReadBudgetBytes, walletConversionGzipBytes: walletConversionBudgetBytes, walletTipGzipBytes: walletTipBudgetBytes, walletRefundGzipBytes: walletRefundBudgetBytes, walletGzipBytes: walletBudgetBytes, totalFeatureGzipBytes: totalBudgetBytes + walletBudgetBytes },
+  budgets: { perChunkGzipBytes: perChunkBudgetBytes, baseFeatureGzipBytes: baseFeatureBudgetBytes, markdownDraftRecoveryGzipBytes: markdownDraftRecoveryBudgetBytes, rinPriceAdminGzipBytes: rinPriceAdminBudgetBytes, rinAgentAdminGzipBytes: rinAgentAdminBudgetBytes, rinAgentPolicySaveFeedbackGzipBytes: rinAgentPolicySaveFeedbackBudgetBytes, retainedFeatureGzipBytes: totalBudgetBytes, walletReadGzipBytes: walletReadBudgetBytes, walletConversionBudgetBytes: walletConversionBudgetBytes, walletTipGzipBytes: walletTipBudgetBytes, walletRefundGzipBytes: walletRefundBudgetBytes, walletGzipBytes: walletBudgetBytes, totalFeatureGzipBytes: totalBudgetBytes + walletBudgetBytes },
   actual: { totalFeatureGzipBytes: totalGzipBytes, chunks: resources },
 };
 fs.mkdirSync(path.dirname(evidencePath), { recursive: true });

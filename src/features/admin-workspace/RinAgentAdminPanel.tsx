@@ -378,11 +378,6 @@ export function RinAgentAdminPanel({
                   }}
                 />
               </div>
-              {isBootstrapPolicy(policy) ? (
-                <p className="admin-agent-launch-note">
-                  {t("agent.launchDefaults")}
-                </p>
-              ) : null}
               <label>
                 {t("agent.changeReason")}
                 <Input
