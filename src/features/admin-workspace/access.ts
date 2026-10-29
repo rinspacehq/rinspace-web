@@ -59,6 +59,7 @@ export function deriveAdminWorkspaceAccess(
   if (canManageContent) allowedViews.push("content");
   if (canReview) allowedViews.push("review");
   if (canViewRefunds) allowedViews.push("refunds");
+  if (walletCapabilities["wallet.policy.view"]) allowedViews.push("pricing");
   if (canViewRisk) allowedViews.push("risk");
   if (capabilities.views.system) allowedViews.push("system");
   return {

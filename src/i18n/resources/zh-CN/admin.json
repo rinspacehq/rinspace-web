@@ -5,6 +5,7 @@
     "content": "内容管理 - 芥子环",
     "review": "审核台 - 芥子环",
     "refunds": "退款审核 - 芥子环",
+    "pricing": "模型与费率 - 芥子环",
     "risk": "资金风险 - 芥子环",
     "system": "系统运营 - 芥子环"
   },
@@ -13,6 +14,7 @@
     "content": "内容管理",
     "review": "审核台",
     "refunds": "退款审核",
+    "pricing": "模型与费率",
     "risk": "资金风险",
     "system": "系统运营"
   },
@@ -40,6 +42,10 @@
     "roleReviewer": "审核成员"
   },
   "home": { "title": "管理中心" },
+  "pricing": {
+    "title": "模型与费率",
+    "description": "统一管理充值、琳聊天与琳 Agent 的价格、限额和审计。"
+  },
   "refunds": {
     "title": "退款审核",
     "status": "退款状态",
@@ -125,7 +131,7 @@
     "confirm": "确认"
   },
   "policy": {
-    "title": "充值限额",
+    "title": "充值设置",
     "currentLimit": "当前单日上限",
     "version": "规则版本",
     "rechargeState": "真实充值",
@@ -175,7 +181,7 @@
     "providerUnavailable": "暂无官方价格快照"
   },
   "agent": {
-    "title": "琳 Agent 策略与审计",
+    "title": "琳 Agent 定价与审计",
     "state": "服务状态",
     "enabled": "已启用",
     "disabled": "已紧急停用",
@@ -187,16 +193,17 @@
     "dailyTokens": "单日 token 上限",
     "reason": "上次调整理由",
     "enable": "允许新的 Agent 回合（关闭即紧急停用）",
-    "providerInputRate": "提供商输入价（人民币微元／百万 token）",
-    "providerCachedRate": "提供商缓存输入价（人民币微元／百万 token）",
-    "providerOutputRate": "提供商输出价（人民币微元／百万 token）",
+    "providerInputRate": "提供商输入价（人民币元／百万 token）",
+    "providerCachedRate": "提供商缓存输入价（人民币元／百万 token）",
+    "providerOutputRate": "提供商输出价（人民币元／百万 token）",
     "inputSgRate": "输入善功费率（／百万 token）",
     "cachedSgRate": "缓存输入善功费率（／百万 token）",
     "outputSgRate": "输出善功费率（／百万 token）",
     "maxIterations": "单任务最大迭代",
     "maxOutputTokens": "单回合最大输出 token",
     "dailyCalls": "单日调用上限",
-    "sgCnyValue": "每善功内部价值（人民币微元）",
+    "sgCnyValue": "善功兑换基准",
+    "sgCnyValueFixed": "1 善功 = ¥0.10（与充值规则一致）",
     "changeReason": "本次调整理由",
     "advanced": "计费",
     "defaultEnableReason": "启用 Agent",

@@ -4,6 +4,7 @@ export * from "./AdminHomeView";
 export * from "./AdminWorkspaceShell";
 export * from "./WalletRefundsView";
 export * from "./WalletRiskView";
+export * from "./ModelPricingView";
 export * from "./queryState";
 export * from "./ReviewWorkbench";
 export * from "./SystemOperationsView";

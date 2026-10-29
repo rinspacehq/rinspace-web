@@ -29,7 +29,6 @@ type AgentPolicyDraft = Readonly<{
   dailyCallsLimit: string;
   dailyTokensLimit: string;
   dailySgLimit: string;
-  sgCnyMicrosPerUnit: string;
 }>;
 type AgentPolicyTextField = Exclude<
   keyof AgentPolicyDraft,
@@ -52,27 +51,46 @@ const emptyDraft: AgentPolicyDraft = {
   dailyCallsLimit: "1",
   dailyTokensLimit: "1",
   dailySgLimit: "1",
-  sgCnyMicrosPerUnit: "0",
 };
 
 const reviewedLaunchDraft: AgentPolicyDraft = Object.freeze({
   enabled: false,
   model: "deepseek-flash",
   providerPriceVersion: "deepseek-flash-1017-cny-offpeak-20261026",
-  providerInputCnyMicrosPerMillion: "1000000",
-  providerCachedInputCnyMicrosPerMillion: "20000",
-  providerOutputCnyMicrosPerMillion: "4000000",
-  inputSgPerMillion: "10000",
-  cachedInputSgPerMillion: "1000",
-  outputSgPerMillion: "20000",
+  providerInputCnyMicrosPerMillion: "1",
+  providerCachedInputCnyMicrosPerMillion: "0.02",
+  providerOutputCnyMicrosPerMillion: "4",
+  inputSgPerMillion: "100",
+  cachedInputSgPerMillion: "10",
+  outputSgPerMillion: "200",
   maxIterations: "24",
   maxOutputTokens: "1024",
-  taskBudgetSg: "1000",
+  taskBudgetSg: "10",
   dailyCallsLimit: "200",
   dailyTokensLimit: "2000000",
-  dailySgLimit: "10000",
-  sgCnyMicrosPerUnit: "1000",
+  dailySgLimit: "100",
 });
+
+const walletCnyMicrosPerSg = "100000";
+
+export function agentMicrosToYuan(raw: string): string {
+  const value = BigInt(raw);
+  if (value < 0n) throw new TypeError("negative amount");
+  const fraction = (value % 1_000_000n)
+    .toString()
+    .padStart(6, "0")
+    .replace(/0+$/, "");
+  return `${value / 1_000_000n}${fraction ? `.${fraction}` : ""}`;
+}
+
+export function agentYuanToMicros(raw: string): string {
+  const match = /^(0|[1-9]\d*)(?:\.(\d{1,6}))?$/.exec(raw);
+  if (!match) throw new TypeError("invalid CNY amount");
+  return (
+    BigInt(match[1]) * 1_000_000n +
+    BigInt((match[2] || "").padEnd(6, "0") || "0")
+  ).toString();
+}
 
 function isBootstrapPolicy(policy: WalletAdminAgentPolicy): boolean {
   return (
@@ -89,10 +107,15 @@ function policyDraft(policy: WalletAdminAgentPolicy): AgentPolicyDraft {
     enabled: policy.enabled,
     model: policy.model,
     providerPriceVersion: policy.providerPriceVersion,
-    providerInputCnyMicrosPerMillion: policy.providerInputCnyMicrosPerMillion,
-    providerCachedInputCnyMicrosPerMillion:
+    providerInputCnyMicrosPerMillion: agentMicrosToYuan(
+      policy.providerInputCnyMicrosPerMillion,
+    ),
+    providerCachedInputCnyMicrosPerMillion: agentMicrosToYuan(
       policy.providerCachedInputCnyMicrosPerMillion,
-    providerOutputCnyMicrosPerMillion: policy.providerOutputCnyMicrosPerMillion,
+    ),
+    providerOutputCnyMicrosPerMillion: agentMicrosToYuan(
+      policy.providerOutputCnyMicrosPerMillion,
+    ),
     inputSgPerMillion: policy.inputSgPerMillion,
     cachedInputSgPerMillion: policy.cachedInputSgPerMillion,
     outputSgPerMillion: policy.outputSgPerMillion,
@@ -102,7 +125,6 @@ function policyDraft(policy: WalletAdminAgentPolicy): AgentPolicyDraft {
     dailyCallsLimit: String(policy.dailyCallsLimit),
     dailyTokensLimit: policy.dailyTokensLimit,
     dailySgLimit: policy.dailySgLimit,
-    sgCnyMicrosPerUnit: policy.sgCnyMicrosPerUnit,
   };
 }
 
@@ -135,16 +157,18 @@ function PolicyInput({
   label,
   value,
   onChange,
+  inputMode = "numeric",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  inputMode?: "numeric" | "decimal";
 }) {
   return (
     <label>
       {label}
       <Input
-        inputMode="numeric"
+        inputMode={inputMode}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
       />
@@ -231,12 +255,15 @@ export function RinAgentAdminPanel({
         enabled: draft.enabled,
         model: draft.model,
         providerPriceVersion: draft.providerPriceVersion,
-        providerInputCnyMicrosPerMillion:
+        providerInputCnyMicrosPerMillion: agentYuanToMicros(
           draft.providerInputCnyMicrosPerMillion,
-        providerCachedInputCnyMicrosPerMillion:
+        ),
+        providerCachedInputCnyMicrosPerMillion: agentYuanToMicros(
           draft.providerCachedInputCnyMicrosPerMillion,
-        providerOutputCnyMicrosPerMillion:
+        ),
+        providerOutputCnyMicrosPerMillion: agentYuanToMicros(
           draft.providerOutputCnyMicrosPerMillion,
+        ),
         inputSgPerMillion: draft.inputSgPerMillion,
         cachedInputSgPerMillion: draft.cachedInputSgPerMillion,
         outputSgPerMillion: draft.outputSgPerMillion,
@@ -246,7 +273,7 @@ export function RinAgentAdminPanel({
         dailyCallsLimit: integer(draft.dailyCallsLimit),
         dailyTokensLimit: draft.dailyTokensLimit,
         dailySgLimit: draft.dailySgLimit,
-        sgCnyMicrosPerUnit: draft.sgCnyMicrosPerUnit,
+        sgCnyMicrosPerUnit: walletCnyMicrosPerSg,
         reason: reason.trim(),
       };
     } catch {
@@ -278,8 +305,7 @@ export function RinAgentAdminPanel({
       ) {
         await loadPolicy();
         setPolicyError(t("agent.versionConflict"));
-      }
-      else {
+      } else {
         await loadPolicy();
         setPolicyError(t("agent.updateUnknown"));
       }
@@ -367,13 +393,14 @@ export function RinAgentAdminPanel({
                   onCheckedChange={(checked) => {
                     setPolicySuccess("");
                     setDraft((current) => ({ ...current, enabled: checked }));
-                    setReason((current) =>
-                      current ||
-                      t(
-                        checked
-                          ? "agent.defaultEnableReason"
-                          : "agent.defaultDisableReason",
-                      ),
+                    setReason(
+                      (current) =>
+                        current ||
+                        t(
+                          checked
+                            ? "agent.defaultEnableReason"
+                            : "agent.defaultDisableReason",
+                        ),
                     );
                   }}
                 />
@@ -442,6 +469,7 @@ export function RinAgentAdminPanel({
                   <PolicyInput
                     label={t("agent.providerInputRate")}
                     value={draft.providerInputCnyMicrosPerMillion}
+                    inputMode="decimal"
                     onChange={(value) =>
                       setDraftValue("providerInputCnyMicrosPerMillion", value)
                     }
@@ -449,6 +477,7 @@ export function RinAgentAdminPanel({
                   <PolicyInput
                     label={t("agent.providerCachedRate")}
                     value={draft.providerCachedInputCnyMicrosPerMillion}
+                    inputMode="decimal"
                     onChange={(value) =>
                       setDraftValue(
                         "providerCachedInputCnyMicrosPerMillion",
@@ -459,6 +488,7 @@ export function RinAgentAdminPanel({
                   <PolicyInput
                     label={t("agent.providerOutputRate")}
                     value={draft.providerOutputCnyMicrosPerMillion}
+                    inputMode="decimal"
                     onChange={(value) =>
                       setDraftValue("providerOutputCnyMicrosPerMillion", value)
                     }
@@ -484,13 +514,10 @@ export function RinAgentAdminPanel({
                       setDraftValue("outputSgPerMillion", value)
                     }
                   />
-                  <PolicyInput
-                    label={t("agent.sgCnyValue")}
-                    value={draft.sgCnyMicrosPerUnit}
-                    onChange={(value) =>
-                      setDraftValue("sgCnyMicrosPerUnit", value)
-                    }
-                  />
+                  <label>
+                    {t("agent.sgCnyValue")}
+                    <Input value={t("agent.sgCnyValueFixed")} readOnly />
+                  </label>
                 </div>
               </details>
               <Button

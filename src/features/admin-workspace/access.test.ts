@@ -102,6 +102,29 @@ describe("admin workspace access", () => {
     expect(access.canViewRefunds).toBe(false);
   });
 
+  it("exposes model pricing as a dedicated policy view", () => {
+    const access = deriveAdminWorkspaceAccess(
+      { uid: "pricing-admin", isAdmin: true, isModerator: false },
+      {
+        ...capabilities,
+        views: { home: true, content: false, review: false, system: false },
+      },
+      {
+        "wallet.refund.view": false,
+        "wallet.refund.review": false,
+        "wallet.refund.revoke": false,
+        "wallet.policy.view": true,
+        "wallet.policy.configure": true,
+        "wallet.risk.view": false,
+        "wallet.risk.review": false,
+        "wallet.risk.restrict": false,
+        "wallet.reconciliation.manage": false,
+        "wallet.coverage.manage": false,
+      },
+    );
+    expect(access.allowedViews).toEqual(["home", "pricing"]);
+  });
+
   it("does not expand server access from client role signals", () => {
     const deniedByServer = {
       ...capabilities,

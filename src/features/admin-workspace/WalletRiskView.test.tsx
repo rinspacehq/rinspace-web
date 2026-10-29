@@ -8,6 +8,8 @@ import {
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { WalletRiskView } from "./WalletRiskView";
+import { ModelPricingView } from "./ModelPricingView";
+import { agentMicrosToYuan, agentYuanToMicros } from "./RinAgentAdminPanel";
 import {
   loadWalletAdminCases,
   loadWalletAdminCaseSources,
@@ -33,6 +35,14 @@ import {
   beginIdentityStepUp,
   completeIdentityStepUp,
 } from "@/services/phoneAuth";
+
+it("converts provider prices between exact yuan and internal micros", () => {
+  expect(agentMicrosToYuan("20000")).toBe("0.02");
+  expect(agentMicrosToYuan("1000000")).toBe("1");
+  expect(agentYuanToMicros("0.02")).toBe("20000");
+  expect(agentYuanToMicros("4")).toBe("4000000");
+  expect(() => agentYuanToMicros("0.0000001")).toThrow();
+});
 
 vi.mock("@/services/domains/walletAdmin", () => ({
   loadWalletAdminCases: vi.fn(),
@@ -294,19 +304,11 @@ beforeEach(() => {
   });
 });
 
-it("keeps recharge limits under money risk, separate from refund review", async () => {
-  render(
-    <WalletRiskView
-      uid="risk-reviewer"
-      canReview={false}
-      canRestrict={false}
-      canReconcile={false}
-      canCoverage={false}
-      canViewPolicy
-      canConfigurePolicy={false}
-    />,
-  );
-  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+it("keeps recharge and model pricing in its own admin view", async () => {
+  render(<ModelPricingView uid="risk-reviewer" canConfigure={false} />);
+  expect(
+    screen.getByRole("heading", { name: /模型与费率|pricing\.title/ }),
+  ).toBeTruthy();
   expect(await screen.findByText("¥1000.00")).toBeTruthy();
   expect(screen.getByText("approved default")).toBeTruthy();
   expect(await screen.findByText("琳的善功费用")).toBeTruthy();
@@ -321,18 +323,7 @@ it("keeps recharge limits under money risk, separate from refund review", async 
 });
 
 it("submits and adopts the authoritative recharge switch state", async () => {
-  render(
-    <WalletRiskView
-      uid="risk-reviewer"
-      canReview={false}
-      canRestrict={false}
-      canReconcile={false}
-      canCoverage={false}
-      canViewPolicy
-      canConfigurePolicy
-    />,
-  );
-  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
   const policyPanel = within(
     document.getElementById("wallet-risk-policy") as HTMLElement,
   );
@@ -361,18 +352,7 @@ it("submits and adopts the authoritative recharge switch state", async () => {
 });
 
 it("submits a complete versioned Rin price with the existing policy permission", async () => {
-  render(
-    <WalletRiskView
-      uid="risk-reviewer"
-      canReview={false}
-      canRestrict={false}
-      canReconcile={false}
-      canCoverage={false}
-      canViewPolicy
-      canConfigurePolicy
-    />,
-  );
-  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
   await screen.findByText("琳的善功费用");
   const rinPanel = within(
     document.getElementById("wallet-risk-ai-price") as HTMLElement,
@@ -409,21 +389,10 @@ it("submits a complete versioned Rin price with the existing policy permission",
 });
 
 it("renders exact Agent audit gaps and submits a complete emergency policy update", async () => {
-  render(
-    <WalletRiskView
-      uid="risk-reviewer"
-      canReview={false}
-      canRestrict={false}
-      canReconcile={false}
-      canCoverage={false}
-      canViewPolicy
-      canConfigurePolicy
-    />,
-  );
-  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
   const agentPanel = within(
     await screen
-      .findByText("琳 Agent 策略与审计")
+      .findByText("琳 Agent 定价与审计")
       .then(
         (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
       ),
@@ -483,21 +452,10 @@ it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async 
     }),
   );
 
-  render(
-    <WalletRiskView
-      uid="risk-reviewer"
-      canReview={false}
-      canRestrict={false}
-      canReconcile={false}
-      canCoverage={false}
-      canViewPolicy
-      canConfigurePolicy
-    />,
-  );
-  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
   const agentPanel = within(
     await screen
-      .findByText("琳 Agent 策略与审计")
+      .findByText("琳 Agent 定价与审计")
       .then(
         (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
       ),
@@ -524,16 +482,16 @@ it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async 
         providerInputCnyMicrosPerMillion: "1000000",
         providerCachedInputCnyMicrosPerMillion: "20000",
         providerOutputCnyMicrosPerMillion: "4000000",
-        inputSgPerMillion: "10000",
-        cachedInputSgPerMillion: "1000",
-        outputSgPerMillion: "20000",
+        inputSgPerMillion: "100",
+        cachedInputSgPerMillion: "10",
+        outputSgPerMillion: "200",
         maxIterations: 24,
         maxOutputTokens: 1024,
-        taskBudgetSg: "1000",
+        taskBudgetSg: "10",
         dailyCallsLimit: 200,
         dailyTokensLimit: "2000000",
-        dailySgLimit: "10000",
-        sgCnyMicrosPerUnit: "1000",
+        dailySgLimit: "100",
+        sgCnyMicrosPerUnit: "100000",
         reason: "启用 Agent",
       }),
     ),
