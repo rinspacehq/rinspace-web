@@ -12,11 +12,11 @@ External contributors need only this public tree; no private configuration or ac
   activation record. Until that boundary passes, private `ui/` remains the current source authority.
   After it passes, this repository is the only editable product frontend source; private `ui/`
   trees retained in old branches are recovery evidence and cannot be a second development line.
-- The current accepted release is original v0.2.2, source f50f4fbc2cba669724afd20e7dd1e5d79cdb08b4,
-  package SHA-256 44458906582bd98f7b579a33428a7beee78cb9d612981a6b2bd70b25124375c1.
+- The current accepted release is v0.2.23, source ce47706e63483306ceb996257a2ff77442a7027d,
+  package SHA-256 94caa2277e5abee782e922e323a7d41c6c7fed5f4942d8a30e4182aef91d3c74.
   Public/private checks consume those same bytes. Later public main commits do not change a lock
   or automatically activate product deployment. Documentation commits do not rebuild this release;
-  v0.2.1 remains a historical cutover artifact, not the current product lock.
+  Earlier releases remain historical cutover artifacts, not the current product lock.
 - Product requirements, backend identity, canonical contracts, private integration and production
   deployment remain owned by rinspacehq/rinspace. The Mastodon fork owns its native inner runtime;
   shared inputs come from the accepted fixed package, with its manifest and compatibility review.

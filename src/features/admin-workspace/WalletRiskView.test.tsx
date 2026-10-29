@@ -9,7 +9,11 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { WalletRiskView } from "./WalletRiskView";
 import { ModelPricingView } from "./ModelPricingView";
-import { agentMicrosToYuan, agentYuanToMicros } from "./RinAgentAdminPanel";
+import {
+  agentMicrosToYuan,
+  agentScaledSgToYuan,
+  agentYuanToMicros,
+} from "./RinAgentAdminPanel";
 import {
   loadWalletAdminCases,
   loadWalletAdminCaseSources,
@@ -41,6 +45,7 @@ it("converts provider prices between exact yuan and internal micros", () => {
   expect(agentMicrosToYuan("1000000")).toBe("1");
   expect(agentYuanToMicros("0.02")).toBe("20000");
   expect(agentYuanToMicros("4")).toBe("4000000");
+  expect(agentScaledSgToYuan("60000", "100000")).toBe("0.06");
   expect(() => agentYuanToMicros("0.0000001")).toThrow();
 });
 
@@ -190,6 +195,7 @@ beforeEach(() => {
     inputSgPerMillion: "10000",
     cachedInputSgPerMillion: "1000",
     outputSgPerMillion: "20000",
+    sgRateScale: "1",
     maxIterations: 12,
     maxOutputTokens: 1024,
     taskBudgetSg: "100",
@@ -233,6 +239,7 @@ beforeEach(() => {
     inputSgPerMillion: "10000",
     cachedInputSgPerMillion: "1000",
     outputSgPerMillion: "20000",
+    sgRateScale: "1",
     maxIterations: 12,
     maxOutputTokens: 1024,
     taskBudgetSg: "100",
@@ -420,6 +427,60 @@ it("renders exact Agent audit gaps and submits a complete emergency policy updat
   );
 });
 
+it("explains why an Agent policy cannot be saved without a change reason", async () => {
+  vi.mocked(updateWalletAdminAgentPolicy).mockClear();
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
+  const agentPanel = within(
+    await screen
+      .findByText("琳 Agent 定价与审计")
+      .then(
+        (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
+      ),
+  );
+  fireEvent.click(agentPanel.getByRole("button", { name: "保存 Agent 策略" }));
+  expect(
+    await agentPanel.findByText("请填写本次调整理由后再保存。"),
+  ).toBeTruthy();
+  expect(updateWalletAdminAgentPolicy).not.toHaveBeenCalled();
+});
+
+it("applies exact DeepSeek peak pricing without changing Agent budgets", async () => {
+  vi.mocked(updateWalletAdminAgentPolicy).mockClear();
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
+  const agentPanel = within(
+    await screen
+      .findByText("琳 Agent 定价与审计")
+      .then(
+        (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
+      ),
+  );
+  fireEvent.click(
+    agentPanel.getByRole("button", {
+      name: "应用 DeepSeek 高峰价 × 1.5",
+    }),
+  );
+  fireEvent.click(agentPanel.getByRole("button", { name: "保存 Agent 策略" }));
+  await waitFor(() =>
+    expect(updateWalletAdminAgentPolicy).toHaveBeenCalledWith(
+      "risk-reviewer",
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      expect.objectContaining({
+        providerPriceVersion: "deepseek-flash-cny-peak-20261030",
+        providerInputCnyMicrosPerMillion: "2000000",
+        providerCachedInputCnyMicrosPerMillion: "40000",
+        providerOutputCnyMicrosPerMillion: "8000000",
+        inputSgPerMillion: "3000000",
+        cachedInputSgPerMillion: "60000",
+        outputSgPerMillion: "12000000",
+        sgRateScale: "100000",
+        taskBudgetSg: "100",
+        dailySgLimit: "1000",
+        reason: "按 DeepSeek 高峰价格的 1.5 倍调整琳 Agent 定价",
+      }),
+    ),
+  );
+});
+
 it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async () => {
   vi.mocked(loadWalletAdminAgentPolicy).mockResolvedValue({
     version: "1",
@@ -432,6 +493,7 @@ it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async 
     inputSgPerMillion: "0",
     cachedInputSgPerMillion: "0",
     outputSgPerMillion: "0",
+    sgRateScale: "1",
     maxIterations: 1,
     maxOutputTokens: 1,
     taskBudgetSg: "1",
@@ -462,7 +524,7 @@ it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async 
   );
   expect(
     (agentPanel.getByLabelText("提供商价格版本") as HTMLInputElement).value,
-  ).toBe("deepseek-flash-1017-cny-offpeak-20261026");
+  ).toBe("deepseek-flash-cny-peak-20261030");
   fireEvent.click(
     agentPanel.getByRole("switch", { name: /允许新的 Agent 回合/ }),
   );
@@ -478,13 +540,14 @@ it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async 
       expect.objectContaining({
         expectedVersion: "1",
         enabled: true,
-        providerPriceVersion: "deepseek-flash-1017-cny-offpeak-20261026",
-        providerInputCnyMicrosPerMillion: "1000000",
-        providerCachedInputCnyMicrosPerMillion: "20000",
-        providerOutputCnyMicrosPerMillion: "4000000",
-        inputSgPerMillion: "100",
-        cachedInputSgPerMillion: "10",
-        outputSgPerMillion: "200",
+        providerPriceVersion: "deepseek-flash-cny-peak-20261030",
+        providerInputCnyMicrosPerMillion: "2000000",
+        providerCachedInputCnyMicrosPerMillion: "40000",
+        providerOutputCnyMicrosPerMillion: "8000000",
+        inputSgPerMillion: "3000000",
+        cachedInputSgPerMillion: "60000",
+        outputSgPerMillion: "12000000",
+        sgRateScale: "100000",
         maxIterations: 24,
         maxOutputTokens: 1024,
         taskBudgetSg: "10",
