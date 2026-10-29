@@ -52,6 +52,18 @@ describe("admin workspace access", () => {
     expect(firstAllowedAdminView(access, "home")).toBe("review");
   });
 
+  it("does not retain legacy content management for non-admin reviewers", () => {
+    const access = deriveAdminWorkspaceAccess(
+      { isAdmin: false, isModerator: true },
+      {
+        ...capabilities,
+        views: { home: false, content: true, review: true, system: false },
+      },
+    );
+    expect(access.canManageContent).toBe(false);
+    expect(access.allowedViews).toEqual(["review"]);
+  });
+
   it("adds system only when the server enables the system view", () => {
     const access = deriveAdminWorkspaceAccess(
       { isAdmin: false, isModerator: false },

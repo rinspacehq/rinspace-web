@@ -5,7 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { ToastProvider } from 'components/ui';
 import { ensureLocaleNamespaces, i18n } from '@/i18n';
-import type { AdminQuestionInfo, FeedItem } from '@/services/contracts';
+import type { FeedItem } from '@/services/contracts';
 
 const adminApi = vi.hoisted(() => ({
   adminDeleteContent: vi.fn(),
@@ -29,21 +29,6 @@ vi.mock('@/services/domains/question', () => questionApi);
 vi.mock('@/services/domains/tag', () => tagApi);
 
 import { AdminContentManagement } from './index';
-
-const question: AdminQuestionInfo = {
-  id: 'question-1',
-  title: '作者保留题目标题',
-  vote_count: 1234,
-  show: 1,
-  pin: 0,
-  answer_count: 2,
-  accepted_answer_id: '',
-  create_time: Date.parse('2026-08-28T08:00:00Z') / 1000,
-  update_time: Date.parse('2026-08-28T08:10:00Z') / 1000,
-  edit_time: 0,
-  status: 'available',
-  tags: ['projective morphism'],
-};
 
 const blog: FeedItem = {
   id: 'blog-7',
@@ -76,8 +61,8 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await switchLanguage('zh-CN');
-  adminApi.loadAdminQuestionPage.mockReset();
-  adminApi.loadAdminQuestionPage.mockResolvedValue({ count: 1, items: [question] });
+  adminApi.loadAdminContentPage.mockReset();
+  adminApi.loadAdminContentPage.mockResolvedValue({ count: 1, items: [blog] });
 });
 
 afterEach(async () => {
@@ -86,28 +71,26 @@ afterEach(async () => {
 });
 
 describe('AdminContentManagement localization', () => {
-  it('keeps the active section, filter draft, and authored values across a live language switch', async () => {
-    const user = userEvent.setup();
+  it('keeps active content and retires legacy tabs across a live language switch', async () => {
     render(
       <MemoryRouter>
         <ToastProvider>
-          <AdminContentManagement isAdmin={false} section="questions" onSectionChange={vi.fn()} />
+          <AdminContentManagement isAdmin section="blogs" onSectionChange={vi.fn()} />
         </ToastProvider>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { name: '作者保留题目标题' })).toBeTruthy();
-    const search = screen.getByRole('textbox', { name: '搜索题目' }) as HTMLInputElement;
-    await user.type(search, '保留筛选条件');
-    expect(screen.getByText((_, element) => element?.tagName === 'STRONG' && element.textContent?.includes('1,234 个赞') === true)).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: '待删除文章' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: '问答' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: '回答' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: '讨论' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: '动态' })).toBeNull();
 
     await switchLanguage('en');
 
-    expect(screen.getByRole('tab', { name: 'Q&A' }).getAttribute('data-state')).toBe('active');
-    expect((screen.getByRole('textbox', { name: 'Search questions' }) as HTMLInputElement).value).toBe('保留筛选条件');
-    expect(screen.getByRole('heading', { name: '作者保留题目标题' })).toBeTruthy();
-    expect(screen.getByText((_, element) => element?.tagName === 'STRONG' && element.textContent?.includes('1,234 votes') === true)).toBeTruthy();
-    expect(screen.getByText('projective morphism')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Articles' }).getAttribute('data-state')).toBe('active');
+    expect(screen.getByRole('heading', { name: '待删除文章' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Q&A' })).toBeNull();
   });
 
   it('deletes managed content after confirmation without opening step-up verification', async () => {

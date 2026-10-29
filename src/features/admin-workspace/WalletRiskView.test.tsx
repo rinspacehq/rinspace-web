@@ -451,6 +451,94 @@ it("renders exact Agent audit gaps and submits a complete emergency policy updat
   );
 });
 
+it("turns the disabled bootstrap into a reviewed, saveable Agent policy", async () => {
+  vi.mocked(loadWalletAdminAgentPolicy).mockResolvedValue({
+    version: "1",
+    enabled: false,
+    model: "deepseek-flash",
+    providerPriceVersion: "disabled-bootstrap",
+    providerInputCnyMicrosPerMillion: "0",
+    providerCachedInputCnyMicrosPerMillion: "0",
+    providerOutputCnyMicrosPerMillion: "0",
+    inputSgPerMillion: "0",
+    cachedInputSgPerMillion: "0",
+    outputSgPerMillion: "0",
+    maxIterations: 1,
+    maxOutputTokens: 1,
+    taskBudgetSg: "1",
+    dailyCallsLimit: 1,
+    dailyTokensLimit: "1",
+    dailySgLimit: "1",
+    sgCnyMicrosPerUnit: "0",
+    createdBy: "system:bootstrap",
+    reason: "Disabled bootstrap policy",
+    createdAt: "2026-10-25T08:00:00Z",
+  });
+  vi.mocked(updateWalletAdminAgentPolicy).mockImplementation(
+    async (_uid, _key, input) => ({
+      version: "2",
+      ...input,
+      createdBy: "risk-reviewer",
+      createdAt: "2026-10-29T03:00:00Z",
+    }),
+  );
+
+  render(
+    <WalletRiskView
+      uid="risk-reviewer"
+      canReview={false}
+      canRestrict={false}
+      canReconcile={false}
+      canCoverage={false}
+      canViewPolicy
+      canConfigurePolicy
+    />,
+  );
+  fireEvent.click(screen.getByRole("tab", { name: /充值限额|policy\.title/ }));
+  const agentPanel = within(
+    await screen
+      .findByText("琳 Agent 策略与审计")
+      .then(
+        (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
+      ),
+  );
+  expect(agentPanel.getByText(/已填入通过真实账号验收的启动参数/)).toBeTruthy();
+  fireEvent.click(
+    agentPanel.getByRole("switch", { name: /允许新的 Agent 回合/ }),
+  );
+  expect(
+    (agentPanel.getByLabelText("本次调整理由") as HTMLInputElement).value,
+  ).toBe("启用琳 Agent");
+  fireEvent.click(agentPanel.getByRole("button", { name: "保存 Agent 策略" }));
+
+  await waitFor(() =>
+    expect(updateWalletAdminAgentPolicy).toHaveBeenCalledWith(
+      "risk-reviewer",
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      expect.objectContaining({
+        expectedVersion: "1",
+        enabled: true,
+        providerPriceVersion: "deepseek-flash-1017-cny-offpeak-20261026",
+        providerInputCnyMicrosPerMillion: "1000000",
+        providerCachedInputCnyMicrosPerMillion: "20000",
+        providerOutputCnyMicrosPerMillion: "4000000",
+        inputSgPerMillion: "10000",
+        cachedInputSgPerMillion: "1000",
+        outputSgPerMillion: "20000",
+        maxIterations: 24,
+        maxOutputTokens: 1024,
+        taskBudgetSg: "1000",
+        dailyCallsLimit: 200,
+        dailyTokensLimit: "2000000",
+        dailySgLimit: "10000",
+        sgCnyMicrosPerUnit: "1000",
+        reason: "启用琳 Agent",
+      }),
+    ),
+  );
+  expect(await agentPanel.findByText("Agent 策略已保存并生效。")).toBeTruthy();
+});
+
 it("records an exact coverage snapshot behind step-up verification", async () => {
   render(
     <WalletRiskView

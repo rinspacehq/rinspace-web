@@ -28,6 +28,16 @@ describe("admin workspace query state", () => {
     });
   });
 
+  it("retires legacy content sections from URL-addressable admin navigation", () => {
+    for (const section of ["questions", "answers", "discussions", "dynamics"]) {
+      expect(
+        parseAdminWorkspaceQuery(
+          new URLSearchParams(`view=content&section=${section}`),
+        ).section,
+      ).toBe("blogs");
+    }
+  });
+
   it("serializes only state relevant to the active view", () => {
     expect(
       adminWorkspaceSearchParams({

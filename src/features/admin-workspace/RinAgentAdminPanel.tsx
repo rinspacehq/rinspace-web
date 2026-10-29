@@ -55,7 +55,36 @@ const emptyDraft: AgentPolicyDraft = {
   sgCnyMicrosPerUnit: "0",
 };
 
+const reviewedLaunchDraft: AgentPolicyDraft = Object.freeze({
+  enabled: false,
+  model: "deepseek-flash",
+  providerPriceVersion: "deepseek-flash-1017-cny-offpeak-20261026",
+  providerInputCnyMicrosPerMillion: "1000000",
+  providerCachedInputCnyMicrosPerMillion: "20000",
+  providerOutputCnyMicrosPerMillion: "4000000",
+  inputSgPerMillion: "10000",
+  cachedInputSgPerMillion: "1000",
+  outputSgPerMillion: "20000",
+  maxIterations: "24",
+  maxOutputTokens: "1024",
+  taskBudgetSg: "1000",
+  dailyCallsLimit: "200",
+  dailyTokensLimit: "2000000",
+  dailySgLimit: "10000",
+  sgCnyMicrosPerUnit: "1000",
+});
+
+function isBootstrapPolicy(policy: WalletAdminAgentPolicy): boolean {
+  return (
+    !policy.enabled &&
+    policy.providerPriceVersion === "disabled-bootstrap" &&
+    policy.providerInputCnyMicrosPerMillion === "0" &&
+    policy.providerOutputCnyMicrosPerMillion === "0"
+  );
+}
+
 function policyDraft(policy: WalletAdminAgentPolicy): AgentPolicyDraft {
+  if (isBootstrapPolicy(policy)) return { ...reviewedLaunchDraft };
   return {
     enabled: policy.enabled,
     model: policy.model,
@@ -136,6 +165,7 @@ export function RinAgentAdminPanel({
   const [reason, setReason] = useState("");
   const [policyBusy, setPolicyBusy] = useState(false);
   const [policyError, setPolicyError] = useState("");
+  const [policySuccess, setPolicySuccess] = useState("");
   const [usage, setUsage] = useState<readonly WalletAdminAgentUsage[]>([]);
   const [usageBusy, setUsageBusy] = useState(false);
   const [usageError, setUsageError] = useState("");
@@ -185,6 +215,7 @@ export function RinAgentAdminPanel({
   }, [loadUsage]);
 
   const setDraftValue = (field: AgentPolicyTextField, value: string) => {
+    setPolicySuccess("");
     setDraft((current) => ({ ...current, [field]: value }));
   };
 
@@ -192,6 +223,7 @@ export function RinAgentAdminPanel({
     event.preventDefault();
     if (!policy || !reason.trim() || policyBusy) return;
     setPolicyError("");
+    setPolicySuccess("");
     let input: WalletAdminAgentPolicyUpdate;
     try {
       input = {
@@ -231,9 +263,22 @@ export function RinAgentAdminPanel({
       setPolicy(value);
       setDraft(policyDraft(value));
       setReason("");
+      setPolicySuccess(t("agent.saved"));
     } catch (error) {
       if (error instanceof WalletAdminError && error.code === "INVALID_REQUEST")
         setPolicyError(t("agent.invalid"));
+      else if (
+        error instanceof WalletAdminError &&
+        error.code === "PERMISSION_DENIED"
+      )
+        setPolicyError(t("agent.permissionDenied"));
+      else if (
+        error instanceof WalletAdminError &&
+        error.code === "VERSION_CONFLICT"
+      ) {
+        await loadPolicy();
+        setPolicyError(t("agent.versionConflict"));
+      }
       else {
         await loadPolicy();
         setPolicyError(t("agent.updateUnknown"));
@@ -273,6 +318,7 @@ export function RinAgentAdminPanel({
           {policyError}
         </p>
       ) : null}
+      {policySuccess ? <p role="status">{policySuccess}</p> : null}
       {policy ? (
         <>
           <dl>
@@ -318,66 +364,40 @@ export function RinAgentAdminPanel({
                 <Switch
                   label={t("agent.enable")}
                   checked={draft.enabled}
-                  onCheckedChange={(checked) =>
-                    setDraft((current) => ({ ...current, enabled: checked }))
-                  }
+                  onCheckedChange={(checked) => {
+                    setPolicySuccess("");
+                    setDraft((current) => ({ ...current, enabled: checked }));
+                    setReason((current) =>
+                      current ||
+                      t(
+                        checked
+                          ? "agent.defaultEnableReason"
+                          : "agent.defaultDisableReason",
+                      ),
+                    );
+                  }}
                 />
               </div>
+              {isBootstrapPolicy(policy) ? (
+                <p className="admin-agent-launch-note">
+                  {t("agent.launchDefaults")}
+                </p>
+              ) : null}
+              <label>
+                {t("agent.changeReason")}
+                <Input
+                  value={reason}
+                  maxLength={1000}
+                  onChange={(event) => {
+                    setPolicySuccess("");
+                    setReason(event.currentTarget.value);
+                  }}
+                />
+              </label>
               <label>
                 {t("agent.model")}
                 <Input value={draft.model} readOnly />
               </label>
-              <label>
-                {t("agent.providerPriceVersion")}
-                <Input
-                  value={draft.providerPriceVersion}
-                  maxLength={128}
-                  onChange={(event) =>
-                    setDraftValue(
-                      "providerPriceVersion",
-                      event.currentTarget.value,
-                    )
-                  }
-                />
-              </label>
-              <PolicyInput
-                label={t("agent.providerInputRate")}
-                value={draft.providerInputCnyMicrosPerMillion}
-                onChange={(value) =>
-                  setDraftValue("providerInputCnyMicrosPerMillion", value)
-                }
-              />
-              <PolicyInput
-                label={t("agent.providerCachedRate")}
-                value={draft.providerCachedInputCnyMicrosPerMillion}
-                onChange={(value) =>
-                  setDraftValue("providerCachedInputCnyMicrosPerMillion", value)
-                }
-              />
-              <PolicyInput
-                label={t("agent.providerOutputRate")}
-                value={draft.providerOutputCnyMicrosPerMillion}
-                onChange={(value) =>
-                  setDraftValue("providerOutputCnyMicrosPerMillion", value)
-                }
-              />
-              <PolicyInput
-                label={t("agent.inputSgRate")}
-                value={draft.inputSgPerMillion}
-                onChange={(value) => setDraftValue("inputSgPerMillion", value)}
-              />
-              <PolicyInput
-                label={t("agent.cachedSgRate")}
-                value={draft.cachedInputSgPerMillion}
-                onChange={(value) =>
-                  setDraftValue("cachedInputSgPerMillion", value)
-                }
-              />
-              <PolicyInput
-                label={t("agent.outputSgRate")}
-                value={draft.outputSgPerMillion}
-                onChange={(value) => setDraftValue("outputSgPerMillion", value)}
-              />
               <PolicyInput
                 label={t("agent.maxIterations")}
                 value={draft.maxIterations}
@@ -408,19 +428,76 @@ export function RinAgentAdminPanel({
                 value={draft.dailySgLimit}
                 onChange={(value) => setDraftValue("dailySgLimit", value)}
               />
-              <PolicyInput
-                label={t("agent.sgCnyValue")}
-                value={draft.sgCnyMicrosPerUnit}
-                onChange={(value) => setDraftValue("sgCnyMicrosPerUnit", value)}
-              />
-              <label>
-                {t("agent.changeReason")}
-                <Input
-                  value={reason}
-                  maxLength={1000}
-                  onChange={(event) => setReason(event.currentTarget.value)}
-                />
-              </label>
+              <details className="admin-agent-advanced">
+                <summary>{t("agent.advanced")}</summary>
+                <div className="admin-agent-advanced-grid">
+                  <label>
+                    {t("agent.providerPriceVersion")}
+                    <Input
+                      value={draft.providerPriceVersion}
+                      maxLength={128}
+                      onChange={(event) =>
+                        setDraftValue(
+                          "providerPriceVersion",
+                          event.currentTarget.value,
+                        )
+                      }
+                    />
+                  </label>
+                  <PolicyInput
+                    label={t("agent.providerInputRate")}
+                    value={draft.providerInputCnyMicrosPerMillion}
+                    onChange={(value) =>
+                      setDraftValue("providerInputCnyMicrosPerMillion", value)
+                    }
+                  />
+                  <PolicyInput
+                    label={t("agent.providerCachedRate")}
+                    value={draft.providerCachedInputCnyMicrosPerMillion}
+                    onChange={(value) =>
+                      setDraftValue(
+                        "providerCachedInputCnyMicrosPerMillion",
+                        value,
+                      )
+                    }
+                  />
+                  <PolicyInput
+                    label={t("agent.providerOutputRate")}
+                    value={draft.providerOutputCnyMicrosPerMillion}
+                    onChange={(value) =>
+                      setDraftValue("providerOutputCnyMicrosPerMillion", value)
+                    }
+                  />
+                  <PolicyInput
+                    label={t("agent.inputSgRate")}
+                    value={draft.inputSgPerMillion}
+                    onChange={(value) =>
+                      setDraftValue("inputSgPerMillion", value)
+                    }
+                  />
+                  <PolicyInput
+                    label={t("agent.cachedSgRate")}
+                    value={draft.cachedInputSgPerMillion}
+                    onChange={(value) =>
+                      setDraftValue("cachedInputSgPerMillion", value)
+                    }
+                  />
+                  <PolicyInput
+                    label={t("agent.outputSgRate")}
+                    value={draft.outputSgPerMillion}
+                    onChange={(value) =>
+                      setDraftValue("outputSgPerMillion", value)
+                    }
+                  />
+                  <PolicyInput
+                    label={t("agent.sgCnyValue")}
+                    value={draft.sgCnyMicrosPerUnit}
+                    onChange={(value) =>
+                      setDraftValue("sgCnyMicrosPerUnit", value)
+                    }
+                  />
+                </div>
+              </details>
               <Button
                 type="submit"
                 variant="primary"
