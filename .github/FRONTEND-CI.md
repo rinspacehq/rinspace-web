@@ -107,6 +107,13 @@ The candidate workflow stays disabled until exact source/version and isolated-ru
 are configured. It requires distribution approval to remain false and never uploads a public
 artifact. A protected environment and an isolated ephemeral runner are separate prerequisites.
 
+构建 job 不再通过受限出口重复浅克隆已经由宿主门禁绑定的同一提交。一次性 runner
+注册前，宿主从本机 canonical public clone 预装精确 reviewed main commit；job-start
+钩子仍在任何候选代码执行前拒绝其他仓库、工作流、事件、分支或 SHA。job 内再次
+核对 HEAD、GITHUB_SHA、远端、干净工作树并运行 Git 连通性检查。authorize job 仍在
+GitHub hosted runner 独立核对远端 main。这样不信任可变工作树，也不让公网 TLS
+重试成为候选构建前置瓶颈。
+
 构建在仅含公开输入和固定安装依赖的临时副本中进行，原工作树不修改。原 build
 pipeline 执行一次；实际检查结果绑定 source、lock、public config。产物包含：
 

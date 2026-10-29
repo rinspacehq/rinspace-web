@@ -42,6 +42,11 @@ test('fixed candidate is manual, read-only, separately approved and isolated', (
   assert.match(text, /--output "\/stage\/\$GITHUB_RUN_ID"/);
   assert.match(text, /test "\$\(node --version\)" = v22\.22\.3/);
   assert.match(text, /test "\$\(pnpm --version\)" = 9\.7\.0/);
+  assert.match(text, /Verify the host-preloaded exact reviewed source/);
+  assert.match(text, /git fsck --connectivity-only --no-dangling/);
+  assert.match(text, /git status --porcelain --untracked-files=all/);
+  assert.equal((text.match(/actions\/checkout@/g) || []).length, 1,
+    'only the hosted authorize job may fetch; the isolated build consumes the host-bound source');
   assert.doesNotMatch(text, /actions\/setup-node/);
   assert.doesNotMatch(text, /actions\/upload-artifact|frontend-candidate-output/);
   assert.doesNotMatch(text, /^  (push|pull_request|pull_request_target|workflow_run):/m);
