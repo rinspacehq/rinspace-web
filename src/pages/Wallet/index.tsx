@@ -89,6 +89,11 @@ function loadRechargeAttempt(uid:string):RechargeAttempt|null{try{const raw=sess
 function saveRechargeAttempt(uid:string,attempt:RechargeAttempt){try{sessionStorage.setItem(rechargeAttemptStorageKey,JSON.stringify({uid,attempt}));}catch{/* A denied/full store keeps the in-memory idempotency boundary. */}}
 function clearRechargeAttempt(){try{sessionStorage.removeItem(rechargeAttemptStorageKey);}catch{/* In-memory state is still cleared below. */}}
 
+const payableAttemptStorageKey='rinspace.wallet.payable-attempt.v1';
+function loadPayableAttempt(uid:string,operationID:string):string|null{try{const raw=sessionStorage.getItem(payableAttemptStorageKey);if(!raw)return null;const value=JSON.parse(raw) as {uid?:unknown;operationID?:unknown;key?:unknown};if(value.uid!==uid||value.operationID!==operationID||!uuidPattern.test(String(value.key||''))){sessionStorage.removeItem(payableAttemptStorageKey);return null}return String(value.key);}catch{try{sessionStorage.removeItem(payableAttemptStorageKey);}catch{return null}return null}}
+function savePayableAttempt(uid:string,operationID:string,key:string){try{sessionStorage.setItem(payableAttemptStorageKey,JSON.stringify({uid,operationID,key}));}catch{/* The in-memory idempotency key remains authoritative for this page. */}}
+function clearPayableAttempt(){try{sessionStorage.removeItem(payableAttemptStorageKey);}catch{/* The component still discards its terminal key. */}}
+
 function Recharge({uid,returnedOperation}:{uid:string;returnedOperation:string}) {
   const { t } = useFeatureTranslation('wallet');
   const [revision,setRevision]=useState(0);const key=`${uid}:${revision}`;
@@ -132,6 +137,18 @@ function Receipt({operationID}:{operationID:string}) {
       {'original_operation_id'in receipt?<div><dt>{t('original')}</dt><dd><code>{receipt.original_operation_id}</code></dd></div>:null}{'content'in receipt?<div><dt>{t('receiptContent')}</dt><dd>{receipt.content.title}</dd></div>:null}
     </dl>:null}
   </div></AccordionContent></AccordionItem></Accordion>;
+}
+
+function RechargePayment({uid,operationID}:{uid:string;operationID:string}){
+  const {t}=useFeatureTranslation('wallet');
+  const key=useRef(loadPayableAttempt(uid,operationID)||crypto.randomUUID());
+  const [busy,setBusy]=useState(false);const [notice,setNotice]=useState('');const [expired,setExpired]=useState(false);
+  const submit=async()=>{if(busy||expired)return;setBusy(true);setNotice('');savePayableAttempt(uid,operationID,key.current);
+    try{const payment=await createWalletPaymentSession(uid,key.current,operationID,new AbortController().signal);clearPayableAttempt();setNotice(t('rechargeRedirect'));submitWalletPayHTML(payment.pay_html);}
+    catch(error:unknown){const code=error instanceof WalletCommandError?error.code:'';if(code==='RESULT_UNKNOWN'){setNotice(t('rechargeUnknown'));}else{clearPayableAttempt();key.current=crypto.randomUUID();if(code==='VERSION_CONFLICT'){setExpired(true);setNotice(t('rechargeExpired'));}else if(code==='RATE_LIMITED')setNotice(t('rechargePendingLimit'));else setNotice(t('rechargeFailed'));}}
+    finally{setBusy(false)}
+  };
+  return <div className="wallet-refund-request">{expired?<Link to="/wallet?view=recharge">{t('views.recharge')}</Link>:<Button onClick={()=>void submit()} disabled={busy}>{busy?t('rechargeSubmitting'):t('rechargeSubmit')}</Button>}{notice?<p role="status">{notice}</p>:null}</div>;
 }
 
 function RefundCancel({uid,operationID,version}:{uid:string;operationID:string;version:string}) {
@@ -258,6 +275,7 @@ function Statements({ uid }: { uid: string }) {
         </div>
         <div className="wallet-transaction-value"><strong><span aria-hidden="true">{item.perspective === 'recharge' || item.perspective === 'received' ? '+' : '−'}</span>{item.quantity} <small>{t(item.unit === 'SG' ? 'ordinary' : 'bound')}</small></strong>
           {item.perspective === 'conversion' && <span>→ {item.received_quantity} {t('ordinary')}</span>}
+          {item.perspective==='recharge'&&item.operation.state==='PAYABLE'?<RechargePayment uid={uid} operationID={item.operation.operation_id}/>:null}
           {item.perspective==='recharge'&&item.operation.state==='CREDIT_POSTED'&&BigInt(item.refundable_fen)>0n?<RefundRequest uid={uid} operationID={item.operation.operation_id} maximumFen={item.refundable_fen} onSubmitted={reset}/>:null}
           {item.perspective==='refund'&&item.operation.state==='REQUESTED_RESERVED'?<RefundCancel uid={uid} operationID={item.operation.operation_id} version={item.operation.version}/>:null}
         </div>
