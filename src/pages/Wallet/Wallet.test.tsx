@@ -70,6 +70,19 @@ describe('private wallet page', () => {
   mount('/wallet?view=recharge');await screen.findByText('Top up with Alipay');expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('25');fireEvent.click(screen.getByRole('button',{name:'Continue to Alipay'}));
   await waitFor(()=>expect(createWalletPaymentSession).toHaveBeenCalledTimes(2));expect(createWalletRecharge).toHaveBeenCalledTimes(1);expect(vi.mocked(createWalletPaymentSession).mock.calls[1][1]).toBe(firstSessionKey);
  });
+ it('drops an expired payment identity so the next submit creates a new order',async()=>{
+  const operation={operation_id:'12345678-1234-4234-8234-123456789abc',kind:'recharge' as const,state:'RESERVED' as const,version:'1',created_at:'2026-09-20T08:00:00Z'};
+  const replacement={...operation,operation_id:'22345678-1234-4234-8234-123456789abc'};
+  const policy:Awaited<ReturnType<typeof loadWalletPolicy>>={policy_version:'7',recharge:{enabled:true,fen_per_shangong:'10',daily_limit_fen:'100000',minimum_fen:'100',step_fen:'100',agreement_version:'3'},tip:{enabled:false},conversion:{enabled:false,bound_group:'10',ordinary_group:'7'}};
+  vi.mocked(loadWalletPolicy).mockResolvedValue(policy);
+  vi.mocked(createWalletRecharge).mockResolvedValueOnce(operation).mockResolvedValueOnce(replacement);
+  vi.mocked(createWalletPaymentSession).mockRejectedValueOnce(new WalletCommandError('VERSION_CONFLICT')).mockResolvedValueOnce({operation:{...replacement,state:'PAYABLE',version:'2'},payment_deadline:'2026-09-20T08:15:00Z',pay_html:'<!doctype html><form id="alipay-page-pay"></form>'});
+  vi.spyOn(window,'open').mockReturnValue({document:{open:vi.fn(),write:vi.fn(),close:vi.fn()}} as unknown as Window);
+  mount('/wallet?view=recharge');await screen.findByText('Top up with Alipay');fireEvent.change(screen.getByRole('textbox'),{target:{value:'25'}});fireEvent.click(screen.getByRole('button',{name:'Continue to Alipay'}));
+  await screen.findByText('The payment order expired. Submit a new top-up.');expect(sessionStorage.getItem('rinspace.wallet.recharge-attempt.v1')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Continue to Alipay'}));
+  await waitFor(()=>expect(createWalletRecharge).toHaveBeenCalledTimes(2));expect(vi.mocked(createWalletRecharge).mock.calls[1][1]).not.toBe(vi.mocked(createWalletRecharge).mock.calls[0][1]);
+ });
  it('requires the existing session and does not request financial data anonymously', async () => {
   vi.mocked(getCurrentAuthUser).mockResolvedValue(null);mount();await screen.findByText('Sign in to continue');expect(loadWalletSummary).not.toHaveBeenCalled();
   const listener=vi.fn();window.addEventListener('rinspace:auth-dialog-request',listener);
@@ -101,6 +114,21 @@ describe('private wallet page', () => {
   vi.mocked(loadWalletStatements).mockResolvedValue({items:[recharge,refund],watermark:'2'});
   mount('/wallet?view=statements');await screen.findByText('Completed');
   expect(screen.queryByRole('button',{name:'Request refund'})).toBeNull();
+ });
+ it('continues a payable recharge from Transactions with a stable payment identity',async()=>{
+  const recharge={sequence:'2',operation:{operation_id:'12345678-1234-4234-8234-123456789abc',kind:'recharge' as const,state:'PAYABLE' as const,version:'2',created_at:'2026-09-20T08:00:00Z'},perspective:'recharge' as const,unit:'SG' as const,quantity:'250',amount_fen:'2500',refundable_fen:'0'};
+  vi.mocked(loadWalletStatements).mockResolvedValue({items:[recharge],watermark:'2'});
+  vi.mocked(createWalletPaymentSession).mockResolvedValue({operation:recharge.operation,payment_deadline:'2026-09-20T08:15:00Z',pay_html:'<!doctype html><form id="alipay-page-pay"></form>'});
+  const target={open:vi.fn(),write:vi.fn(),close:vi.fn()};vi.spyOn(window,'open').mockReturnValue({document:target} as unknown as Window);
+  mount('/wallet?view=statements');const pay=await screen.findByRole('button',{name:'Continue to Alipay'});fireEvent.click(pay);
+  await waitFor(()=>expect(createWalletPaymentSession).toHaveBeenCalledWith('user-a',expect.any(String),recharge.operation.operation_id,expect.any(AbortSignal)));
+  expect(target.write).toHaveBeenCalledWith(expect.stringContaining('alipay-page-pay'));expect(sessionStorage.getItem('rinspace.wallet.payable-attempt.v1')).toBeNull();
+ });
+ it('replaces an expired payable transaction action with a fresh top-up link',async()=>{
+  const recharge={sequence:'2',operation:{operation_id:'12345678-1234-4234-8234-123456789abc',kind:'recharge' as const,state:'PAYABLE' as const,version:'2',created_at:'2026-09-20T08:00:00Z'},perspective:'recharge' as const,unit:'SG' as const,quantity:'250',amount_fen:'2500',refundable_fen:'0'};
+  vi.mocked(loadWalletStatements).mockResolvedValue({items:[recharge],watermark:'2'});vi.mocked(createWalletPaymentSession).mockRejectedValue(new WalletCommandError('VERSION_CONFLICT'));
+  mount('/wallet?view=statements');fireEvent.click(await screen.findByRole('button',{name:'Continue to Alipay'}));
+  await screen.findByText('The payment order expired. Submit a new top-up.');expect(screen.queryByRole('button',{name:'Continue to Alipay'})).toBeNull();expect(screen.getAllByRole('link',{name:'Top up'})).toHaveLength(2);
  });
  it('downloads only the current statement page through the export endpoint', async () => {
   const user=userEvent.setup();

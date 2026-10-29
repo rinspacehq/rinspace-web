@@ -9,7 +9,7 @@
   "unavailable": "暂时无法读取钱包", "unavailableHelp": "请稍后重试。",
   "signInRequired": "请先登录", "signInHelp": "登录后查看钱包。", "signIn": "登录",
   "notOpen": "暂未开放", "rechargeHelp": "1 元 = 10 善功。",
-  "rechargeUnavailableHelp": "支付宝充值暂未开放。", "rechargeTitle": "支付宝充值", "rechargeAmount": "充值金额（元）", "rechargeDailyRemaining": "今日还可充值 {{amount}} 元", "rechargeAgreement": "继续即同意规则。", "rechargeSubmit": "前往支付宝付款", "rechargeSubmitting": "正在创建订单…", "rechargeInvalid": "金额不符合当前规则。", "rechargeRedirect": "正在前往支付宝…", "rechargeUnknown": "结果待查证，请重试原订单。", "rechargeFailed": "暂时无法创建支付，请稍后重试。", "rechargeReturnTitle": "已返回钱包", "rechargeReturnHelp": "到账请看记录。",
+  "rechargeUnavailableHelp": "支付宝充值暂未开放。", "rechargeTitle": "支付宝充值", "rechargeAmount": "充值金额（元）", "rechargeDailyRemaining": "今日还可充值 {{amount}} 元", "rechargeAgreement": "继续即同意规则。", "rechargeSubmit": "前往支付宝付款", "rechargeSubmitting": "正在创建订单…", "rechargeInvalid": "金额不符合当前规则。", "rechargeRedirect": "正在前往支付宝…", "rechargeUnknown": "结果待查证，请重试原订单。", "rechargeExpired": "原支付订单已过期，请重新提交充值。", "rechargePendingLimit": "未完成订单过多，系统正在核验；请稍后重试。", "rechargePolicyChanged": "充值规则已更新，请按新规则重试。", "rechargeFailed": "暂时无法创建支付，请稍后重试。", "rechargeReturnTitle": "已返回钱包", "rechargeReturnHelp": "到账请看记录。",
   "conversionQuantity": "转换善功（绑）数量", "conversionPreview": "预览转换", "conversionConfirm": "确认转换", "conversionEdit": "修改数量",
   "conversionRemaining": "转换后剩余：{{quantity}} 善功（绑）。",
   "conversionMaximum": "单笔上限：{{quantity}} 善功（绑）。",

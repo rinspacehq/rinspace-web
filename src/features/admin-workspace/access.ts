@@ -50,7 +50,7 @@ export function deriveAdminWorkspaceAccess(
   }),
 ): AdminWorkspaceAccess {
   const isAdmin = identity.isAdmin || capabilities.views.home;
-  const canManageContent = capabilities.views.content;
+  const canManageContent = isAdmin && capabilities.views.content;
   const canReview = capabilities.views.review;
   const canViewRefunds = walletCapabilities["wallet.refund.view"];
   const canViewRisk = walletCapabilities["wallet.risk.view"];

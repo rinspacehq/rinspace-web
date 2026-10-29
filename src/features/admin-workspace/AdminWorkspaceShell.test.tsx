@@ -89,6 +89,7 @@ describe("AdminWorkspaceShell", () => {
     expect(
       screen.getByRole("complementary", { name: "管理中心导航" }),
     ).toBeTruthy();
+    expect(document.querySelector(".admin-workspace-card")).toBeTruthy();
     expect(
       screen
         .getByRole("button", { name: "管理主页" })

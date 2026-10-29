@@ -19,6 +19,7 @@ import {
   AnimateSidebarTrigger,
   Badge,
   Button,
+  Surface,
 } from "components/ui";
 
 import type { AdminWorkspaceAccess } from "./access";
@@ -122,7 +123,9 @@ export function AdminWorkspaceShell({
         <div className="admin-workspace-mobile-toolbar">
           <AnimateSidebarTrigger />
         </div>
-        {children}
+        <div className="admin-workspace-canvas">
+          <Surface className="admin-workspace-card">{children}</Surface>
+        </div>
       </AnimateSidebarInset>
     </AnimateSidebarProvider>
   );

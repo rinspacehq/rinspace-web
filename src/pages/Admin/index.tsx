@@ -1807,19 +1807,9 @@ export function AdminContentManagement({
       ? t(`content.tabs.${tagEditorTarget.tab}`)
       : t("content.tabs.questions")
     : "";
-  const visibleTabs: AdminTab[] = isAdmin
-    ? [
-        "blogs",
-        "books",
-        "questions",
-        "answers",
-        "discussions",
-        "dynamics",
-        "users",
-        "tags",
-        "cultivation",
-      ]
-    : ["questions", "answers"];
+  const visibleTabs: AdminContentSection[] = isAdmin
+    ? ["blogs", "books", "users", "tags", "cultivation"]
+    : [];
 
   return (
     <div className="admin-content-management">
@@ -2329,12 +2319,7 @@ function AdminPage() {
   const accessState = useAdminWorkspaceAccess();
   const access = accessState.kind === "ready" ? accessState.access : null;
   const activeView = access ? firstAllowedAdminView(access, query.view) : null;
-  const contentSection: AdminContentSection =
-    access?.isAdmin ||
-    query.section === "questions" ||
-    query.section === "answers"
-      ? query.section
-      : "questions";
+  const contentSection: AdminContentSection = query.section;
   const systemSection = access?.systemSections[query.systemSection]
     ? query.systemSection
     : (Object.entries(access?.systemSections || {}).find(

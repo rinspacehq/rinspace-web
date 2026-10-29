@@ -14,10 +14,6 @@ export type AdminView =
 export type AdminContentSection =
   | "blogs"
   | "books"
-  | "questions"
-  | "answers"
-  | "discussions"
-  | "dynamics"
   | "users"
   | "tags"
   | "cultivation";
@@ -43,10 +39,6 @@ const adminViews = new Set<AdminView>([
 const contentSections = new Set<AdminContentSection>([
   "blogs",
   "books",
-  "questions",
-  "answers",
-  "discussions",
-  "dynamics",
   "users",
   "tags",
   "cultivation",
