@@ -93,7 +93,7 @@ describe('tag Wiki source actions', () => {
     expect(source.getAttribute('href')).toBe('/repos/tags/5815/src/branch/main');
     expect(view.getByRole('link', { name: '查看历史' }).getAttribute('href'))
       .toBe('/repos/tags/5815/commits/branch/main');
-    fireEvent.click(view.getByRole('link', { name: '编辑' }));
+    fireEvent.click(view.getByRole('link', { name: '编辑档案' }));
     fireEvent.click(await view.findByRole('button', { name: '在编辑器中打开' }));
     expect(openOnlineEditorProject).toHaveBeenCalledWith('tags', '5815');
     expect(view.getByRole('link', { name: '在新标签页打开 Gitea' }).getAttribute('href'))
