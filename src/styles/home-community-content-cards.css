@@ -3,6 +3,39 @@
   src: url("../assets/fonts/rin-community-actions.woff2");
 }
 
+/* Article and book cards use one visual media height while preserving their
+   landscape and portrait identities. */
+[data-rin-ui="v2"] .home-shell .community-board {
+  --home-card-media-block-size: 192px;
+  --home-blog-cover-inline-size: 341.333px;
+  --home-book-cover-inline-size: 128px;
+}
+
+[data-rin-ui="v2"] .home-shell .community-board .stream-blog-cover {
+  aspect-ratio: 16 / 9;
+  block-size: auto;
+  inline-size: min(100%, var(--home-blog-cover-inline-size));
+  justify-self: end;
+}
+
+[data-rin-ui="v2"] .home-shell .community-board .home-book-card {
+  grid-template-columns: var(--home-book-cover-inline-size) minmax(0, 1fr);
+}
+
+[data-rin-ui="v2"] .home-shell .community-board .home-book-cover {
+  aspect-ratio: 2 / 3;
+  block-size: var(--home-card-media-block-size);
+  inline-size: var(--home-book-cover-inline-size);
+}
+
+@media (max-width: 640px) {
+  [data-rin-ui="v2"] .home-shell .community-board {
+    --home-card-media-block-size: clamp(148.5px, calc((100vw - 56px) * 0.5625), 176px);
+    --home-blog-cover-inline-size: 312.889px;
+    --home-book-cover-inline-size: clamp(99px, calc((100vw - 56px) * 0.375), 117.333px);
+  }
+}
+
 .home-card-exact-time {
   color: var(--rin-ink-muted);
   flex: 0 0 auto;

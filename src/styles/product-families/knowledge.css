@@ -42,5 +42,6 @@
 .rin-animate-code-block .rin-code-pre,
 .detail-body .rin-animate-code-block .rin-code-pre{max-width:100%;margin:0;overflow-x:auto;padding:0;border:0;border-radius:0;background:var(--rin-canvas);color:var(--rin-ink);font-size:.88rem;line-height:1.65;tab-size:2}
 .rin-animate-code-block .rin-code-pre code{display:grid;min-width:max-content;padding:12px 0;font-family:var(--rin-font-mono);font-variant-ligatures:contextual}
+.rin-animate-code-block .rin-code-pre code.rin-code-native-token-stream{display:block}
 .rin-animate-code-block .rin-code-pre .line:hover{background:color-mix(in srgb, var(--rin-ink) 4%, transparent)}
 .rin-animate-code-block .rin-code-line-number{border-right:var(--rin-border-width) solid var(--rin-border);color:var(--rin-ink-muted)}
