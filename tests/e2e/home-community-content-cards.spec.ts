@@ -396,8 +396,8 @@ test('desktop cards preserve original icon metrics and a centered comment dialog
   ]);
   expect(blogCoverBox).not.toBeNull();
   expect(bookCoverBox).not.toBeNull();
-  expect(Math.abs((blogCoverBox?.height || 0) - 192)).toBeLessThanOrEqual(1);
-  expect(Math.abs((bookCoverBox?.height || 0) - 192)).toBeLessThanOrEqual(1);
+  expect(Math.abs((blogCoverBox?.height || 0) - 144)).toBeLessThanOrEqual(1);
+  expect(Math.abs((bookCoverBox?.height || 0) - 144)).toBeLessThanOrEqual(1);
   expect(Math.abs((blogCoverBox?.height || 0) - (bookCoverBox?.height || 0))).toBeLessThanOrEqual(1);
   expect(Math.abs((blogCoverBox?.width || 0) / (blogCoverBox?.height || 1) - (16 / 9))).toBeLessThanOrEqual(0.01);
   expect(Math.abs((bookCoverBox?.width || 0) / (bookCoverBox?.height || 1) - (2 / 3))).toBeLessThanOrEqual(0.01);
@@ -466,8 +466,8 @@ test('mobile uses a bottom sheet and book rating keeps Animate UI actions', asyn
   ]);
   expect(blogCoverBox).not.toBeNull();
   expect(bookCoverBox).not.toBeNull();
-  expect(blogCoverBox?.height).toBeGreaterThanOrEqual(148);
-  expect(blogCoverBox?.height).toBeLessThanOrEqual(177);
+  expect(Math.abs((blogCoverBox?.height || 0) - 114)).toBeLessThanOrEqual(1);
+  expect(Math.abs((bookCoverBox?.height || 0) - 114)).toBeLessThanOrEqual(1);
   expect(Math.abs((blogCoverBox?.height || 0) - (bookCoverBox?.height || 0))).toBeLessThanOrEqual(1);
   await expect(bookCard.locator('h2 a')).toHaveCSS('text-decoration-line', 'none');
   await expect(blogCard.locator('h2 a')).toHaveCSS('text-decoration-line', 'none');
@@ -651,9 +651,8 @@ test('mobile home toolbar and cards use the compact responsive layout', async ({
     const blogCoverHeight = await blogCard.locator('.stream-blog-cover').evaluate(
       (element) => element.getBoundingClientRect().height,
     );
-    expect(blogCoverHeight).toBeGreaterThanOrEqual(148);
-    expect(blogCoverHeight).toBeLessThanOrEqual(177);
-    expect(Math.abs(blogCoverHeight - (bookLayout?.coverHeight || 0))).toBeLessThanOrEqual(8);
+    expect(Math.abs(blogCoverHeight - 114)).toBeLessThanOrEqual(1);
+    expect(Math.abs(blogCoverHeight - (bookLayout?.coverHeight || 0))).toBeLessThanOrEqual(1);
     const blogFooterLayout = await blogCard.locator('.stream-footer').evaluate((element) => {
       const actions = element.querySelector<HTMLElement>('.home-card-actions');
       if (!actions) return null;
