@@ -1,5 +1,6 @@
 import { AnimateButton, AnimateCircleAlert, AnimateClipboard, AnimateHistory, AnimateMessageCircleWarning, AnimateTerminal, Icon, Tooltip } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import { formatNumber } from '@/i18n/format';
@@ -28,6 +29,7 @@ type Props = {
   displayName: string;
   parentTags: Array<{ tagId: string; slugName: string; displayName: string }>;
   repositoryState?: 'legacy' | 'pending' | 'failed' | 'active';
+  interactionActions?: ReactNode;
 };
 
 const knowledgeViews: KnowledgeView[] = ['outgoing', 'backlinks', 'unresolved', 'anchors'];
@@ -74,7 +76,7 @@ function ConnectionList({ items, empty }: { items: KnowledgeConnection[]; empty:
   );
 }
 
-export default function TagKnowledgeConnections({ tagId, displayName, parentTags, repositoryState }: Props) {
+export default function TagKnowledgeConnections({ tagId, displayName, parentTags, repositoryState, interactionActions }: Props) {
   const { t, i18n } = useFeatureTranslation('reader');
   const language = useOptionalLanguage();
   const resolvedLocale = language?.resolvedLocale ?? resolveLocale(i18n.resolvedLanguage || i18n.language, []);
@@ -149,7 +151,8 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
     const formattedID = formatNumber(resolvedLocale, id);
     return (
       <Link key={key} to={tagReadPath(id, name || `tag-${id}`)}>
-        {name ? <><span>{name}</span><small>ID {formattedID}</small></> : t('tagKnowledge.tagId', { id: formattedID })}
+        <small>ID {formattedID}</small>
+        <span>{name || t('tagKnowledge.tagId', { id: formattedID })}</span>
       </Link>
     );
   };
@@ -196,28 +199,18 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
       <Tooltip content={t('tagKnowledge.reportIssue')}>
         <a className="tag-knowledge-icon-action tag-knowledge-report" aria-label={t('tagKnowledge.reportIssue')} href={issueURL(repositoryURL, t('tagKnowledge.correctionTitle', { tag: displayName }), reportBody)} target="_blank" rel="noreferrer"><AnimateCircleAlert data-tag-knowledge-icon="report" animateOnHover size={18} /></a>
       </Tooltip>
-      <Tooltip content={t('tagKnowledge.source')}>
-        <a className="tex-source-link tag-knowledge-icon-action tag-knowledge-source" aria-label={t('tagKnowledge.source')} href={repositoryURL} target="_blank" rel="noreferrer"><Icon data-tag-knowledge-icon="source" name="git" size={18} /></a>
-      </Tooltip>
       {citation ? <Tooltip content={t('tagKnowledge.copyCurrent')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyCurrent')} onClick={() => void copyText(citation.current, t('tagKnowledge.currentCitation'))}><AnimateClipboard data-tag-knowledge-icon="copy-current" animateOnHover size={18} /></AnimateButton></Tooltip> : null}
       {citation ? <Tooltip content={t('tagKnowledge.copyRevision')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyRevision')} onClick={() => void copyText(citation.revision, t('tagKnowledge.revisionCitation'))}><AnimateHistory data-tag-knowledge-icon="copy-revision" animateOnHover size={18} /></AnimateButton></Tooltip> : null}
     </div>
   );
 
   return (
-    <>
-      <section className="panel tag-knowledge-maintenance-panel" aria-labelledby="tag-knowledge-maintenance-title">
+      <section className="panel tag-knowledge-panel tag-information-panel" aria-labelledby="tag-knowledge-title">
         <div className="panel-heading">
-          <span id="tag-knowledge-maintenance-title">{t('tagKnowledge.maintenanceTitle')}</span>
+          <span id="tag-knowledge-title">{t('tagKnowledge.informationTitle')}</span>
         </div>
         {actionButtons}
         <p className="sr-only" aria-live="polite">{announcement}</p>
-      </section>
-
-      <section className="panel tag-knowledge-panel" aria-labelledby="tag-knowledge-title">
-        <div className="panel-heading">
-          <span id="tag-knowledge-title">{t('tagKnowledge.title')}</span>
-        </div>
         {loading ? <p className="tag-knowledge-empty" role="status">{t('tagKnowledge.loading')}</p> : null}
         {error ? <p className="tag-knowledge-warning" role="status">{error}</p> : null}
         {candidate ? (
@@ -229,14 +222,32 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
         ) : null}
         {repositoryState && repositoryState !== 'active' ? <p className="tag-knowledge-repository-state" data-state={repositoryState}>{t(`tagKnowledge.repositoryState.${repositoryState}`)}</p> : null}
 
+        <dl className="tag-information-metadata">
+          <div>
+            <dt>{t('tagWikiEdit.stableId')}</dt>
+            <dd>ID {formatNumber(resolvedLocale, tagId)}</dd>
+          </div>
+          <div>
+            <dt>{t('tagKnowledge.source')}</dt>
+            <dd>
+              <a className="tex-source-link" aria-label={t('tagWiki.giteaSource')} href={repositoryURL} target="_blank" rel="noreferrer">
+                <Icon name="git" size={17} />
+                <strong>{t('tagWiki.giteaSource')}</strong>
+              </a>
+            </dd>
+          </div>
+        </dl>
+
         <div className="tag-knowledge-section">
           <dl className="tag-relation-list">
             <div><dt>{t('tagKnowledge.parents')}</dt><dd className="tag-knowledge-chips">{(hierarchy?.parentTagIds || []).map((id) => relationTagLink(id, id))}{!hierarchy?.parentTagIds.length ? <span>{t('tagKnowledge.none')}</span> : null}</dd></div>
             {hierarchy?.childTagIds.length ? <div><dt>{t('tagKnowledge.children')}</dt><dd className="tag-knowledge-chips">{hierarchy.childTagIds.map((id) => relationTagLink(id, id))}</dd></div> : null}
-            <div><dt>{t('tagKnowledge.prerequisites')}</dt><dd className="tag-knowledge-chips">{requires.length ? requires.map((item) => <Link key={item.id} to={tagReadPath(item.objectTagId, relationTagNames.get(item.objectTagId) || `tag-${item.objectTagId}`)}><span>{relationTagNames.get(item.objectTagId) || t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.objectTagId) })}</span>{relationTagNames.has(item.objectTagId) ? <small>ID {formatNumber(resolvedLocale, item.objectTagId)}</small> : null}{item.contextTagId ? <small>{relationContext(item.contextTagId)}</small> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
-            <div><dt>{t('tagKnowledge.dependants')}</dt><dd className="tag-knowledge-chips">{requiredBy.length ? requiredBy.map((item) => <Link key={item.id} to={tagReadPath(item.subjectTagId, relationTagNames.get(item.subjectTagId) || `tag-${item.subjectTagId}`)}><span>{relationTagNames.get(item.subjectTagId) || t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.subjectTagId) })}</span>{relationTagNames.has(item.subjectTagId) ? <small>ID {formatNumber(resolvedLocale, item.subjectTagId)}</small> : null}{item.contextTagId ? <small>{relationContext(item.contextTagId)}</small> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
+            <div><dt>{t('tagKnowledge.prerequisites')}</dt><dd className="tag-knowledge-chips">{requires.length ? requires.map((item) => <Link key={item.id} to={tagReadPath(item.objectTagId, relationTagNames.get(item.objectTagId) || `tag-${item.objectTagId}`)}><small>ID {formatNumber(resolvedLocale, item.objectTagId)}</small><span>{relationTagNames.get(item.objectTagId) || t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.objectTagId) })}</span>{item.contextTagId ? <em>{relationContext(item.contextTagId)}</em> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
+            <div><dt>{t('tagKnowledge.dependants')}</dt><dd className="tag-knowledge-chips">{requiredBy.length ? requiredBy.map((item) => <Link key={item.id} to={tagReadPath(item.subjectTagId, relationTagNames.get(item.subjectTagId) || `tag-${item.subjectTagId}`)}><small>ID {formatNumber(resolvedLocale, item.subjectTagId)}</small><span>{relationTagNames.get(item.subjectTagId) || t('tagKnowledge.tagId', { id: formatNumber(resolvedLocale, item.subjectTagId) })}</span>{item.contextTagId ? <em>{relationContext(item.contextTagId)}</em> : null}</Link>) : <span>{t('tagKnowledge.none')}</span>}</dd></div>
           </dl>
         </div>
+
+        {interactionActions ? <div className="tag-information-interactions">{interactionActions}</div> : null}
 
         {pages.outgoing?.items.length ? <div className="tag-knowledge-section">
           <h3>{t('tagKnowledge.outgoing')}</h3>
@@ -269,6 +280,5 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
           </div>
         ) : null}
       </section>
-    </>
   );
 }

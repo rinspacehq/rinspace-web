@@ -1,4 +1,4 @@
-import { AnimateButton , useNoticeToasts } from 'components/ui';
+import { AnimateButton, Icon, useNoticeToasts } from 'components/ui';
 import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -121,7 +121,7 @@ type WikiContributor = {
 
 const sortOptions: TagSort[] = ["hot", "asc", "desc"];
 
-const contentTabs: ContentTab[] = ["wiki", "all", "blog", "book"];
+const contentTabs: ContentTab[] = ["wiki", "blog", "book"];
 
 function tagName(
   tag: Pick<TagDetail | TagPageItem, "displayName" | "slugName">,
@@ -689,20 +689,7 @@ export function TagDetailWikiArticle({
       className="tag-detail-wiki-article detail-blog"
       aria-label={t('tagDetail.wikiLabel')}
     >
-      <div className="tag-detail-wiki-head">
-        <span>Wiki</span>
-        <div className="tag-detail-wiki-actions">
-          <Link to={tagWikiPath(tag.id, tag.slugName || tagName(tag))}>
-            {t('tagDetail.details')}
-          </Link>
-          {tag.repositoryState === 'active' && (
-            <Link to={tagEditPath(tag.id, tag.slugName || tagName(tag))}>
-              {t('tagWiki.edit')}
-            </Link>
-          )}
-        </div>
-      </div>
-      <div className="tag-detail-wiki-body detail-body">
+      <div className="tag-detail-wiki-body detail-body" data-rin-tag-wiki-body="true">
         {wikiHtml ? (
           <div
             className="rin-writer-html tag-detail-wiki-html"
@@ -801,6 +788,51 @@ export function TagSocialActions({
         onClick={onFollow}
       />
     </div>
+  );
+}
+
+type TagWikiTocItem = {
+  id: string;
+  label: string;
+  level: number;
+};
+
+function TagWikiTableOfContents({ tagKey }: { tagKey: string }) {
+  const { t } = useFeatureTranslation('reader');
+  const [items, setItems] = useState<TagWikiTocItem[]>([]);
+
+  useEffect(() => {
+    const article = document.querySelector<HTMLElement>('[data-rin-tag-wiki-body="true"]');
+    if (!article) {
+      setItems([]);
+      return;
+    }
+    const headings = Array.from(article.querySelectorAll<HTMLElement>('h2, h3, h4'));
+    const nextItems = headings.flatMap((heading, index) => {
+      const label = (heading.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!label) return [];
+      const id = heading.id.trim() || `tag-wiki-section-${index + 1}`;
+      heading.id = id;
+      return [{ id, label, level: Number(heading.tagName.slice(1)) }];
+    });
+    setItems(nextItems);
+  }, [tagKey]);
+
+  if (!items.length) return null;
+
+  return (
+    <aside className="tag-detail-toc-side">
+      <nav className="tag-detail-toc" aria-label={t('tagWiki.tocLabel')}>
+        <span>{t('tagWiki.toc')}</span>
+        <ol>
+          {items.map((item) => (
+            <li className={`level-${item.level}`} key={item.id}>
+              <a href={`#${item.id}`}>{item.label}</a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </aside>
   );
 }
 
@@ -1286,6 +1318,9 @@ function TagDetailPage() {
 
         {tag ? (
           <section className="tag-detail-layout">
+            {activeTab === "wiki" ? (
+              <TagWikiTableOfContents tagKey={`${tag.id}:${tag.publicVersion || tag.updatedAt || ''}`} />
+            ) : null}
             <article className="panel tag-related-panel">
               <header className="tag-detail-content-head">
                 <div className="tag-detail-meta-row">
@@ -1295,34 +1330,24 @@ function TagDetailPage() {
                       <span className="label">{t('tagDetail.tagFallback')}</span>
                     </span>
                   </span>
-                  <TagSocialActions
-                    isLiked={isLiked}
-                    likeCount={likeCount}
-                    likeBusy={likeBusy}
-                    isFollower={isFollower}
-                    followCount={followCount}
-                    followBusy={followBusy}
-                    repositoryReady={tag.repositoryState === undefined || tag.repositoryState === "active"}
-                    onLike={() => void toggleLike()}
-                    onFollow={() => void toggleFollow()}
-                  />
+                  {tag.repositoryState === 'active' ? (
+                    <Link
+                      className="tag-detail-edit-action"
+                      to={tagEditPath(tag.id, tag.slugName || tagName(tag))}
+                    >
+                      <Icon name="pencil-square" />
+                      {t('tagWiki.edit')}
+                    </Link>
+                  ) : null}
                 </div>
                 <div className="tag-detail-title-row">
                   <h1>
                     <MathInline text={tagTitle} />
                   </h1>
                 </div>
-                {tagIntro ? (
-                  <p className="tag-detail-intro" data-rin-primary-text="description">
-                    <MathInline text={tagIntro} />
-                  </p>
-                ) : null}
-                <p className="tag-detail-intro" data-rin-tag-lifecycle="true">
-                  {t('tagDetail.lifecycle', { state: tag.lifecycle || "active" })}
-                </p>
                 {tag.repositoryState === "pending" ||
                 tag.repositoryState === "failed" ? (
-                  <p className="tag-detail-intro" role="status">
+                  <p className="state-strip compact tag-detail-repository-status" role="status">
                     {tag.repositoryState === "pending"
                       ? t('tagDetail.repositoryPending')
                       : t('tagDetail.repositoryFailed')}
@@ -1558,6 +1583,19 @@ function TagDetailPage() {
                   displayName={tagTitle}
                   parentTags={tag.parentTags}
                   repositoryState={tag.repositoryState}
+                  interactionActions={(
+                    <TagSocialActions
+                      isLiked={isLiked}
+                      likeCount={likeCount}
+                      likeBusy={likeBusy}
+                      isFollower={isFollower}
+                      followCount={followCount}
+                      followBusy={followBusy}
+                      repositoryReady={tag.repositoryState === undefined || tag.repositoryState === "active"}
+                      onLike={() => void toggleLike()}
+                      onFollow={() => void toggleFollow()}
+                    />
+                  )}
                 />
               ) : null}
               <section className="panel tag-wiki-contributor-panel">

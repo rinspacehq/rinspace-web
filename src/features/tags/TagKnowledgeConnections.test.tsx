@@ -29,13 +29,13 @@ vi.mock('@/services/tagV2', () => ({
   loadTagStatements: async (_id: number, direction: string) => direction === 'requires' ? [{ id: 'statement-1', subjectTagId: 42, subjectTagDisplayName: 'Sheaf', predicateTagId: 70, objectTagId: 6, objectTagDisplayName: 'Category', evidence: {}, reviewState: 'approved', rank: 0, reason: 'Prerequisite', version: 2, createdAt: '2026-08-20T10:00:00Z' }] : [],
 }));
 
-test('shows label-first relationships, maintenance links, and indexed connections without replacing article content', async () => {
+test('shows one-row relationships with IDs inside tag information without replacing article content', async () => {
   await ensureLocaleNamespaces('zh-CN', ['reader']);
   await i18n.changeLanguage('zh-CN');
 
   const view = render(
     <MemoryRouter initialEntries={[`/tags/42/sheaf?candidate=${'b'.repeat(40)}`]}>
-      <main><article data-testid="valid-article">valid publication</article><TagKnowledgeConnections tagId={42} displayName="Sheaf" parentTags={[{ tagId: '2', slugName: 'geometry', displayName: 'Geometry' }]} repositoryState="active" /></main>
+      <main><article data-testid="valid-article">valid publication</article><TagKnowledgeConnections tagId={42} displayName="Sheaf" parentTags={[{ tagId: '2', slugName: 'geometry', displayName: 'Geometry' }]} repositoryState="active" interactionActions={<button type="button">Save tag</button>} /></main>
     </MemoryRouter>,
   );
   await waitFor(() => expect(view.getByText('Geometry')).toBeTruthy());
@@ -46,19 +46,25 @@ test('shows label-first relationships, maintenance links, and indexed connection
   expect(view.getByText('Category')).toBeTruthy();
   expect(view.getByText('ID 6')).toBeTruthy();
   expect(view.getByText('标签 #7')).toBeTruthy();
-  expect(view.getByText('上级标签')).toBeTruthy();
+  expect(view.getByText('父标签')).toBeTruthy();
+  expect(view.getByText('子标签')).toBeTruthy();
   expect(view.getByText('前置标签')).toBeTruthy();
   expect(view.getByText('后续标签')).toBeTruthy();
   expect(view.queryByText('被需要')).toBeNull();
   expect(view.getByText('main-result')).toBeTruthy();
-  const maintenancePanel = view.getByText('标签维护').closest('.tag-knowledge-maintenance-panel');
-  const relationshipsPanel = view.getByText('标签关系').closest('.tag-knowledge-panel');
-  if (!maintenancePanel || !relationshipsPanel) throw new Error('Expected separate tag maintenance and relationship panels');
-  expect(maintenancePanel.compareDocumentPosition(relationshipsPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(maintenancePanel.querySelector('.tag-knowledge-actions')).toBeTruthy();
-  expect(relationshipsPanel.querySelector('.tag-knowledge-actions')).toBeNull();
-  expect(maintenancePanel.textContent).not.toContain('上级标签');
-  expect(relationshipsPanel.textContent).toContain('上级标签');
+  const informationPanel = view.getByText('标签信息').closest('.tag-information-panel');
+  if (!informationPanel) throw new Error('Expected the combined tag information panel');
+  expect(informationPanel.querySelector('.tag-knowledge-actions')).toBeTruthy();
+  expect(informationPanel.textContent).toContain('标签 ID');
+  expect(informationPanel.textContent).toContain('ID 42');
+  expect(informationPanel.textContent).toContain('父标签');
+  expect(informationPanel.textContent).toContain('子标签');
+  expect(informationPanel.textContent).toContain('Save tag');
+  const relationshipRows = informationPanel.querySelectorAll('.tag-knowledge-chips > a');
+  expect(relationshipRows.length).toBeGreaterThanOrEqual(3);
+  relationshipRows.forEach((row) => {
+    expect(row.querySelector('small')?.textContent).toMatch(/^ID /);
+  });
   expect(view.getByRole('link', { name: /源码/ }).getAttribute('href')).toContain('/tags/42');
   const reportHref = view.getByRole('link', { name: /报告问题/ }).getAttribute('href');
   expect(reportHref).toBeTruthy();
@@ -72,13 +78,13 @@ test('shows label-first relationships, maintenance links, and indexed connection
   expect(view.getByRole('button', { name: /当前引用/ })).toBeTruthy();
   const maintenanceAction = view.getByRole('button', { name: '维护标签' });
   const reportAction = view.getByRole('link', { name: '报告问题' });
-  const sourceAction = view.getByRole('link', { name: '源码' });
+  const sourceAction = view.getByRole('link', { name: 'Gitea 源码' });
   const currentCitationAction = view.getByRole('button', { name: '复制当前引用' });
   const revisionCitationAction = view.getByRole('button', { name: '复制固定引用' });
   expect(maintenanceAction.textContent).toBe('');
   expect(reportAction.textContent).toBe('');
-  expect(sourceAction.textContent).toBe('');
-  [maintenanceAction, reportAction, sourceAction, currentCitationAction, revisionCitationAction].forEach((action) => {
+  expect(sourceAction.textContent).toContain('Gitea 源码');
+  [maintenanceAction, reportAction, currentCitationAction, revisionCitationAction].forEach((action) => {
     expect(action.querySelector('svg')).toBeTruthy();
     expect(action.classList.contains('tag-knowledge-icon-action')).toBe(true);
   });
@@ -90,7 +96,6 @@ test('shows label-first relationships, maintenance links, and indexed connection
   });
   expect(maintenanceAction.querySelector('[data-tag-knowledge-icon="maintain"]')).toBeTruthy();
   expect(reportAction.querySelector('[data-tag-knowledge-icon="report"]')).toBeTruthy();
-  expect(sourceAction.querySelector('[data-tag-knowledge-icon="source"]')).toBeTruthy();
   expect(currentCitationAction.querySelector('[data-tag-knowledge-icon="copy-current"]')).toBeTruthy();
   expect(revisionCitationAction.querySelector('[data-tag-knowledge-icon="copy-revision"]')).toBeTruthy();
   expect(view.getByText('Pull Request 预览')).toBeTruthy();
