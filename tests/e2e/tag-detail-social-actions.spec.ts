@@ -12,8 +12,8 @@ const tagDetailFixture = {
   displayName: 'Weil Pairings',
   excerpt: 'Weil 配对的标签说明。',
   originalText: '# Weil Pairings',
-  parsedText: '<h1>Weil Pairings</h1><p>Weil 配对的标签说明。</p>',
-  html: '<h1>Weil Pairings</h1><p>Weil 配对的标签说明。</p>',
+  parsedText: '<h1>Weil Pairings</h1><h2>基本概念</h2><p>Weil 配对的标签说明。</p>',
+  html: '<h1>Weil Pairings</h1><h2>基本概念</h2><p>Weil 配对的标签说明。</p>',
   tex_source: '',
   rendererFinal: true,
   followCount: 11,
@@ -135,7 +135,7 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
       const view = new URL(request.url()).searchParams.get('view') || 'outgoing';
       await route.fulfill({
         json: {
-          tag: { id: 5815, displayName: 'Weil Pairings', normalizedName: 'weil-pairings', usageScope: '', parentTagIds: [], version: 2 },
+          tag: { id: 5815, slugName: 'weil-pairings', displayName: 'Weil Pairings', normalizedName: 'weil-pairings', usageScope: '', parentTagIds: [], version: 2 },
           parentTagIds: [],
           childTagIds: [6100],
           parentTags: [],
@@ -237,15 +237,25 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
   await page.goto('/tags/5815/weil-pairings', { waitUntil: 'domcontentloaded' });
 
   const contentTabs = page.locator('.tag-detail-content-tabs');
-  await expect(contentTabs.getByRole('button')).toHaveText(['Wiki', '综合', '文章', '书籍']);
+  await expect(contentTabs.getByRole('button')).toHaveText(['百科', '文章', '书籍'], { timeout: 20_000 });
   await expect(contentTabs.getByRole('button', { name: '问答' })).toHaveCount(0);
   await expect(contentTabs.getByRole('button', { name: '讨论' })).toHaveCount(0);
   await expect(contentTabs.getByRole('button', { name: '动态' })).toHaveCount(0);
 
-  const actions = page.locator('.tag-detail-follow-row');
+  await expect(page.locator('.tag-detail-meta-row').getByRole('link', { name: '编辑' })).toBeVisible();
+  await expect(page.locator('[data-rin-primary-text="description"]')).toHaveCount(0);
+  await expect(page.locator('[data-rin-tag-lifecycle="true"]')).toHaveCount(0);
+  await expect(page.locator('.tag-detail-toc').getByRole('link', { name: '基本概念' })).toBeVisible();
+
+  const informationPanel = page.locator('.tag-information-panel');
+  await expect(informationPanel).toBeVisible();
+  await expect(informationPanel).toContainText('标签信息');
+  await expect(informationPanel).toContainText('标签 ID');
+  await expect(informationPanel).toContainText('ID 5,815');
+  const actions = informationPanel.locator('.tag-detail-follow-row');
   await expect(actions).toBeVisible({ timeout: 20_000 });
   const like = actions.getByRole('button', { name: '喜欢，7' });
-  const follow = actions.getByRole('button', { name: '关注，11' });
+  const follow = actions.getByRole('button', { name: '收藏，11' });
   await expect(like.locator('.rin-community-action-icon--heart')).toBeVisible();
   await expect(follow.locator('.rin-community-action-icon--bookmark')).toBeVisible();
   await expect(like.locator('.rin-community-action-icon--heart')).toHaveCSS('font-size', '20px');
@@ -255,28 +265,21 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
   expect((await like.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   expect((await follow.boundingBox())?.height).toBeGreaterThanOrEqual(44);
 
-  const wikiHeader = page.locator('.tag-detail-wiki-head');
-  await expect(wikiHeader.getByRole('link', { name: '详情' })).toBeVisible();
-  await expect(wikiHeader.getByRole('button', { name: '源码' })).toHaveCount(0);
-
-  const maintenancePanel = page.locator('.tag-knowledge-maintenance-panel');
-  const relationshipsPanel = page.locator('.tag-knowledge-panel');
-  await expect(maintenancePanel).toBeVisible();
-  await expect(relationshipsPanel).toBeVisible();
-  await expect(maintenancePanel).toContainText('标签维护');
-  await expect(relationshipsPanel).toContainText('标签关系');
-  await expect(relationshipsPanel).toContainText('Algebraic Geometry');
-  await expect(relationshipsPanel).toContainText('ID 6,100');
-  await expect(relationshipsPanel).toContainText('Elliptic Curves');
-  await expect(relationshipsPanel).toContainText('ID 6,200');
-  await expect(relationshipsPanel).toContainText('Abelian Varieties');
-  await expect(relationshipsPanel).toContainText('ID 6,300');
-  await expect(relationshipsPanel.locator('.tag-knowledge-actions')).toHaveCount(0);
-  const relationActions = maintenancePanel.locator('.tag-knowledge-actions');
+  await expect(page.locator('.tag-detail-wiki-head')).toHaveCount(0);
+  await expect(page.locator('.tag-knowledge-maintenance-panel')).toHaveCount(0);
+  await expect(informationPanel).toContainText('父标签');
+  await expect(informationPanel).toContainText('子标签');
+  await expect(informationPanel).toContainText('Algebraic Geometry');
+  await expect(informationPanel).toContainText('ID 6,100');
+  await expect(informationPanel).toContainText('Elliptic Curves');
+  await expect(informationPanel).toContainText('ID 6,200');
+  await expect(informationPanel).toContainText('Abelian Varieties');
+  await expect(informationPanel).toContainText('ID 6,300');
+  await expect(informationPanel.locator('.tag-knowledge-chips > a')).toHaveCount(3);
+  const relationActions = informationPanel.locator('.tag-knowledge-actions');
   const iconActions = [
     relationActions.getByRole('button', { name: '维护标签' }),
     relationActions.getByRole('link', { name: '报告问题' }),
-    relationActions.getByRole('link', { name: '源码' }),
     relationActions.getByRole('button', { name: '复制当前引用' }),
     relationActions.getByRole('button', { name: '复制固定引用' }),
   ];
@@ -302,9 +305,11 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
   }
   await expect(iconActions[0].locator('[data-tag-knowledge-icon="maintain"]')).toBeVisible();
   await expect(iconActions[1].locator('[data-tag-knowledge-icon="report"]')).toBeVisible();
-  await expect(iconActions[2].locator('[data-tag-knowledge-icon="source"]')).toBeVisible();
-  await expect(iconActions[3].locator('[data-tag-knowledge-icon="copy-current"]')).toBeVisible();
-  await expect(iconActions[4].locator('[data-tag-knowledge-icon="copy-revision"]')).toBeVisible();
+  await expect(iconActions[2].locator('[data-tag-knowledge-icon="copy-current"]')).toBeVisible();
+  await expect(iconActions[3].locator('[data-tag-knowledge-icon="copy-revision"]')).toBeVisible();
+  const sourceLink = informationPanel.getByRole('link', { name: 'Gitea 源码' });
+  await expect(sourceLink).toBeVisible();
+  await expect(sourceLink.locator('.rin-icon--git')).toBeVisible();
 
   await like.click();
   const activeLike = actions.getByRole('button', { name: '已喜欢，8' });
@@ -320,7 +325,7 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
   });
 
   await follow.click();
-  const activeFollow = actions.getByRole('button', { name: '已关注，12' });
+  const activeFollow = actions.getByRole('button', { name: '已收藏，12' });
   await expect(activeFollow.locator('.rin-community-action-icon--bookmark-check')).toBeVisible();
   await expect(activeFollow).toHaveAttribute('aria-pressed', 'true');
   await expect(activeLike).toHaveAttribute('aria-pressed', 'true');

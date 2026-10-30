@@ -3368,6 +3368,7 @@ export type TranslationKey =
   | "reader:tagKnowledge.correctionTitle"
   | "reader:tagKnowledge.currentCitation"
   | "reader:tagKnowledge.dependants"
+  | "reader:tagKnowledge.informationTitle"
   | "reader:tagKnowledge.loadMore"
   | "reader:tagKnowledge.loadMoreFailed"
   | "reader:tagKnowledge.loading"

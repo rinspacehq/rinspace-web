@@ -22,6 +22,7 @@
 @import "./dark-code.css";
 @import "../features/tags/tag-creation-flow.css";
 @import "../features/tags/tag-knowledge-connections.css";
+@import "../features/tags/tag-detail-layout.css";
 @import "./font-contract.css";
 
 /* Tailwind Preflight is intentionally omitted; the v2 reset is scoped by styles/foundations.css. */

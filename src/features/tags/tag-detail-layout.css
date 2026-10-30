@@ -1,0 +1,263 @@
+.tag-detail-toc-side {
+  position: sticky;
+  top: 96px;
+  grid-column: 1;
+  align-self: start;
+  min-width: 0;
+}
+
+.tag-detail-toc {
+  display: grid;
+  gap: 12px;
+  padding: 4px 0 4px 14px;
+  border-left: 2px solid color-mix(in srgb, currentColor 16%, transparent);
+  color: var(--muted, #718096);
+  font-family: "IBM Plex Mono", "Noto Sans SC", monospace;
+  font-size: .74rem;
+}
+
+.tag-detail-toc > span {
+  color: var(--muted, #718096);
+  opacity: .78;
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tag-detail-toc ol {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag-detail-toc li {
+  position: relative;
+  min-width: 0;
+}
+
+.tag-detail-toc li::before {
+  position: absolute;
+  top: .48em;
+  left: -19px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--paper, #f8fafc);
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.tag-detail-toc li.level-3,
+.tag-detail-toc li.level-4 {
+  padding-left: 10px;
+}
+
+.tag-detail-toc a {
+  display: block;
+  overflow: hidden;
+  color: inherit;
+  line-height: 1.45;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-detail-toc a:hover {
+  color: var(--green, #2b577a);
+}
+
+.tag-detail-edit-action {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 4px;
+  background: var(--white, #fff);
+  color: var(--ink, #2c3e50);
+  font-family: "IBM Plex Mono", "Noto Sans SC", monospace;
+  font-size: .74rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tag-detail-edit-action:hover {
+  border-color: var(--ink, #2c3e50);
+  background: var(--ink, #2c3e50);
+  color: var(--white, #fff);
+}
+
+.tag-detail-repository-status {
+  margin: 0;
+}
+
+.tag-detail-wiki-article {
+  padding-top: 8px;
+}
+
+.tag-information-panel .panel-heading {
+  margin-bottom: 0;
+}
+
+.tag-information-panel .tag-knowledge-section {
+  padding: .85rem 0;
+}
+
+.tag-information-panel .tag-relation-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .42rem;
+  padding: .72rem 0;
+}
+
+.tag-information-panel .tag-relation-list > div:first-child {
+  padding-top: 0;
+}
+
+.tag-information-panel .tag-relation-list dt {
+  padding: 0;
+  color: var(--muted, #718096);
+  font-family: "IBM Plex Mono", "Noto Sans SC", monospace;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.tag-information-panel .tag-knowledge-chips {
+  display: grid;
+  gap: 0;
+}
+
+.tag-information-panel .tag-knowledge-chips > a {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: .55rem;
+  padding: .42rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink, #243447);
+  text-decoration: none;
+}
+
+.tag-information-panel .tag-knowledge-chips > a + a {
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.tag-information-panel .tag-knowledge-chips > a:hover {
+  color: var(--green, #2b577a);
+}
+
+.tag-information-panel .tag-knowledge-chips > a > small,
+.tag-information-panel .tag-knowledge-chips > a > span,
+.tag-information-panel .tag-knowledge-chips > a > em {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.tag-information-panel .tag-knowledge-chips > a > small {
+  color: var(--muted, #718096);
+  font-family: "IBM Plex Mono", "Noto Sans SC", monospace;
+  font-size: .66rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tag-information-panel .tag-knowledge-chips > a > span {
+  overflow: hidden;
+  font-size: .78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-information-panel .tag-knowledge-chips > a > em {
+  grid-column: 1 / -1;
+  color: var(--muted, #718096);
+  font-size: .66rem;
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.tag-information-panel .tag-knowledge-chips > span {
+  display: block;
+  padding: .35rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted, #718096);
+  font-size: .74rem;
+}
+
+.tag-information-interactions {
+  padding-top: .8rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.tag-information-metadata {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: .8rem 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.tag-information-metadata > div {
+  display: grid;
+  grid-template-columns: minmax(4.75rem, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: .65rem;
+  min-height: 32px;
+}
+
+.tag-information-metadata dt {
+  color: var(--muted, #718096);
+  font-family: "IBM Plex Mono", "Noto Sans SC", monospace;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.tag-information-metadata dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--ink, #243447);
+  font-family: "IBM Plex Mono", "Noto Sans SC", monospace;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.tag-information-metadata .tex-source-link {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: .45rem;
+  color: var(--ink, #243447);
+  font-size: .78rem;
+  text-decoration: none;
+}
+
+.tag-information-metadata .tex-source-link:hover {
+  color: var(--green, #2b577a);
+}
+
+.tag-information-interactions .tag-detail-follow-row {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+@media (max-width: 620px) {
+  .tag-detail-edit-action {
+    min-height: 30px;
+    padding: 0 8px;
+  }
+}
