@@ -253,6 +253,7 @@ export type WalletAdminAgentPolicy = Readonly<{
   inputSgPerMillion: string;
   cachedInputSgPerMillion: string;
   outputSgPerMillion: string;
+  sgRateScale: string;
   maxIterations: number;
   maxOutputTokens: number;
   taskBudgetSg: string;
@@ -312,6 +313,7 @@ export type WalletAdminAgentPolicyUpdate = Readonly<{
   inputSgPerMillion: string;
   cachedInputSgPerMillion: string;
   outputSgPerMillion: string;
+  sgRateScale: string;
   maxIterations: number;
   maxOutputTokens: number;
   taskBudgetSg: string;
@@ -1242,6 +1244,7 @@ function agentPolicy(value: unknown): WalletAdminAgentPolicy {
       "input_sg_per_million",
       "cached_input_sg_per_million",
       "output_sg_per_million",
+      "sg_rate_scale",
       "max_iterations",
       "max_output_tokens",
       "task_budget_sg",
@@ -1272,6 +1275,7 @@ function agentPolicy(value: unknown): WalletAdminAgentPolicy {
     const inputSg = agentInteger(item.input_sg_per_million);
     const cachedInputSg = agentInteger(item.cached_input_sg_per_million);
     const outputSg = agentInteger(item.output_sg_per_million);
+    const sgRateScale = agentInteger(item.sg_rate_scale, true);
     const maxOutputTokens = agentCount(item.max_output_tokens, 4096);
     const taskBudgetSg = agentInteger(item.task_budget_sg, true);
     const dailyTokensLimit = agentInteger(item.daily_tokens_limit, true);
@@ -1279,6 +1283,7 @@ function agentPolicy(value: unknown): WalletAdminAgentPolicy {
     if (
       BigInt(providerCached) > BigInt(providerInput) ||
       BigInt(cachedInputSg) > BigInt(inputSg) ||
+      BigInt(sgRateScale) > 1_000_000n ||
       BigInt(maxOutputTokens) > BigInt(dailyTokensLimit) ||
       BigInt(taskBudgetSg) > BigInt(dailySgLimit) ||
       (item.enabled &&
@@ -1302,6 +1307,7 @@ function agentPolicy(value: unknown): WalletAdminAgentPolicy {
       inputSgPerMillion: inputSg,
       cachedInputSgPerMillion: cachedInputSg,
       outputSgPerMillion: outputSg,
+      sgRateScale,
       maxIterations: agentCount(item.max_iterations, 128),
       maxOutputTokens,
       taskBudgetSg,
@@ -1936,6 +1942,7 @@ function agentPolicyRequest(input: WalletAdminAgentPolicyUpdate) {
   const inputSg = agentRequestInteger(input.inputSgPerMillion);
   const cachedInputSg = agentRequestInteger(input.cachedInputSgPerMillion);
   const outputSg = agentRequestInteger(input.outputSgPerMillion);
+  const sgRateScale = agentRequestInteger(input.sgRateScale, true);
   const taskBudgetSg = agentRequestInteger(input.taskBudgetSg, true);
   const dailyTokens = agentRequestInteger(input.dailyTokensLimit, true);
   const dailySg = agentRequestInteger(input.dailySgLimit, true);
@@ -1943,6 +1950,7 @@ function agentPolicyRequest(input: WalletAdminAgentPolicyUpdate) {
   if (
     providerCached > providerInput ||
     cachedInputSg > inputSg ||
+    sgRateScale > 1_000_000 ||
     input.maxOutputTokens > dailyTokens ||
     taskBudgetSg > dailySg ||
     (input.enabled &&
@@ -1966,6 +1974,7 @@ function agentPolicyRequest(input: WalletAdminAgentPolicyUpdate) {
     input_sg_per_million: inputSg,
     cached_input_sg_per_million: cachedInputSg,
     output_sg_per_million: outputSg,
+    sg_rate_scale: sgRateScale,
     max_iterations: input.maxIterations,
     max_output_tokens: input.maxOutputTokens,
     task_budget_sg: taskBudgetSg,

@@ -56,13 +56,13 @@ const emptyDraft: AgentPolicyDraft = {
 const reviewedLaunchDraft: AgentPolicyDraft = Object.freeze({
   enabled: false,
   model: "deepseek-flash",
-  providerPriceVersion: "deepseek-flash-1017-cny-offpeak-20261026",
-  providerInputCnyMicrosPerMillion: "1",
-  providerCachedInputCnyMicrosPerMillion: "0.02",
-  providerOutputCnyMicrosPerMillion: "4",
-  inputSgPerMillion: "100",
-  cachedInputSgPerMillion: "10",
-  outputSgPerMillion: "200",
+  providerPriceVersion: "deepseek-flash-cny-peak-20261030",
+  providerInputCnyMicrosPerMillion: "2",
+  providerCachedInputCnyMicrosPerMillion: "0.04",
+  providerOutputCnyMicrosPerMillion: "8",
+  inputSgPerMillion: "3",
+  cachedInputSgPerMillion: "0.06",
+  outputSgPerMillion: "12",
   maxIterations: "24",
   maxOutputTokens: "1024",
   taskBudgetSg: "10",
@@ -92,6 +92,16 @@ export function agentYuanToMicros(raw: string): string {
   ).toString();
 }
 
+export function agentScaledSgToYuan(raw: string, rawScale: string): string {
+  const value = BigInt(raw);
+  const scale = BigInt(rawScale);
+  if (value < 0n || scale < 1n) throw new TypeError("invalid scaled rate");
+  const numerator = value * BigInt(walletCnyMicrosPerSg);
+  if (numerator % scale !== 0n)
+    throw new TypeError("rate exceeds CNY precision");
+  return agentMicrosToYuan((numerator / scale).toString());
+}
+
 function isBootstrapPolicy(policy: WalletAdminAgentPolicy): boolean {
   return (
     !policy.enabled &&
@@ -116,9 +126,18 @@ function policyDraft(policy: WalletAdminAgentPolicy): AgentPolicyDraft {
     providerOutputCnyMicrosPerMillion: agentMicrosToYuan(
       policy.providerOutputCnyMicrosPerMillion,
     ),
-    inputSgPerMillion: policy.inputSgPerMillion,
-    cachedInputSgPerMillion: policy.cachedInputSgPerMillion,
-    outputSgPerMillion: policy.outputSgPerMillion,
+    inputSgPerMillion: agentScaledSgToYuan(
+      policy.inputSgPerMillion,
+      policy.sgRateScale,
+    ),
+    cachedInputSgPerMillion: agentScaledSgToYuan(
+      policy.cachedInputSgPerMillion,
+      policy.sgRateScale,
+    ),
+    outputSgPerMillion: agentScaledSgToYuan(
+      policy.outputSgPerMillion,
+      policy.sgRateScale,
+    ),
     maxIterations: String(policy.maxIterations),
     maxOutputTokens: String(policy.maxOutputTokens),
     taskBudgetSg: policy.taskBudgetSg,
@@ -245,9 +264,13 @@ export function RinAgentAdminPanel({
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
-    if (!policy || !reason.trim() || policyBusy) return;
+    if (!policy || policyBusy) return;
     setPolicyError("");
     setPolicySuccess("");
+    if (!reason.trim()) {
+      setPolicyError(t("agent.reasonRequired"));
+      return;
+    }
     let input: WalletAdminAgentPolicyUpdate;
     try {
       input = {
@@ -264,9 +287,12 @@ export function RinAgentAdminPanel({
         providerOutputCnyMicrosPerMillion: agentYuanToMicros(
           draft.providerOutputCnyMicrosPerMillion,
         ),
-        inputSgPerMillion: draft.inputSgPerMillion,
-        cachedInputSgPerMillion: draft.cachedInputSgPerMillion,
-        outputSgPerMillion: draft.outputSgPerMillion,
+        inputSgPerMillion: agentYuanToMicros(draft.inputSgPerMillion),
+        cachedInputSgPerMillion: agentYuanToMicros(
+          draft.cachedInputSgPerMillion,
+        ),
+        outputSgPerMillion: agentYuanToMicros(draft.outputSgPerMillion),
+        sgRateScale: walletCnyMicrosPerSg,
         maxIterations: integer(draft.maxIterations),
         maxOutputTokens: integer(draft.maxOutputTokens),
         taskBudgetSg: draft.taskBudgetSg,
@@ -450,6 +476,57 @@ export function RinAgentAdminPanel({
                 value={draft.dailySgLimit}
                 onChange={(value) => setDraftValue("dailySgLimit", value)}
               />
+              <PolicyInput
+                label={t("agent.retailInputRate")}
+                value={draft.inputSgPerMillion}
+                inputMode="decimal"
+                onChange={(value) =>
+                  setDraftValue("inputSgPerMillion", value)
+                }
+              />
+              <PolicyInput
+                label={t("agent.retailCachedRate")}
+                value={draft.cachedInputSgPerMillion}
+                inputMode="decimal"
+                onChange={(value) =>
+                  setDraftValue("cachedInputSgPerMillion", value)
+                }
+              />
+              <PolicyInput
+                label={t("agent.retailOutputRate")}
+                value={draft.outputSgPerMillion}
+                inputMode="decimal"
+                onChange={(value) =>
+                  setDraftValue("outputSgPerMillion", value)
+                }
+              />
+              <Button
+                type="button"
+                onClick={() => {
+                  setPolicySuccess("");
+                  setPolicyError("");
+                  setDraft((current) => ({
+                    ...current,
+                    providerPriceVersion:
+                      reviewedLaunchDraft.providerPriceVersion,
+                    providerInputCnyMicrosPerMillion:
+                      reviewedLaunchDraft.providerInputCnyMicrosPerMillion,
+                    providerCachedInputCnyMicrosPerMillion:
+                      reviewedLaunchDraft.providerCachedInputCnyMicrosPerMillion,
+                    providerOutputCnyMicrosPerMillion:
+                      reviewedLaunchDraft.providerOutputCnyMicrosPerMillion,
+                    inputSgPerMillion: reviewedLaunchDraft.inputSgPerMillion,
+                    cachedInputSgPerMillion:
+                      reviewedLaunchDraft.cachedInputSgPerMillion,
+                    outputSgPerMillion: reviewedLaunchDraft.outputSgPerMillion,
+                  }));
+                  setReason(
+                    (current) => current || t("agent.defaultPeakPricingReason"),
+                  );
+                }}
+              >
+                {t("agent.applyPeakPricing")}
+              </Button>
               <details className="admin-agent-advanced">
                 <summary>{t("agent.advanced")}</summary>
                 <div className="admin-agent-advanced-grid">
@@ -493,27 +570,6 @@ export function RinAgentAdminPanel({
                       setDraftValue("providerOutputCnyMicrosPerMillion", value)
                     }
                   />
-                  <PolicyInput
-                    label={t("agent.inputSgRate")}
-                    value={draft.inputSgPerMillion}
-                    onChange={(value) =>
-                      setDraftValue("inputSgPerMillion", value)
-                    }
-                  />
-                  <PolicyInput
-                    label={t("agent.cachedSgRate")}
-                    value={draft.cachedInputSgPerMillion}
-                    onChange={(value) =>
-                      setDraftValue("cachedInputSgPerMillion", value)
-                    }
-                  />
-                  <PolicyInput
-                    label={t("agent.outputSgRate")}
-                    value={draft.outputSgPerMillion}
-                    onChange={(value) =>
-                      setDraftValue("outputSgPerMillion", value)
-                    }
-                  />
                   <label>
                     {t("agent.sgCnyValue")}
                     <Input value={t("agent.sgCnyValueFixed")} readOnly />
@@ -523,7 +579,7 @@ export function RinAgentAdminPanel({
               <Button
                 type="submit"
                 variant="primary"
-                disabled={policyBusy || !reason.trim()}
+                disabled={policyBusy}
               >
                 {t("agent.save")}
               </Button>
