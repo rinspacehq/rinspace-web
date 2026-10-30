@@ -90,6 +90,40 @@
   color: var(--white, #fff);
 }
 
+.tag-detail-edit-action[data-state="open"] {
+  border-color: var(--ink, #2c3e50);
+  background: var(--ink, #2c3e50);
+  color: var(--white, #fff);
+}
+
+.tag-detail-edit-chevron {
+  width: 12px;
+  height: 12px;
+  margin-left: 1px;
+  transition: transform 160ms ease;
+}
+
+.tag-detail-edit-action[data-state="open"] .tag-detail-edit-chevron {
+  transform: rotate(180deg);
+}
+
+.tag-detail-edit-menu {
+  min-width: 190px;
+}
+
+.tag-detail-edit-menu .rin-ui-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+}
+
+.tag-detail-edit-menu .rin-ui-menu-item svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
 .tag-detail-repository-status {
   margin: 0;
 }

@@ -667,7 +667,8 @@
     "giteaHistory": "Gitea history",
     "aliases": "Aliases",
     "emptyAliases": "No aliases",
-    "edit": "Edit"
+    "edit": "Edit",
+    "editArchive": "Edit entry"
   },
   "tagWikiEdit": {
     "createDocumentTitle": "Create tag · Rinspace",

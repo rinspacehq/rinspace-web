@@ -1,4 +1,5 @@
 import { act, fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -6,7 +7,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { ensureLocaleNamespaces, i18n } from '@/i18n';
 import type { TagDetail } from '@/services/contracts';
 import { loadTagDetail, loadTagSynonyms } from '@/services/domains/tag';
-import { TagDetailWikiArticle, TagSocialActions } from '@/pages/TagDetail';
+import { TagDetailWikiArticle, TagEditMenu, TagSocialActions } from '@/pages/TagDetail';
 import TagWikiEditPage from '@/pages/TagWikiEdit';
 import { openOnlineEditorProject } from '@/utils/onlineEditor';
 import TagWikiPage from './index';
@@ -57,6 +58,22 @@ beforeAll(async () => {
 });
 
 describe('tag Wiki source actions', () => {
+  it('offers archive editing and the full Rinspace editor from one edit menu', async () => {
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter>
+        <TagEditMenu tag={tag} />
+      </MemoryRouter>,
+    );
+
+    await user.click(view.getByRole('button', { name: '编辑' }));
+    const archive = await view.findByRole('menuitem', { name: '编辑档案' });
+    expect(archive.getAttribute('href')).toBe('/tags/5815/edit/weil-pairings');
+
+    await user.click(view.getByRole('menuitem', { name: '在编辑器中打开' }));
+    expect(openOnlineEditorProject).toHaveBeenCalledWith('tags', '5815');
+  });
+
   it('opens the exact shared repository from Info while retaining source and history access', async () => {
     vi.mocked(loadTagDetail).mockResolvedValue(tag);
     vi.mocked(loadTagSynonyms).mockResolvedValue({ synonyms: [], memberActions: [] });
