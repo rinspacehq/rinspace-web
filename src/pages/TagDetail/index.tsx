@@ -1,4 +1,12 @@
-import { AnimateButton, Icon, useNoticeToasts } from 'components/ui';
+import {
+  AnimateButton,
+  Icon,
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuTrigger,
+  useNoticeToasts,
+} from 'components/ui';
 import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -32,6 +40,7 @@ import { loadAnswerQuestionPage } from '@/services/domains/question';
 import { loadTagCultivations, loadTagDetail, loadTagPage, loadTagStats } from '@/services/domains/tag';
 import type { AnswerQuestionInfo, AnswerQuestionPageInput, FeedItem, ObjectReferenceSummary, RevisionSummary, TagCultivationUser, TagDetail, TagPageItem, TagReferenceSummary, TagStats } from '@/services/contracts';
 import { messageFromError } from "@/services/errors";
+import { openOnlineEditorProject } from '@/utils/onlineEditor';
 import { useRinPageContext } from "@/utils/rinPageContext";
 import { sanitizeReaderHtml } from "@/utils/sanitizeHtml";
 import {
@@ -791,6 +800,39 @@ export function TagSocialActions({
   );
 }
 
+export function TagEditMenu({ tag }: { tag: TagDetail }) {
+  const { t } = useFeatureTranslation('reader');
+
+  return (
+    <Menu>
+      <MenuTrigger asChild>
+        <AnimateButton unstyled type="button" className="tag-detail-edit-action">
+          <Icon name="pencil-square" />
+          {t('tagWiki.edit')}
+          <Icon className="tag-detail-edit-chevron" name="chevron-down" />
+        </AnimateButton>
+      </MenuTrigger>
+      <MenuContent
+        align="end"
+        sideOffset={6}
+        className="tag-detail-edit-menu"
+        aria-label={t('tagWiki.edit')}
+      >
+        <MenuItem asChild>
+          <Link to={tagEditPath(tag.id, tag.slugName || tagName(tag))}>
+            <Icon name="file-earmark-text" />
+            <span>{t('tagWiki.editArchive')}</span>
+          </Link>
+        </MenuItem>
+        <MenuItem onSelect={() => openOnlineEditorProject('tags', tag.tagId)}>
+          <Icon name="folder2-open" />
+          <span>{t('tagWikiEdit.openInEditor')}</span>
+        </MenuItem>
+      </MenuContent>
+    </Menu>
+  );
+}
+
 type TagWikiTocItem = {
   id: string;
   label: string;
@@ -1330,15 +1372,7 @@ function TagDetailPage() {
                       <span className="label">{t('tagDetail.tagFallback')}</span>
                     </span>
                   </span>
-                  {tag.repositoryState === 'active' ? (
-                    <Link
-                      className="tag-detail-edit-action"
-                      to={tagEditPath(tag.id, tag.slugName || tagName(tag))}
-                    >
-                      <Icon name="pencil-square" />
-                      {t('tagWiki.edit')}
-                    </Link>
-                  ) : null}
+                  {tag.repositoryState === 'active' ? <TagEditMenu tag={tag} /> : null}
                 </div>
                 <div className="tag-detail-title-row">
                   <h1>

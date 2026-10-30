@@ -3397,6 +3397,7 @@ export type TranslationKey =
   | "reader:tagWiki.created"
   | "reader:tagWiki.documentTitle"
   | "reader:tagWiki.edit"
+  | "reader:tagWiki.editArchive"
   | "reader:tagWiki.emptyAliases"
   | "reader:tagWiki.emptyIncoming"
   | "reader:tagWiki.emptyOutgoing"

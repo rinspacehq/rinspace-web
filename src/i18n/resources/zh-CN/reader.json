@@ -667,7 +667,8 @@
     "giteaHistory": "Gitea 历史",
     "aliases": "别名",
     "emptyAliases": "无别名",
-    "edit": "编辑"
+    "edit": "编辑",
+    "editArchive": "编辑档案"
   },
   "tagWikiEdit": {
     "createDocumentTitle": "创建标签 · 芥子环",
