@@ -83,16 +83,17 @@ describe('tag Wiki source actions', () => {
       .toBe('/repos/tags/5815');
   });
 
-  it('offers authenticated editing from the detail-page Wiki header', () => {
+  it('keeps the published Wiki body free of duplicate navigation actions', () => {
     const view = render(
       <MemoryRouter>
         <TagDetailWikiArticle tag={tag} intro={tag.excerpt} />
       </MemoryRouter>,
     );
 
-    expect(view.getByRole('link', { name: '详情' })).toBeTruthy();
-    expect(view.getByRole('link', { name: '编辑' }).getAttribute('href'))
-      .toBe('/tags/5815/edit/weil-pairings');
+    expect(view.getByRole('heading', { name: 'Weil Pairings' })).toBeTruthy();
+    expect(view.container.querySelector('.tag-detail-wiki-head')).toBeNull();
+    expect(view.queryByRole('link', { name: '详情' })).toBeNull();
+    expect(view.queryByRole('link', { name: '编辑' })).toBeNull();
     expect(view.queryByRole('button', { name: '源码' })).toBeNull();
   });
 
@@ -129,7 +130,7 @@ describe('tag Wiki source actions', () => {
     );
 
     const like = view.getByRole('button', { name: '已喜欢，7' });
-    const follow = view.getByRole('button', { name: '关注，11' });
+    const follow = view.getByRole('button', { name: '收藏，11' });
     expect(like.getAttribute('aria-pressed')).toBe('true');
     expect(follow.getAttribute('aria-pressed')).toBe('false');
     expect(like.querySelector('.rin-community-action-icon--heart-fill')).not.toBeNull();
