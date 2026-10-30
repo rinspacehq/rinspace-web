@@ -148,7 +148,10 @@ export function addLineNumbersToHighlightedCode(code: HTMLElement) {
     // Native renderers (e.g. Typst) own their token spans and <br> breaks.
     // Only synthesize line markup for plain text; textContent would destroy
     // already-rendered highlighting, annotations and explicit line breaks.
-    if (code.childElementCount > 0) return;
+    if (code.childElementCount > 0) {
+      code.classList.add('rin-code-native-token-stream');
+      return;
+    }
     const sourceLines = (code.textContent || '').split('\n');
     code.replaceChildren();
     sourceLines.forEach((lineText) => {
@@ -159,6 +162,7 @@ export function addLineNumbersToHighlightedCode(code: HTMLElement) {
       lines.push(line);
     });
   }
+  code.classList.remove('rin-code-native-token-stream');
   lines.forEach((line, index) => {
     if (line.querySelector(':scope > .rin-code-line-number')) return;
     const content = document.createElement('span');

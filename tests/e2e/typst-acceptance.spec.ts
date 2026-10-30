@@ -65,7 +65,7 @@ const typstArticle = {
   excerpt: 'Typst 文章渲染验收夹具。',
   editor: 'typst',
   book: undefined,
-  body: '[[RIN_WRITER]]<h2 id="intro">引言</h2><p>Typst 文章由服务端渲染为 HTML。</p><h2 id="method">方法</h2><p>表世界只负责呈现最终 HTML。</p>[[/RIN_WRITER]]',
+  body: '[[RIN_WRITER]]<h2 id="intro">引言</h2><p>Typst 文章由服务端渲染为 HTML。</p><pre><code data-lang="python"><span style="color: #d73948">def</span> <span style="color: #4b69c6">greet</span>(name):\n    <span style="color: #d73948">return</span> f"Hello, {name}!"</code></pre><h2 id="method">方法</h2><p>表世界只负责呈现最终 HTML。</p>[[/RIN_WRITER]]',
 };
 
 const toc = [
@@ -289,6 +289,15 @@ test('Typst article renders the stored HTML without exposing markers', async ({
   ).toBeVisible();
   await expect(page.getByText('[[RIN_WRITER]]')).toHaveCount(0);
   await expect(page.getByText('[[/RIN_WRITER]]')).toHaveCount(0);
+
+  const nativeCode = article.locator('.rin-code-pre code');
+  await expect(nativeCode).toHaveClass(/rin-code-native-token-stream/);
+  await expect(nativeCode).toHaveCSS('display', 'block');
+  expect(await nativeCode.textContent()).toContain('def greet(name):\n    return');
+  const tokenTops = await nativeCode.locator(':scope > span').evaluateAll((tokens) =>
+    tokens.slice(0, 2).map((token) => token.getBoundingClientRect().top),
+  );
+  expect(Math.abs(tokenTops[0] - tokenTops[1])).toBeLessThanOrEqual(1);
 
   const tocNav = page.locator('nav.blog-toc');
   if (!desktop) {

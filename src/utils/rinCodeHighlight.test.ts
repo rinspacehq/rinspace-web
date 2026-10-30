@@ -10,6 +10,7 @@ describe('reader code decoration preserves native renderer HTML', () => {
     addLineNumbersToHighlightedCode(code);
     addLineNumbersToHighlightedCode(code);
     expect(code.innerHTML).toBe(before);
+    expect(code.classList.contains('rin-code-native-token-stream')).toBe(true);
   });
 
   it('keeps links and other already-rendered inline markup intact', () => {
@@ -18,6 +19,7 @@ describe('reader code decoration preserves native renderer HTML', () => {
     const before = code.innerHTML;
     addLineNumbersToHighlightedCode(code);
     expect(code.innerHTML).toBe(before);
+    expect(code.classList.contains('rin-code-native-token-stream')).toBe(true);
   });
 
   it('still numbers plain-text code idempotently', () => {
@@ -25,6 +27,7 @@ describe('reader code decoration preserves native renderer HTML', () => {
     code.textContent = 'first\nsecond';
     addLineNumbersToHighlightedCode(code);
     expect(Array.from(code.querySelectorAll('.rin-code-line-number')).map(node => node.textContent)).toEqual(['1', '2']);
+    expect(code.classList.contains('rin-code-native-token-stream')).toBe(false);
     const before = code.innerHTML;
     addLineNumbersToHighlightedCode(code);
     expect(code.innerHTML).toBe(before);
@@ -35,6 +38,7 @@ describe('reader code decoration preserves native renderer HTML', () => {
     code.innerHTML = '<span class="line"><span style="color: #d73948">let</span> x = 42;</span>';
     addLineNumbersToHighlightedCode(code);
     expect(code.querySelector('.rin-code-line-number')?.textContent).toBe('1');
+    expect(code.classList.contains('rin-code-native-token-stream')).toBe(false);
     expect(code.querySelector('.rin-code-line-content span')?.getAttribute('style')).toBe('color: #d73948');
     const before = code.innerHTML;
     addLineNumbersToHighlightedCode(code);

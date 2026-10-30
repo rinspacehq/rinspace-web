@@ -3,6 +3,7 @@ import { identitySessionMock } from './identity-session-mock';
 
 const publishedAt = '2026-08-19T05:30:00Z';
 const contentUpdatedAt = '2026-08-23T12:04:00Z';
+const cardCoverDataUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"%3E%3Crect width="640" height="360" fill="%232b577a"/%3E%3C/svg%3E';
 
 const baseItem = {
   status: 'published',
@@ -38,6 +39,7 @@ const blog = {
   type: 'blog',
   title: 'Existence and density of Hodge structures',
   excerpt: '这是一篇关于 Hodge 理论的论文阅读笔记。',
+  coverUrl: cardCoverDataUrl,
 };
 
 const dynamic = {
@@ -79,6 +81,7 @@ const book = {
   type: 'book',
   title: '面向物理系的线性代数',
   excerpt: '从物理学问题出发介绍线性代数中的主要概念。',
+  coverUrl: cardCoverDataUrl,
   readCount: 1900,
   favoriteCount: 18,
   commentCount: 7,
@@ -387,6 +390,17 @@ test('desktop cards preserve original icon metrics and a centered comment dialog
     blogCard.locator('.content-type-meta-blog .label').evaluate((element) => getComputedStyle(element).fontSize),
     bookCard.locator('.content-type-meta-book .label').evaluate((element) => getComputedStyle(element).fontSize),
   ])).toEqual(['11.04px', '11.04px']);
+  const [blogCoverBox, bookCoverBox] = await Promise.all([
+    blogCard.locator('.stream-blog-cover').boundingBox(),
+    bookCard.locator('.home-book-cover').boundingBox(),
+  ]);
+  expect(blogCoverBox).not.toBeNull();
+  expect(bookCoverBox).not.toBeNull();
+  expect(Math.abs((blogCoverBox?.height || 0) - 192)).toBeLessThanOrEqual(1);
+  expect(Math.abs((bookCoverBox?.height || 0) - 192)).toBeLessThanOrEqual(1);
+  expect(Math.abs((blogCoverBox?.height || 0) - (bookCoverBox?.height || 0))).toBeLessThanOrEqual(1);
+  expect(Math.abs((blogCoverBox?.width || 0) / (blogCoverBox?.height || 1) - (16 / 9))).toBeLessThanOrEqual(0.01);
+  expect(Math.abs((bookCoverBox?.width || 0) / (bookCoverBox?.height || 1) - (2 / 3))).toBeLessThanOrEqual(0.01);
   await expect(pdfBookCard).toHaveAttribute('data-book-format', 'pdf');
   await expect(markdownBookCard).toHaveAttribute('data-book-format', 'markdown');
   await expect(page.locator('.home-book-card').filter({ hasText: publishedBook.title })).toHaveCount(0);
@@ -446,6 +460,15 @@ test('mobile uses a bottom sheet and book rating keeps Animate UI actions', asyn
     blogCard.locator('h2').evaluate((node) => getComputedStyle(node).fontSize),
   ]);
   expect(bookTitleSize).toBe(blogTitleSize);
+  const [blogCoverBox, bookCoverBox] = await Promise.all([
+    blogCard.locator('.stream-blog-cover').boundingBox(),
+    bookCard.locator('.home-book-cover').boundingBox(),
+  ]);
+  expect(blogCoverBox).not.toBeNull();
+  expect(bookCoverBox).not.toBeNull();
+  expect(blogCoverBox?.height).toBeGreaterThanOrEqual(148);
+  expect(blogCoverBox?.height).toBeLessThanOrEqual(177);
+  expect(Math.abs((blogCoverBox?.height || 0) - (bookCoverBox?.height || 0))).toBeLessThanOrEqual(1);
   await expect(bookCard.locator('h2 a')).toHaveCSS('text-decoration-line', 'none');
   await expect(blogCard.locator('h2 a')).toHaveCSS('text-decoration-line', 'none');
   await expect(bookCard).toHaveAttribute('data-book-format', 'latex');
@@ -581,6 +604,7 @@ test('mobile home toolbar and cards use the compact responsive layout', async ({
       );
       return {
         cardRight: element.getBoundingClientRect().right,
+        coverHeight: coverBox.height,
         coverRight: coverBox.right,
         coverTop: coverBox.top,
         mainLeft: mainBox.left,
@@ -624,6 +648,12 @@ test('mobile home toolbar and cards use the compact responsive layout', async ({
 
     await page.getByRole('tab', { name: /^(社区流|Community)$/ }).click();
     await expect(blogCard).toBeVisible();
+    const blogCoverHeight = await blogCard.locator('.stream-blog-cover').evaluate(
+      (element) => element.getBoundingClientRect().height,
+    );
+    expect(blogCoverHeight).toBeGreaterThanOrEqual(148);
+    expect(blogCoverHeight).toBeLessThanOrEqual(177);
+    expect(Math.abs(blogCoverHeight - (bookLayout?.coverHeight || 0))).toBeLessThanOrEqual(8);
     const blogFooterLayout = await blogCard.locator('.stream-footer').evaluate((element) => {
       const actions = element.querySelector<HTMLElement>('.home-card-actions');
       if (!actions) return null;
