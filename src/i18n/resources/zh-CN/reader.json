@@ -667,14 +667,13 @@
     "giteaHistory": "Gitea 历史",
     "aliases": "别名",
     "emptyAliases": "无别名",
-    "edit": "编辑",
-    "editArchive": "编辑档案"
+    "edit": "编辑档案"
   },
   "tagWikiEdit": {
     "createDocumentTitle": "创建标签 · 芥子环",
     "documentTitle": "维护标签源码 · 芥子环",
     "tagDocumentTitle": "{{tag}} · 维护源码 · 芥子环",
-    "heading": "维护 Tag 源码",
+    "heading": "维护源码",
     "stableId": "标签 ID",
     "repositoryState": "仓库状态",
     "publicRevision": "当前公开修订",

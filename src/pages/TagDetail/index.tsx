@@ -808,7 +808,7 @@ export function TagEditMenu({ tag }: { tag: TagDetail }) {
       <MenuTrigger asChild>
         <AnimateButton unstyled type="button" className="tag-detail-edit-action">
           <Icon name="pencil-square" />
-          {t('tagWiki.edit')}
+          {t('detail.common.edit')}
           <Icon className="tag-detail-edit-chevron" name="chevron-down" />
         </AnimateButton>
       </MenuTrigger>
@@ -816,12 +816,12 @@ export function TagEditMenu({ tag }: { tag: TagDetail }) {
         align="end"
         sideOffset={6}
         className="tag-detail-edit-menu"
-        aria-label={t('tagWiki.edit')}
+        aria-label={t('detail.common.edit')}
       >
         <MenuItem asChild>
           <Link to={tagEditPath(tag.id, tag.slugName || tagName(tag))}>
             <Icon name="file-earmark-text" />
-            <span>{t('tagWiki.editArchive')}</span>
+            <span>{t('tagWiki.edit')}</span>
           </Link>
         </MenuItem>
         <MenuItem onSelect={() => openOnlineEditorProject('tags', tag.tagId)}>
