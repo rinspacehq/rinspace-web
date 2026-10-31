@@ -6,10 +6,10 @@ import baseline from '../../../contracts/routes-baseline.json';
 
 describe('typed route manifest', () => {
   it('keeps /admin as the only operations workspace route', () => {
-    expect(routeManifest).toHaveLength(88);
+    expect(routeManifest).toHaveLength(90);
     const expectedRoutes = baseline.routes.filter((route) => route.path !== '/review' && route.path !== '/space');
     expect(
-      routeManifest.filter(route => !['/wallet', '/download', '/local-client/authorize'].includes(route.path)).map(({ path, canonicalPath, layout, family, minimumRole, anonymousResult, frozenBoundary }, order) => ({
+      routeManifest.filter(route => !['/wallet', '/download', '/local-client/authorize', '/reader', '/reader/pdf/local/:localId'].includes(route.path)).map(({ path, canonicalPath, layout, family, minimumRole, anonymousResult, frozenBoundary }, order) => ({
         order,
         path,
         canonicalPath,
@@ -39,12 +39,16 @@ describe('typed route manifest', () => {
   it('keeps the catch-all last and every route lazy-loadable', () => {
     expect(routeManifest.at(-1)?.path).toBe('*');
     expect(routeManifest.slice(0, -1).every((route) => route.path.startsWith('/'))).toBe(true);
-    expect(new Set(routeManifest.map((route) => route.order)).size).toBe(88);
+    expect(new Set(routeManifest.map((route) => route.order)).size).toBe(90);
   });
 
   it('does not declare the retired /space route', () => {
     const activePaths: readonly string[] = routeManifest.map((route) => route.path);
     expect(activePaths).not.toContain('/space');
+  });
+  it('permits local PDF reading without an account and keeps opaque document IDs', () => {
+    expect(routeManifest.filter(route => route.family === 'reader-local').map(route => route.path)).toEqual(['/reader', '/reader/pdf/local/:localId']);
+    expect(routeManifest.find(route => route.path === '/reader/pdf/local/:localId')).toMatchObject({ minimumRole: 'none', anonymousResult: 'render', translationNamespaces: ['reader'] });
   });
   it('adds the private wallet without changing the historical route baseline', () => {
     expect(routeManifest.find(route => route.path === '/wallet')).toMatchObject({ layout: 'WorkspaceLayout', minimumRole: 'member', translationNamespaces: ['wallet'], titleKey: 'routes.wallet' });

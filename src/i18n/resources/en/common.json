@@ -208,7 +208,8 @@
     "dynamics": "Updates · Rinspace",
     "content": "Content · Rinspace",
     "notFound": "Page not found · Rinspace",
-    "localAuthorization": "Authorize a local Rinspace client"
+    "localAuthorization": "Authorize a local Rinspace client",
+    "reader": "Reader"
   },
   "download": {
     "title": "Put Rinspace on your phone",

@@ -25,6 +25,16 @@ const routes = baselineRoutes
     return { ...route, order };
   });
 const imports = new Map();
+for (const route of [
+  { path: '/reader', pageComponent: 'ReaderPage', pageModule: '@/pages/Reader' },
+  { path: '/reader/pdf/local/:localId', pageComponent: 'ReaderPdfPage', pageModule: '@/pages/ReaderPdf' },
+]) {
+  routes.splice(routes.length - 1, 0, {
+    ...route, canonicalPath: route.path, family: 'reader-local',
+    expectedLayout: 'ReaderLayout', minimumRole: 'none', anonymousResult: 'render',
+    frozenBoundary: 'rinspace-owned', element: `<${route.pageComponent} />`,
+  });
+}
 // Product additions are explicit; do not rewrite the immutable 87-route baseline.
 routes.splice(routes.length - 1, 0, {
   path: "/wallet",
@@ -92,6 +102,7 @@ const declarations = [...imports]
 
 function titleKeyForRoute(route) {
   const routePath = route.path;
+  if (routePath.startsWith('/reader')) return 'routes.reader';
   if (routePath === "/") return "routes.home";
   const exact = {
     "/about": "routes.about",
@@ -150,6 +161,7 @@ function titleKeyForRoute(route) {
 }
 
 function namespacesForRoute(route) {
+  if (route.family === 'reader-local') return ['reader'];
   if (route.path === "/local-client/authorize") return ["auth"];
   if (route.path === "/wallet") return ["wallet"];
   if (route.path === "/settings") return ["settings"];
@@ -212,7 +224,7 @@ export const routeManifest = [
 ${rows}
 ] as const satisfies readonly RouteDefinition[];
 
-if (routeManifest.length !== 88) throw new Error('Typed route manifest must contain 85 retained routes plus wallet, download and local consent.');
+if (routeManifest.length !== 90) throw new Error('Typed route manifest must contain 85 retained routes plus wallet, download, local consent and two local Reader routes.');
 `;
 const output = path.join(root, "src/app/routing/routeManifest.tsx");
 if (process.argv.includes("--check")) {
