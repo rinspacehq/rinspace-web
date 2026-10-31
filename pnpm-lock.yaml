@@ -86,8 +86,8 @@ importers:
         specifier: 1.2.8
         version: 1.2.8(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@rinspacehq/embedpdf-snippet':
-        specifier: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.3/rinspacehq-embedpdf-snippet-2.15.1-rinspace.3.tgz
-        version: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.3/rinspacehq-embedpdf-snippet-2.15.1-rinspace.3.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
+        specifier: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.4/rinspacehq-embedpdf-snippet-2.15.1-rinspace.4.tgz
+        version: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.4/rinspacehq-embedpdf-snippet-2.15.1-rinspace.4.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
       '@rinspacehq/markdown-writer':
         specifier: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz
         version: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz(@codemirror/commands@6.10.3)(@codemirror/lang-markdown@6.5.0)(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.43.1)(@lezer/highlight@1.2.3)(@milkdown/crepe@7.22.2(prosemirror-model@1.25.10)(prosemirror-state@1.4.4)(prosemirror-view@1.42.0)(typescript@5.9.3))(@milkdown/kit@7.22.2(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.43.1)(typescript@5.9.3))(katex@0.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1899,9 +1899,9 @@ packages:
   '@radix-ui/rect@1.1.3':
     resolution: {integrity: sha512-JtyZR+mqgBibTo8xea3B6ZRmzZiM/YeVBtUkas6zMuXjAlfIFIW2FgqeM9eLyvEaYX66vr6DJMK+4U6LV0KhNw==}
 
-  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.3/rinspacehq-embedpdf-snippet-2.15.1-rinspace.3.tgz':
-    resolution: {integrity: sha512-IVl/R1NttehQ6lwNO3Aj1ycwJabwNlQ/S0/TgEdrd0J7sRxzxYLy1vBWhpEC8I53JVICCQrDq4ZmgJ6k6iE2OQ==, tarball: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.3/rinspacehq-embedpdf-snippet-2.15.1-rinspace.3.tgz}
-    version: 2.15.1-rinspace.3
+  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.4/rinspacehq-embedpdf-snippet-2.15.1-rinspace.4.tgz':
+    resolution: {integrity: sha512-yCFO+TaSUFWF9hmhJlnRmsWdh980wDENAOh3DRZIZTR7/kX9Ioo1YL27eA7Xe93vXMDUSYZKZdEv4VoufJfGTA==, tarball: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.4/rinspacehq-embedpdf-snippet-2.15.1-rinspace.4.tgz}
+    version: 2.15.1-rinspace.4
 
   '@rinspacehq/markdown-writer@https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz':
     resolution: {integrity: sha512-0uqZQvj1pww4s7XReNxng+BXRJdO+Lq+VA6+32qmpoRGW/xAjJZjK5V9SOhr86VXSrU9K3v26Hessm9JtGnPzw==, tarball: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz}
@@ -7147,7 +7147,7 @@ snapshots:
 
   '@radix-ui/rect@1.1.3': {}
 
-  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.3/rinspacehq-embedpdf-snippet-2.15.1-rinspace.3.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))':
+  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.4/rinspacehq-embedpdf-snippet-2.15.1-rinspace.4.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))':
     dependencies:
       '@embedpdf/core': 2.15.1(preact@10.29.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
       '@embedpdf/engines': 2.15.1(preact@10.29.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
