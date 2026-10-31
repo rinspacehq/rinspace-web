@@ -43,6 +43,8 @@ const ActivityTimelinePage = lazy(() => Promise.all([import('pages/ActivityTimel
 const AnnouncementsPage = lazy(() => Promise.all([import('pages/Announcements'), loadFamilyStyles("discovery")]).then(([module]) => module));
 const DiscussionsPage = lazy(() => Promise.all([import('pages/Discussions'), loadFamilyStyles("discovery")]).then(([module]) => module));
 const DynamicsPage = lazy(() => Promise.all([import('pages/Dynamics'), loadFamilyStyles("discovery")]).then(([module]) => module));
+const ReaderPage = lazy(() => Promise.all([import('pages/Reader'), loadFamilyStyles("reader-local")]).then(([module]) => module));
+const ReaderPdfPage = lazy(() => Promise.all([import('pages/ReaderPdf'), loadFamilyStyles("reader-local")]).then(([module]) => module));
 const WalletPage = lazy(() => Promise.all([import('pages/Wallet'), loadFamilyStyles("account-policy")]).then(([module]) => module));
 const DownloadPage = lazy(() => Promise.all([import('pages/Download'), loadFamilyStyles("download")]).then(([module]) => module));
 const LocalAuthorizationPage = lazy(() => Promise.all([import('pages/LocalAuthorization'), loadFamilyStyles("account-policy")]).then(([module]) => module));
@@ -1157,6 +1159,32 @@ export const routeManifest = [
   },
   {
     order: 84,
+    path: "/reader",
+    canonicalPath: "/reader",
+    titleKey: "routes.reader",
+    translationNamespaces: ["reader"],
+    layout: "ReaderLayout",
+    family: "reader-local",
+    minimumRole: "none",
+    anonymousResult: "render",
+    frozenBoundary: "rinspace-owned",
+    element: <ReaderPage />,
+  },
+  {
+    order: 85,
+    path: "/reader/pdf/local/:localId",
+    canonicalPath: "/reader/pdf/local/:localId",
+    titleKey: "routes.reader",
+    translationNamespaces: ["reader"],
+    layout: "ReaderLayout",
+    family: "reader-local",
+    minimumRole: "none",
+    anonymousResult: "render",
+    frozenBoundary: "rinspace-owned",
+    element: <ReaderPdfPage />,
+  },
+  {
+    order: 86,
     path: "/wallet",
     canonicalPath: "/wallet",
     titleKey: "routes.wallet",
@@ -1169,7 +1197,7 @@ export const routeManifest = [
     element: <WalletPage />,
   },
   {
-    order: 85,
+    order: 87,
     path: "/download",
     canonicalPath: "/download",
     titleKey: "routes.download",
@@ -1182,7 +1210,7 @@ export const routeManifest = [
     element: <DownloadPage />,
   },
   {
-    order: 86,
+    order: 88,
     path: "/local-client/authorize",
     canonicalPath: "/local-client/authorize",
     titleKey: "routes.localAuthorization",
@@ -1195,7 +1223,7 @@ export const routeManifest = [
     element: <LocalAuthorizationPage />,
   },
   {
-    order: 87,
+    order: 89,
     path: "*",
     canonicalPath: "/",
     titleKey: "routes.notFound",
@@ -1209,4 +1237,4 @@ export const routeManifest = [
   },
 ] as const satisfies readonly RouteDefinition[];
 
-if (routeManifest.length !== 88) throw new Error('Typed route manifest must contain 85 retained routes plus wallet, download and local consent.');
+if (routeManifest.length !== 90) throw new Error('Typed route manifest must contain 85 retained routes plus wallet, download, local consent and two local Reader routes.');

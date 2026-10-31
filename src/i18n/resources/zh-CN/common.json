@@ -208,7 +208,8 @@
     "dynamics": "动态 · 芥子环",
     "content": "内容 · 芥子环",
     "notFound": "页面未找到 · 芥子环",
-    "localAuthorization": "授权本地 Rinspace 客户端"
+    "localAuthorization": "授权本地 Rinspace 客户端",
+    "reader": "阅读"
   },
   "download": {
     "title": "把芥子环装进手机",

@@ -69,6 +69,7 @@ const outerResources = new Set([
   "question",
   "questions",
   "reasons",
+  "reader",
   "report-reasons",
   "reposts",
   "revisions",
@@ -354,7 +355,7 @@ export function createReadOnlyMiddleware({
               ...(payload ? { body: payload.body } : {}),
               redirect: "manual",
               signal: AbortSignal.timeout(
-                payload && upstreamPath === "/api/file" ? 120_000 : 20_000,
+                payload && (upstreamPath === "/api/file" || /^\/api\/reader\/v1\/agent\/runs\/[^/]+\/turns$/.test(upstreamPath)) ? 120_000 : 20_000,
               ),
             },
           );

@@ -17,12 +17,13 @@ import { hydrateRinMathJaxOfficialMenu } from '@/utils/rinMathJaxMenu';
 const RinAssistant = lazy(() => import('components/RinAssistant'));
 
 function DeferredRinAssistant() {
+  const location = useLocation();
   const [ready, setReady] = useState(false);
   useEffect(() => {
     const id = window.setTimeout(() => setReady(true), 15000);
     return () => window.clearTimeout(id);
   }, []);
-  return ready ? <Suspense fallback={null}><RinAssistant /></Suspense> : null;
+  return ready && !location.pathname.startsWith('/reader/pdf/') ? <Suspense fallback={null}><RinAssistant /></Suspense> : null;
 }
 
 function PublicSnapshotLifecycle() {
@@ -77,7 +78,7 @@ function RouteDocument({ route }: { route: RouteDefinition }) {
   return <DocumentMetadataController metadata={{
     title,
     canonicalPath: canonical,
-    robots: route.minimumRole === 'none' ? 'index,follow' : 'noindex,follow',
+    robots: route.minimumRole === 'none' && route.family !== 'reader-local' ? 'index,follow' : 'noindex,follow',
     pageOwnsDocumentCopy: true,
   }} />;
 }

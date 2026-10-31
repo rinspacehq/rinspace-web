@@ -10,3 +10,4 @@ playwright-report/
 test-results/
 playwright/.auth/
 public/assets/rin-uploads/
+public/assets/reader/

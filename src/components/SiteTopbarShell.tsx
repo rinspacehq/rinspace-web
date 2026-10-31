@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Moon, Search, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -262,6 +262,8 @@ function SiteTopbarInstance({ ariaLabel, onSessionChange }: SiteTopbarProps) {
 }
 
 export function SiteTopbarHost({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  const pdfReader = pathname.startsWith('/reader/pdf/');
   const sessionChangeCallbacks = useRef(new Set<() => void | Promise<void>>());
   const registerSessionChange = useCallback<RegisterSessionChange>(
     (callback) => {
@@ -278,7 +280,7 @@ export function SiteTopbarHost({ children }: { children: ReactNode }) {
 
   return (
     <SiteTopbarHostContext.Provider value={registerSessionChange}>
-      <div className="rin-app-shell">
+      <div className="rin-app-shell" data-reader-pdf={pdfReader || undefined}>
         <SiteTopbarInstance onSessionChange={notifySessionChange} />
         {children}
       </div>

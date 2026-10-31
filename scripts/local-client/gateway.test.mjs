@@ -182,3 +182,9 @@ test('real HTTP streaming preserves upstream status, ranges and anonymous truth,
     request.end();
   });
 });
+
+ test('Reader writes require local authorization before reaching the paid service', async () => {
+  let calls = 0;
+  const result = await invoke({ url: '/api/reader/v1/agent/runs', method: 'POST', transport: async () => { calls++; throw Error('must not forward'); } });
+  assert.equal(result.status, 503); assert.equal(calls, 0);
+});

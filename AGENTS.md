@@ -56,3 +56,15 @@ External contributors need only this public tree; no private configuration or ac
 Run `git diff --check` and appropriate checks; report only actual results. Keep English/Chinese
 status consistent. The current official legal-document source remains privately owned; public
 copies are derived inputs and do not silently amend terms.
+
+## Reader 与 EmbedPDF 源码归属（2026-11-01）
+
+负责人批准仅 fork EmbedPDF 并执行 Reader 计划。`rinspacehq/embed-pdf-viewer` 的
+`rinspace-v2` 是 EmbedPDF viewer 扩展、浏览器琳插件和包构建的唯一维护来源；
+上游 `embedpdf/embed-pdf-viewer` 只读。审查基线为 MIT v2
+`dfb2df818065c704a0241beb0791e2fd0d55a10e`，包名 `@rinspacehq/embedpdf-snippet`。
+`rinspacehq/rinspace-web` 继续唯一拥有 Reader 首页、本地存储和会话宿主；私仓拥有
+Reader API、账户/计费、集成与部署。没有另建 Reader 仓库或复制 viewer 补丁。
+消费必须固定干净 fork 提交对应 Release URL、摘要、许可证全文与通过的检查；
+main/latest 不自动消费。此源码记录不代表已发行或已上线；产品与回退组合在私仓
+`specs/reader-local-pdf/` 和正式消费锁记录，生产仍走既有私仓 main 门禁。
