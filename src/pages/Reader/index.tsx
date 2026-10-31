@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { BookOpen, FolderOpen, MoreHorizontal, Search } from 'lucide-react';
 import { AnimateButton, AnimateIconButton, Menu, MenuTrigger, MenuContent, MenuItem } from 'components/ui';
 import { AnimateTabs, AnimateTabsList, AnimateTabsTrigger } from '@/components/animate-ui/tabs';
@@ -10,7 +10,7 @@ import type { ReaderDocument } from '@/features/reader/types';
 import '@/features/reader/reader.css';
 
 function ReaderBook({ document, recent, onError }: { document: ReaderDocument; recent: boolean; onError: (error: unknown) => void }) {
-  const { t, i18n } = useTranslation('reader');
+  const { t, i18n } = useFeatureTranslation('reader');
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
   const [cover, setCover] = useState<string>();
@@ -48,7 +48,7 @@ function ReaderBook({ document, recent, onError }: { document: ReaderDocument; r
 }
 
 export default function ReaderPage() {
-  const { t } = useTranslation('reader');
+  const { t } = useFeatureTranslation('reader');
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') === 'shelf' ? 'shelf' : 'recent';

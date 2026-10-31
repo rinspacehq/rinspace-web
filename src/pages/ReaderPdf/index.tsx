@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getI18n, useTranslation } from 'react-i18next';
+import { getI18n } from 'react-i18next';
+import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import type { ReaderHandle } from '@rinspacehq/embedpdf-snippet/dist/reader-api';
 import { Button } from '@/components/ui';
 import { publicAsset } from '@/app/config/env';
@@ -14,7 +15,7 @@ import readerRelease from '../../../contracts/reader/embedpdf-release.json';
 export default function ReaderPdfPage() {
   const { localId = '' } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation('reader');
+  const { t } = useFeatureTranslation('reader');
   const translate = useRef(t);
   translate.current = t;
   const mount = useRef<HTMLDivElement>(null);
