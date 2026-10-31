@@ -289,6 +289,12 @@
   justify-content: flex-start;
 }
 
+@media (max-width: 1180px) {
+  .tag-detail-toc-side {
+    display: none;
+  }
+}
+
 @media (max-width: 620px) {
   .tag-detail-edit-action {
     min-height: 30px;

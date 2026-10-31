@@ -1,4 +1,4 @@
-import { AnimateButton, AnimateCircleAlert, AnimateClipboard, AnimateHistory, AnimateMessageCircleWarning, AnimateTerminal, Icon, Tooltip } from 'components/ui';
+import { AnimateButton, AnimateClipboard, AnimateMessageCircleWarning, AnimateTerminal, Icon } from 'components/ui';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -22,7 +22,6 @@ import {
 } from '@/services/tagV2';
 import { contentPath, tagReadPath } from '@/utils/routes';
 import { giteaPath } from '@/utils/giteaPaths';
-import TagGovernancePanel from './TagGovernancePanel';
 
 type Props = {
   tagId: number;
@@ -193,23 +192,11 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
     revision: citation?.activeCommit || 'unknown',
     page: publicTagURL,
   });
-  const actionButtons = (
-    <div className="tag-knowledge-actions" aria-label={t('tagKnowledge.actions')}>
-      {hierarchy ? <TagGovernancePanel tagId={tagId} displayName={displayName} version={hierarchy.tag.version} parentTags={parentTags} /> : null}
-      <Tooltip content={t('tagKnowledge.reportIssue')}>
-        <a className="tag-knowledge-icon-action tag-knowledge-report" aria-label={t('tagKnowledge.reportIssue')} href={issueURL(repositoryURL, t('tagKnowledge.correctionTitle', { tag: displayName }), reportBody)} target="_blank" rel="noreferrer"><AnimateCircleAlert data-tag-knowledge-icon="report" animateOnHover size={18} /></a>
-      </Tooltip>
-      {citation ? <Tooltip content={t('tagKnowledge.copyCurrent')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyCurrent')} onClick={() => void copyText(citation.current, t('tagKnowledge.currentCitation'))}><AnimateClipboard data-tag-knowledge-icon="copy-current" animateOnHover size={18} /></AnimateButton></Tooltip> : null}
-      {citation ? <Tooltip content={t('tagKnowledge.copyRevision')}><AnimateButton unstyled className="tag-knowledge-icon-action" type="button" aria-label={t('tagKnowledge.copyRevision')} onClick={() => void copyText(citation.revision, t('tagKnowledge.revisionCitation'))}><AnimateHistory data-tag-knowledge-icon="copy-revision" animateOnHover size={18} /></AnimateButton></Tooltip> : null}
-    </div>
-  );
-
   return (
       <section className="panel tag-knowledge-panel tag-information-panel" aria-labelledby="tag-knowledge-title">
         <div className="panel-heading">
           <span id="tag-knowledge-title">{t('tagKnowledge.informationTitle')}</span>
         </div>
-        {actionButtons}
         <p className="sr-only" aria-live="polite">{announcement}</p>
         {loading ? <p className="tag-knowledge-empty" role="status">{t('tagKnowledge.loading')}</p> : null}
         {error ? <p className="tag-knowledge-warning" role="status">{error}</p> : null}

@@ -55,6 +55,8 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
   let likePayload: Record<string, unknown> | null = null;
   let followPayload: Record<string, unknown> | null = null;
 
+  await page.setViewportSize({ width: 1280, height: 900 });
+
   await page.addInitScript(() => {
     localStorage.setItem('rinspace-auth-hint', JSON.stringify({ sub: 'reader-7' }));
   });
@@ -242,7 +244,7 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
   await expect(contentTabs.getByRole('button', { name: '讨论' })).toHaveCount(0);
   await expect(contentTabs.getByRole('button', { name: '动态' })).toHaveCount(0);
 
-  await expect(page.locator('.tag-detail-meta-row').getByRole('link', { name: '编辑' })).toBeVisible();
+  await expect(page.locator('.tag-detail-meta-row').getByRole('button', { name: '编辑' })).toBeVisible();
   await expect(page.locator('[data-rin-primary-text="description"]')).toHaveCount(0);
   await expect(page.locator('[data-rin-tag-lifecycle="true"]')).toHaveCount(0);
   await expect(page.locator('.tag-detail-toc').getByRole('link', { name: '基本概念' })).toBeVisible();
@@ -276,37 +278,11 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
   await expect(informationPanel).toContainText('Abelian Varieties');
   await expect(informationPanel).toContainText('ID 6,300');
   await expect(informationPanel.locator('.tag-knowledge-chips > a')).toHaveCount(3);
-  const relationActions = informationPanel.locator('.tag-knowledge-actions');
-  const iconActions = [
-    relationActions.getByRole('button', { name: '维护标签' }),
-    relationActions.getByRole('link', { name: '报告问题' }),
-    relationActions.getByRole('button', { name: '复制当前引用' }),
-    relationActions.getByRole('button', { name: '复制固定引用' }),
-  ];
-  for (const action of iconActions) {
-    await expect(action).toBeVisible();
-    const visual = await action.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        backgroundColor: style.backgroundColor,
-        borderTopWidth: style.borderTopWidth,
-        borderRightWidth: style.borderRightWidth,
-        borderBottomWidth: style.borderBottomWidth,
-        borderLeftWidth: style.borderLeftWidth,
-      };
-    });
-    expect(visual).toEqual({
-      backgroundColor: 'rgba(0, 0, 0, 0)',
-      borderTopWidth: '0px',
-      borderRightWidth: '0px',
-      borderBottomWidth: '0px',
-      borderLeftWidth: '0px',
-    });
-  }
-  await expect(iconActions[0].locator('[data-tag-knowledge-icon="maintain"]')).toBeVisible();
-  await expect(iconActions[1].locator('[data-tag-knowledge-icon="report"]')).toBeVisible();
-  await expect(iconActions[2].locator('[data-tag-knowledge-icon="copy-current"]')).toBeVisible();
-  await expect(iconActions[3].locator('[data-tag-knowledge-icon="copy-revision"]')).toBeVisible();
+  await expect(informationPanel.locator('.tag-knowledge-actions')).toHaveCount(0);
+  await expect(informationPanel.getByRole('button', { name: '维护标签' })).toHaveCount(0);
+  await expect(informationPanel.getByRole('link', { name: '报告问题' })).toHaveCount(0);
+  await expect(informationPanel.getByRole('button', { name: '复制当前引用' })).toHaveCount(0);
+  await expect(informationPanel.getByRole('button', { name: '复制固定引用' })).toHaveCount(0);
   const sourceLink = informationPanel.getByRole('link', { name: 'Gitea 源码' });
   await expect(sourceLink).toBeVisible();
   await expect(sourceLink.locator('.rin-icon--git')).toBeVisible();
@@ -335,4 +311,8 @@ test('tag detail keeps repository Star and Watch as independent icon counters', 
     targetId: 'weil-pairings',
     isCancel: false,
   });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.tag-detail-toc-side')).toBeHidden();
+  await expect(page.locator('.tag-detail-wiki-html').getByRole('heading', { name: '基本概念' })).toBeVisible();
 });
