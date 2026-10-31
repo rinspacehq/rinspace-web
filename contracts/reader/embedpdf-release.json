@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "repository": "rinspacehq/embed-pdf-viewer",
-  "sourceCommit": "13702e1c1b66407b6b2f2f0a09e243433facfcad",
+  "sourceCommit": "c0fd094b3cbcc5e92d3f21df0659eb40ad168f77",
   "upstreamCommit": "dfb2df818065c704a0241beb0791e2fd0d55a10e",
-  "artifact": "rinspacehq-embedpdf-snippet-2.15.1-rinspace.2.tgz",
-  "sha256": "e8ac5512ca622a2dccdd70ac73c67a334ec9ba85595195c67de37be9bf4d56ea",
-  "integrity": "sha512-8hQiNiCPP3dThsyayD0EAiQV3l5NLoyvNGkhqRC9kdhpsAdSlwOkljtIGgZXBzoKu/y9xu357HMBmCIUGqTHKg==",
+  "artifact": "rinspacehq-embedpdf-snippet-2.15.1-rinspace.3.tgz",
+  "sha256": "7d40a205cb043a54ed33c804f8d4dbac7b05fd8ece29a24118cc1dac593a4de6",
+  "integrity": "sha512-IVl/R1NttehQ6lwNO3Aj1ycwJabwNlQ/S0/TgEdrd0J7sRxzxYLy1vBWhpEC8I53JVICCQrDq4ZmgJ6k6iE2OQ==",
   "checks": [
     "snippet-build",
     "bundled-license-coverage",
     "native-pdf-plugin-browser"
   ],
-  "version": "2.15.1-rinspace.2",
-  "url": "https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.2/rinspacehq-embedpdf-snippet-2.15.1-rinspace.2.tgz"
+  "version": "2.15.1-rinspace.3",
+  "url": "https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.3/rinspacehq-embedpdf-snippet-2.15.1-rinspace.3.tgz"
 }
