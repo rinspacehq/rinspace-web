@@ -4,11 +4,14 @@ import { Button, Input, Select, Surface, Switch } from "components/ui";
 import { useFeatureTranslation } from "@/i18n/useFeatureTranslation";
 import {
   loadWalletAdminAgentPolicy,
+  loadWalletAdminReaderTestMode,
   loadWalletAdminAgentUsage,
   updateWalletAdminAgentPolicy,
+  updateWalletAdminReaderTestMode,
   WalletAdminError,
   type WalletAdminAgentPolicy,
   type WalletAdminAgentPolicyUpdate,
+  type WalletAdminReaderTestMode,
   type WalletAdminAgentUsage,
   type WalletAdminAgentUsageFilter,
 } from "@/services/domains/walletAdmin";
@@ -177,17 +180,20 @@ function PolicyInput({
   value,
   onChange,
   inputMode = "numeric",
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   inputMode?: "numeric" | "decimal";
+  disabled?: boolean;
 }) {
   return (
     <label>
       {label}
       <Input
         inputMode={inputMode}
+        disabled={disabled}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
       />
@@ -209,6 +215,14 @@ export function RinAgentAdminPanel({
   const [policyBusy, setPolicyBusy] = useState(false);
   const [policyError, setPolicyError] = useState("");
   const [policySuccess, setPolicySuccess] = useState("");
+  const [readerTestMode, setReaderTestMode] = useState<WalletAdminReaderTestMode | null>(null);
+  const [readerTestDraft, setReaderTestDraft] = useState(false);
+  const [readerTestDailyCalls, setReaderTestDailyCalls] = useState("1000");
+  const [readerTestConcurrent, setReaderTestConcurrent] = useState("3");
+  const [readerTestMaxOutput, setReaderTestMaxOutput] = useState("4096");
+  const [readerTestBusy, setReaderTestBusy] = useState(false);
+  const [readerTestError, setReaderTestError] = useState("");
+  const [readerTestSuccess, setReaderTestSuccess] = useState("");
   const [usage, setUsage] = useState<readonly WalletAdminAgentUsage[]>([]);
   const [usageBusy, setUsageBusy] = useState(false);
   const [usageError, setUsageError] = useState("");
@@ -253,6 +267,54 @@ export function RinAgentAdminPanel({
   useEffect(() => {
     void loadPolicy();
   }, [loadPolicy]);
+
+  const loadReaderTestMode = useCallback(async () => {
+    try {
+      const value = await loadWalletAdminReaderTestMode();
+      setReaderTestMode(value);
+      setReaderTestDraft(value.enabled);
+      setReaderTestDailyCalls(String(value.dailyCallsLimit));
+      setReaderTestConcurrent(String(value.concurrentLimit));
+      setReaderTestMaxOutput(String(value.maxOutputTokens));
+      setReaderTestError("");
+    } catch {
+      setReaderTestError(t("agent.readerTestLoadFailed"));
+    }
+  }, [t]);
+  useEffect(() => { void loadReaderTestMode(); }, [loadReaderTestMode]);
+
+  const saveReaderTestMode = async () => {
+    if (!readerTestMode || readerTestBusy) return;
+    setReaderTestBusy(true);
+    setReaderTestError("");
+    setReaderTestSuccess("");
+    try {
+      const dailyCalls = integer(readerTestDailyCalls);
+      const concurrent = integer(readerTestConcurrent);
+      const maxOutput = integer(readerTestMaxOutput);
+      const value = await updateWalletAdminReaderTestMode(uid, readerTestMode.version, readerTestDraft,
+        dailyCalls, concurrent, maxOutput, "调整 Reader 琳测试模式");
+      setReaderTestMode(value);
+      setReaderTestDraft(value.enabled);
+      setReaderTestDailyCalls(String(value.dailyCallsLimit));
+      setReaderTestConcurrent(String(value.concurrentLimit));
+      setReaderTestMaxOutput(String(value.maxOutputTokens));
+      setReaderTestSuccess(t("agent.readerTestSaved"));
+    } catch (error) {
+      if (error instanceof WalletAdminError && error.code === "VERSION_CONFLICT") {
+        await loadReaderTestMode();
+        setReaderTestError(t("agent.versionConflict"));
+      } else if (error instanceof WalletAdminError && error.code === "PERMISSION_DENIED") {
+        setReaderTestError(t("agent.permissionDenied"));
+      } else if ((error instanceof WalletAdminError && error.code === "INVALID_REQUEST") || error instanceof TypeError) {
+        setReaderTestError(t("agent.invalid"));
+      } else {
+        setReaderTestError(t("agent.readerTestSaveFailed"));
+      }
+    } finally {
+      setReaderTestBusy(false);
+    }
+  };
   useEffect(() => {
     void loadUsage();
   }, [loadUsage]);
@@ -273,20 +335,25 @@ export function RinAgentAdminPanel({
     }
     let input: WalletAdminAgentPolicyUpdate;
     try {
+      const providerInput = agentYuanToMicros(draft.providerInputCnyMicrosPerMillion);
+      const providerCached = agentYuanToMicros(draft.providerCachedInputCnyMicrosPerMillion);
+      const providerOutput = agentYuanToMicros(draft.providerOutputCnyMicrosPerMillion);
+      const providerChanged = providerInput !== policy.providerInputCnyMicrosPerMillion ||
+        providerCached !== policy.providerCachedInputCnyMicrosPerMillion ||
+        providerOutput !== policy.providerOutputCnyMicrosPerMillion;
+      const peakPreset = providerInput === agentYuanToMicros(reviewedLaunchDraft.providerInputCnyMicrosPerMillion) &&
+        providerCached === agentYuanToMicros(reviewedLaunchDraft.providerCachedInputCnyMicrosPerMillion) &&
+        providerOutput === agentYuanToMicros(reviewedLaunchDraft.providerOutputCnyMicrosPerMillion);
       input = {
         expectedVersion: policy.version,
         enabled: draft.enabled,
         model: draft.model,
-        providerPriceVersion: draft.providerPriceVersion,
-        providerInputCnyMicrosPerMillion: agentYuanToMicros(
-          draft.providerInputCnyMicrosPerMillion,
-        ),
-        providerCachedInputCnyMicrosPerMillion: agentYuanToMicros(
-          draft.providerCachedInputCnyMicrosPerMillion,
-        ),
-        providerOutputCnyMicrosPerMillion: agentYuanToMicros(
-          draft.providerOutputCnyMicrosPerMillion,
-        ),
+        providerPriceVersion: providerChanged
+          ? peakPreset ? reviewedLaunchDraft.providerPriceVersion : `deepseek-flash-cny-admin-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`
+          : policy.providerPriceVersion,
+        providerInputCnyMicrosPerMillion: providerInput,
+        providerCachedInputCnyMicrosPerMillion: providerCached,
+        providerOutputCnyMicrosPerMillion: providerOutput,
         inputSgPerMillion: agentYuanToMicros(draft.inputSgPerMillion),
         cachedInputSgPerMillion: agentYuanToMicros(
           draft.cachedInputSgPerMillion,
@@ -331,9 +398,10 @@ export function RinAgentAdminPanel({
       ) {
         await loadPolicy();
         setPolicyError(t("agent.versionConflict"));
+      } else if (error instanceof WalletAdminError && error.code === "IDEMPOTENCY_CONFLICT") {
+        setPolicyError(t("agent.priceVersionConflict"));
       } else {
-        await loadPolicy();
-        setPolicyError(t("agent.updateUnknown"));
+        setPolicyError(`${t("agent.updateUnknown")} ${error instanceof WalletAdminError ? `(${error.code})` : ""}`.trim());
       }
     } finally {
       setPolicyBusy(false);
@@ -535,12 +603,7 @@ export function RinAgentAdminPanel({
                     <Input
                       value={draft.providerPriceVersion}
                       maxLength={128}
-                      onChange={(event) =>
-                        setDraftValue(
-                          "providerPriceVersion",
-                          event.currentTarget.value,
-                        )
-                      }
+                      readOnly
                     />
                   </label>
                   <PolicyInput
@@ -589,6 +652,26 @@ export function RinAgentAdminPanel({
       ) : policyBusy ? (
         <p role="status">{t("shared.loading")}</p>
       ) : null}
+
+      <div className="admin-agent-audit-heading">
+        <h3>{t("agent.readerTestTitle")}</h3>
+      </div>
+      {readerTestError ? <p role="alert" className="admin-refunds-error">{readerTestError}</p> : null}
+      {readerTestSuccess ? <p role="status">{readerTestSuccess}</p> : null}
+      {readerTestMode ? <div className="admin-risk-policy-form admin-agent-policy-form">
+        <Switch label={t("agent.readerTestEnable")} checked={readerTestDraft} disabled={!canConfigure || readerTestBusy}
+          onCheckedChange={checked => { setReaderTestDraft(checked); setReaderTestError(""); setReaderTestSuccess(""); }} />
+        <PolicyInput label={t("agent.readerTestDailyCalls")} value={readerTestDailyCalls}
+          onChange={setReaderTestDailyCalls} disabled={!canConfigure || readerTestBusy} />
+        <PolicyInput label={t("agent.readerTestConcurrent")} value={readerTestConcurrent}
+          onChange={setReaderTestConcurrent} disabled={!canConfigure || readerTestBusy} />
+        <PolicyInput label={t("agent.readerTestMaxOutput")} value={readerTestMaxOutput}
+          onChange={setReaderTestMaxOutput} disabled={!canConfigure || readerTestBusy} />
+        {canConfigure ? <Button type="button" variant="primary" disabled={readerTestBusy ||
+          readerTestDraft === readerTestMode.enabled && readerTestDailyCalls === String(readerTestMode.dailyCallsLimit) &&
+          readerTestConcurrent === String(readerTestMode.concurrentLimit) && readerTestMaxOutput === String(readerTestMode.maxOutputTokens)}
+          onClick={() => { void saveReaderTestMode(); }}>{t("agent.readerTestSave")}</Button> : null}
+      </div> : null}
 
       <div className="admin-agent-audit-heading">
         <h3>{t("agent.auditTitle")}</h3>

@@ -265,6 +265,16 @@ export type WalletAdminAgentPolicy = Readonly<{
   reason: string;
   createdAt: string;
 }>;
+export type WalletAdminReaderTestMode = Readonly<{
+  enabled: boolean;
+  version: number;
+  dailyCallsLimit: number;
+  concurrentLimit: number;
+  maxOutputTokens: number;
+  updatedBy: string;
+  reason: string;
+  updatedAt: string;
+}>;
 export type WalletAdminAgentUsageState =
   | "PREPARED"
   | "RESERVED"
@@ -1276,7 +1286,7 @@ function agentPolicy(value: unknown): WalletAdminAgentPolicy {
     const cachedInputSg = agentInteger(item.cached_input_sg_per_million);
     const outputSg = agentInteger(item.output_sg_per_million);
     const sgRateScale = agentInteger(item.sg_rate_scale, true);
-    const maxOutputTokens = agentCount(item.max_output_tokens, 4096);
+    const maxOutputTokens = agentCount(item.max_output_tokens, 393216);
     const taskBudgetSg = agentInteger(item.task_budget_sg, true);
     const dailyTokensLimit = agentInteger(item.daily_tokens_limit, true);
     const dailySgLimit = agentInteger(item.daily_sg_limit, true);
@@ -1865,6 +1875,41 @@ export async function loadWalletAdminDeepSeekPrice(): Promise<WalletAdminDeepSee
 export async function loadWalletAdminAgentPolicy(): Promise<WalletAdminAgentPolicy> {
   return agentPolicy(await get("agent-policy"));
 }
+export async function loadWalletAdminReaderTestMode(): Promise<WalletAdminReaderTestMode> {
+  const value = await get("reader-test-mode") as WalletAdminReaderTestMode;
+  if (!validReaderTestMode(value))
+    throw new WalletAdminError("INVALID_RESPONSE");
+  return value;
+}
+function validReaderTestMode(value: WalletAdminReaderTestMode): boolean {
+  return typeof value?.enabled === "boolean" && Number.isSafeInteger(value.version) && value.version >= 1 &&
+    Number.isInteger(value.dailyCallsLimit) && value.dailyCallsLimit >= 1 && value.dailyCallsLimit <= 10000 &&
+    Number.isInteger(value.concurrentLimit) && value.concurrentLimit >= 1 && value.concurrentLimit <= 8 &&
+    Number.isInteger(value.maxOutputTokens) && value.maxOutputTokens >= 256 && value.maxOutputTokens <= 16384;
+}
+export async function updateWalletAdminReaderTestMode(
+  uid: string, expectedVersion: number, enabled: boolean,
+  dailyCallsLimit: number, concurrentLimit: number, maxOutputTokens: number, reason: string,
+): Promise<WalletAdminReaderTestMode> {
+  const user = await getCurrentAuthUser();
+  const csrf = authHeaders()["X-Rinspace-CSRF"];
+  if (user?.id !== uid || !csrf) throw new WalletAdminError("UNAUTHENTICATED", 401);
+  if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1 ||
+    !Number.isInteger(dailyCallsLimit) || dailyCallsLimit < 1 || dailyCallsLimit > 10000 ||
+    !Number.isInteger(concurrentLimit) || concurrentLimit < 1 || concurrentLimit > 8 ||
+    !Number.isInteger(maxOutputTokens) || maxOutputTokens < 256 || maxOutputTokens > 16384 ||
+    !reason.trim() || reason !== reason.trim())
+    throw new WalletAdminError("INVALID_REQUEST");
+  const response = await fetch(`${root}/reader-test-mode`, {
+    method: "PUT", credentials: "same-origin", cache: "no-store", redirect: "error",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "X-Rinspace-CSRF": csrf },
+    body: JSON.stringify({ expectedVersion, enabled, dailyCallsLimit, concurrentLimit, maxOutputTokens, reason }),
+  });
+  const value = await responseValue(response) as WalletAdminReaderTestMode;
+  if (!validReaderTestMode(value))
+    throw new WalletAdminError("INVALID_RESPONSE");
+  return value;
+}
 export async function loadWalletAdminAgentUsage(
   filter: WalletAdminAgentUsageFilter = {},
 ): Promise<readonly WalletAdminAgentUsage[]> {
@@ -1923,7 +1968,7 @@ function agentPolicyRequest(input: WalletAdminAgentPolicyUpdate) {
     input.maxIterations > 128 ||
     !Number.isInteger(input.maxOutputTokens) ||
     input.maxOutputTokens < 1 ||
-    input.maxOutputTokens > 4096 ||
+    input.maxOutputTokens > 393216 ||
     !Number.isInteger(input.dailyCallsLimit) ||
     input.dailyCallsLimit < 1 ||
     input.dailyCallsLimit > 1_000_000_000 ||
