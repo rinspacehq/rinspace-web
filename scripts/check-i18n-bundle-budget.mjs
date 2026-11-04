@@ -29,7 +29,11 @@ const rinAgentPolicySaveFeedbackBudgetBytes = 512;
 // Local PDF library, file recovery and clearing add 828 gzip bytes across the
 // two minified source resources. Reserve 1 KiB; retain per-chunk and wallet limits.
 const localReaderBudgetBytes = 1024;
-const totalBudgetBytes = baseFeatureBudgetBytes + markdownDraftRecoveryBudgetBytes + rinPriceAdminBudgetBytes + rinAgentAdminBudgetBytes + rinAgentPolicySaveFeedbackBudgetBytes + localReaderBudgetBytes;
+// Reader test controls add two locales of admin copy. The v0.2.31 candidate
+// measured 291 gzip bytes above the previous retained-feature ceiling; reserve
+// 512 bytes while retaining the per-chunk and separate wallet limits.
+const readerTestModeBudgetBytes = 512;
+const totalBudgetBytes = baseFeatureBudgetBytes + markdownDraftRecoveryBudgetBytes + rinPriceAdminBudgetBytes + rinAgentAdminBudgetBytes + rinAgentPolicySaveFeedbackBudgetBytes + localReaderBudgetBytes + readerTestModeBudgetBytes;
 // The wallet owns a
 // separate 4 KiB two-locale read-flow budget. The newly implemented confirmation,
 // storage failure and unknown-result recovery flow owns an additional 1 KiB;
@@ -83,7 +87,7 @@ if (totalGzipBytes - walletGzipBytes > totalBudgetBytes || walletGzipBytes > wal
 
 const report = {
   profile: 'two locales; feature namespaces only; core shell namespaces excluded',
-  budgets: { perChunkGzipBytes: perChunkBudgetBytes, baseFeatureGzipBytes: baseFeatureBudgetBytes, markdownDraftRecoveryGzipBytes: markdownDraftRecoveryBudgetBytes, rinPriceAdminGzipBytes: rinPriceAdminBudgetBytes, rinAgentAdminGzipBytes: rinAgentAdminBudgetBytes, rinAgentPolicySaveFeedbackGzipBytes: rinAgentPolicySaveFeedbackBudgetBytes, localReaderGzipBytes: localReaderBudgetBytes, retainedFeatureGzipBytes: totalBudgetBytes, walletReadGzipBytes: walletReadBudgetBytes, walletConversionBudgetBytes: walletConversionBudgetBytes, walletTipGzipBytes: walletTipBudgetBytes, walletRefundGzipBytes: walletRefundBudgetBytes, walletGzipBytes: walletBudgetBytes, totalFeatureGzipBytes: totalBudgetBytes + walletBudgetBytes },
+  budgets: { perChunkGzipBytes: perChunkBudgetBytes, baseFeatureGzipBytes: baseFeatureBudgetBytes, markdownDraftRecoveryGzipBytes: markdownDraftRecoveryBudgetBytes, rinPriceAdminGzipBytes: rinPriceAdminBudgetBytes, rinAgentAdminGzipBytes: rinAgentAdminBudgetBytes, rinAgentPolicySaveFeedbackGzipBytes: rinAgentPolicySaveFeedbackBudgetBytes, localReaderGzipBytes: localReaderBudgetBytes, readerTestModeGzipBytes: readerTestModeBudgetBytes, retainedFeatureGzipBytes: totalBudgetBytes, walletReadGzipBytes: walletReadBudgetBytes, walletConversionBudgetBytes: walletConversionBudgetBytes, walletTipGzipBytes: walletTipBudgetBytes, walletRefundGzipBytes: walletRefundBudgetBytes, walletGzipBytes: walletBudgetBytes, totalFeatureGzipBytes: totalBudgetBytes + walletBudgetBytes },
   actual: { totalFeatureGzipBytes: totalGzipBytes, chunks: resources },
 };
 fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
