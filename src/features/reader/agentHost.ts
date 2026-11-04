@@ -9,7 +9,7 @@ type Part = { type: 'text'; text: string } | { type: 'tool-call'; toolCallId: st
   | { type: 'tool-result'; toolCallId: string; toolName: string; output: unknown; isError?: boolean };
 type Message = { role: 'user' | 'assistant' | 'tool'; content: Part[] };
 type Call = { id: string; name: string; input: Record<string, unknown> };
-type Turn = { text?: string; toolCalls?: Call[]; finishReason: string };
+type Turn = { text?: string; toolCalls?: Call[]; finishReason: string; usage?: { inputTokens: number; outputTokens: number } };
 type Run = { id: string; status: string; source: string; projectId: string; documentVersion: string;
   usage?: { inputTokens: number; outputTokens: number };
   billing?: { goodnessChargedSg: string; pendingTurns: number } };
@@ -79,14 +79,19 @@ export function createReaderAgentHost(document: ReaderDocument) {
   const refresh = async () => {
     const current = ++epoch;
     try {
-      const user = await getCurrentAuthUser();
-      if (disposed || current !== epoch || user?.id === session.accountId && session.status !== 'loading') return;
+      const [user, testMode] = await Promise.all([
+        getCurrentAuthUser().catch(() => null),
+        requestJson<{ enabled: boolean }>(`${ROOT}/test-mode`, { auth: 'none' }).catch(() => ({ enabled: false })),
+      ]);
+      const accountId = testMode?.enabled ? `reader-test:${user?.id || 'anonymous'}` : user?.id;
+      const status: RinSession['status'] = testMode?.enabled ? 'test' : user ? 'authenticated' : 'anonymous';
+      if (disposed || current !== epoch || accountId === session.accountId && status === session.status) return;
       session = { status: 'loading' }; state = {}; notify();
-      const restored = user?.id ? await readReaderAgent<State>(keyFor(user.id)) : undefined;
+      const restored = accountId ? await readReaderAgent<State>(keyFor(accountId)) : undefined;
       if (disposed || current !== epoch) return;
       state = restored || {};
       storageError = undefined;
-      session = user ? { status: 'authenticated', accountId: user.id } : { status: 'anonymous' };
+      session = accountId ? { status, accountId } : { status };
       notify();
     } catch (error) {
       if (current !== epoch || disposed) return;
@@ -114,20 +119,23 @@ export function createReaderAgentHost(document: ReaderDocument) {
     },
     send: async ({ documentId, message, tools, signal }) => {
       const account = session.accountId;
+      const testMode = session.status === 'test';
       const active = () => {
         signal.throwIfAborted();
-        if (disposed || !account || session.accountId !== account || documentId !== document.id) throw new Error('账号或 PDF 已切换。');
+        if (disposed || !account || session.accountId !== account || (session.status === 'test') !== testMode || documentId !== document.id) throw new Error('账号或 PDF 已切换。');
       };
       const api = async <T>(path: string, body?: unknown): Promise<T> => {
         active();
-        if ((await getCurrentAuthUser())?.id !== account) throw new Error('账号已切换。');
+        if (!testMode && (await getCurrentAuthUser())?.id !== account) throw new Error('账号已切换。');
         active();
-        return requestJson<T>(`${ROOT}/${path}`, { auth: 'required', method: body === undefined ? 'GET' : 'POST', body, signal });
+        return requestJson<T>(`${ROOT}/${testMode ? 'test/' : ''}${path}`, { auth: testMode ? 'none' : 'required', method: body === undefined ? 'GET' : 'POST', body, signal });
       };
       try {
         active(); await flush(); active();
         if (!state.contentConsent) {
-          if (!window.confirm('琳会将你提问涉及的 PDF 文字发送给模型服务，并按实际用量计费。继续？')) throw new Error('已取消。');
+          if (!window.confirm(testMode
+            ? '琳会将你提问涉及的 PDF 文字发送给模型服务。继续？'
+            : '琳会将你提问涉及的 PDF 文字发送给模型服务，并按实际用量计费。继续？')) throw new Error('已取消。');
           state.contentConsent = true; save(); await flush(); active();
         }
         let job = state.job;
@@ -142,26 +150,30 @@ export function createReaderAgentHost(document: ReaderDocument) {
           for (const page of job.reply.pages || []) await tools.readPages([page]);
           return job.reply;
         }
-        const config = await api<{ enabled: boolean; maxIterations: number }>('config');
+        const config = testMode
+          ? await requestJson<{ enabled: boolean; maxIterations: number }>(`${ROOT}/test-mode`, { auth: 'none', signal })
+          : await api<{ enabled: boolean; maxIterations: number }>('config');
         if (!config.enabled) throw new Error('琳当前已停用。');
-        if (!job.runId) {
+        if (!testMode && !job.runId) {
           const run = validateRun(await api<Run>('runs', { requestId: job.requestId, documentId: document.id, documentVersion: document.contentVersion }));
           job.runId = run.id; save(); await flush(); active();
         }
         for (; job.step < config.maxIterations;) {
           active();
-          const body = { operationKey: job.operationKey, documentVersion: document.contentVersion, messages: job.messages };
+          const body = { operationKey: job.operationKey, ...(testMode ? { documentId: document.id } : {}),
+            documentVersion: document.contentVersion, messages: job.messages };
           if (new TextEncoder().encode(JSON.stringify(body)).length > 250 * 1024) throw new Error('本次阅读内容已达上限，请停止任务后缩小问题范围。');
           // Persist the exact operation and history before dispatch. Retry never invents a new key.
           save(); await flush(); active();
-          const response = job.response || await api<Turn>(`runs/${job.runId}/turns`, body);
+          const response = job.response || await api<Turn>(testMode ? 'turns' : `runs/${job.runId}/turns`, body);
           active(); job.response = response; save(); await flush(); active();
           if (!response.toolCalls?.length) {
-            const run = validateRun(await api<Run>(`runs/${job.runId}`));
+            const run = testMode ? undefined : validateRun(await api<Run>(`runs/${job.runId}`));
             const pages = [...new Set(Array.from((response.text || '').matchAll(/\[p:(\d+)\]/g), match => Number(match[1])))].filter(page => job!.readPages.includes(page));
             for (const page of pages) await tools.readPages([page]);
-            const cost = Number(run.billing?.goodnessChargedSg);
-            const reply = { text: response.text || '未获得回答，请缩小问题范围后重试。', pages, usage: run.usage, ...(Number.isFinite(cost) ? { costSG: cost } : {}) };
+            const cost = run?.billing ? Number(run.billing.goodnessChargedSg) : undefined;
+            const reply = { text: response.text || '未获得回答，请缩小问题范围后重试。', pages,
+              usage: run?.usage || response.usage, ...(cost !== undefined && Number.isFinite(cost) ? { costSG: cost } : {}) };
             job.reply = reply; save(); await flush(); active(); return reply;
           }
           const results: Part[] = [];
@@ -185,9 +197,10 @@ export function createReaderAgentHost(document: ReaderDocument) {
     },
     stop: async id => {
       const account = session.accountId;
+      const testMode = session.status === 'test';
       const job = state.job;
-      if (id !== document.id || !job || !account || (await getCurrentAuthUser())?.id !== account) return;
-      if (job.runId) {
+      if (id !== document.id || !job || !account || !testMode && (await getCurrentAuthUser())?.id !== account) return;
+      if (!testMode && job.runId) {
         const run = validateRun(await requestJson<Run>(`${ROOT}/runs/${job.runId}/abort`, { auth: 'required', method: 'POST' }));
         if (session.accountId !== account || disposed) return;
         if (!['ABORTED', 'COMPLETED', 'FAILED_FINAL'].includes(run.status)) throw new Error('停止请求已提交，请稍后重试确认。');

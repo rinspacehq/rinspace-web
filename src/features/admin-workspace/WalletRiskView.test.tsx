@@ -22,9 +22,11 @@ import {
   loadWalletAdminAIPrice,
   loadWalletAdminDeepSeekPrice,
   loadWalletAdminAgentPolicy,
+  loadWalletAdminReaderTestMode,
   loadWalletAdminAgentUsage,
   updateWalletAdminAIPrice,
   updateWalletAdminAgentPolicy,
+  updateWalletAdminReaderTestMode,
   updateWalletAdminPolicy,
   loadWalletAdminObligations,
   loadWalletAdminReconciliations,
@@ -57,9 +59,11 @@ vi.mock("@/services/domains/walletAdmin", () => ({
   loadWalletAdminAIPrice: vi.fn(),
   loadWalletAdminDeepSeekPrice: vi.fn(),
   loadWalletAdminAgentPolicy: vi.fn(),
+  loadWalletAdminReaderTestMode: vi.fn(),
   loadWalletAdminAgentUsage: vi.fn(),
   updateWalletAdminAIPrice: vi.fn(),
   updateWalletAdminAgentPolicy: vi.fn(),
+  updateWalletAdminReaderTestMode: vi.fn(),
   updateWalletAdminPolicy: vi.fn(),
   loadWalletAdminObligations: vi.fn(),
   loadWalletAdminReconciliations: vi.fn(),
@@ -206,6 +210,16 @@ beforeEach(() => {
     createdBy: "risk-reviewer",
     reason: "reviewed Agent policy",
     createdAt: "2026-10-25T08:00:00Z",
+  });
+  vi.mocked(loadWalletAdminReaderTestMode).mockResolvedValue({
+    enabled: false, version: 1, dailyCallsLimit: 1000, concurrentLimit: 3, maxOutputTokens: 4096,
+    updatedBy: "system:bootstrap",
+    reason: "Disabled by default", updatedAt: "2026-11-04T00:00:00Z",
+  });
+  vi.mocked(updateWalletAdminReaderTestMode).mockResolvedValue({
+    enabled: true, version: 2, dailyCallsLimit: 2000, concurrentLimit: 3, maxOutputTokens: 4096,
+    updatedBy: "risk-reviewer",
+    reason: "启用 Reader 琳测试模式", updatedAt: "2026-11-04T01:00:00Z",
   });
   vi.mocked(loadWalletAdminAgentUsage).mockResolvedValue([
     {
@@ -442,6 +456,32 @@ it("explains why an Agent policy cannot be saved without a change reason", async
     await agentPanel.findByText("请填写本次调整理由后再保存。"),
   ).toBeTruthy();
   expect(updateWalletAdminAgentPolicy).not.toHaveBeenCalled();
+});
+
+it("creates a new immutable provider version when admin changes its rate", async () => {
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
+  const panel = within(await screen.findByText("琳 Agent 定价与审计").then(title => title.closest("#wallet-risk-agent-policy") as HTMLElement));
+  fireEvent.change(panel.getByLabelText("提供商输入价（人民币元／百万 token）"), { target: { value: "2.5" } });
+  fireEvent.change(panel.getByLabelText("本次调整理由"), { target: { value: "更新供应商输入价" } });
+  fireEvent.click(panel.getByRole("button", { name: "保存 Agent 策略" }));
+  await waitFor(() => expect(updateWalletAdminAgentPolicy).toHaveBeenCalledWith(
+    "risk-reviewer", expect.any(String), expect.objectContaining({
+      providerPriceVersion: expect.stringMatching(/^deepseek-flash-cny-admin-/),
+      providerInputCnyMicrosPerMillion: "2500000",
+    }),
+  ));
+});
+
+it("saves the Reader test switch through the admin API", async () => {
+  render(<ModelPricingView uid="risk-reviewer" canConfigure />);
+  const panel = within(await screen.findByText("琳 Agent 定价与审计").then(title => title.closest("#wallet-risk-agent-policy") as HTMLElement));
+  fireEvent.click(await panel.findByRole("switch", { name: "允许免登录试用，测试调用不扣善功" }));
+  fireEvent.change(panel.getByLabelText("每天最多调用（1–10000）"), { target: { value: "2000" } });
+  fireEvent.click(panel.getByRole("button", { name: "保存测试模式" }));
+  await waitFor(() => expect(updateWalletAdminReaderTestMode).toHaveBeenCalledWith(
+    "risk-reviewer", 1, true, 2000, 3, 4096, "调整 Reader 琳测试模式",
+  ));
+  expect(await panel.findByText("测试模式已保存。")).toBeTruthy();
 });
 
 it("applies exact DeepSeek peak pricing without changing Agent budgets", async () => {

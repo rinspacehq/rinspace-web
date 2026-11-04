@@ -23,6 +23,7 @@ const tools: RinDocumentTools = {
 beforeEach(() => {
   records.clear(); vi.clearAllMocks();
   vi.mocked(getCurrentAuthUser).mockResolvedValue({ id: 'reader-a' } as Awaited<ReturnType<typeof getCurrentAuthUser>>);
+  vi.mocked(requestJson).mockImplementation(async path => path.endsWith('/test-mode') ? { enabled: false } as never : undefined as never);
   vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
@@ -54,7 +55,7 @@ test('refresh and retry reuse the saved operation after an unknown response', as
   first.dispose();
   const second = createReaderAgentHost(document);
   await vi.waitFor(() => expect(second.host.session().status).toBe('authenticated'));
-  expect(requestJson).toHaveBeenCalledTimes(3); // Restoring never calls the model.
+  expect(requestJson).toHaveBeenCalledTimes(5); // Two mode reads, one config, one run, one turn.
   expect(second.host.restore(document.id)).toMatchObject({ draft: 'Explain', recoverable: true });
   await expect(second.host.send({ documentId: document.id, message: 'Explain', tools, signal: new AbortController().signal })).resolves.toMatchObject({ text: 'Answer', costSG: 0 });
   expect(creationCount).toBe(1); expect(operations).toHaveLength(2); expect(operations[0]).toBe(operations[1]);
@@ -69,7 +70,7 @@ test('changing accounts does not reveal the previous account draft', async () =>
   window.dispatchEvent(new Event('rinspace-session-changed'));
   await vi.waitFor(() => expect(instance.host.session().accountId).toBe('reader-b'));
   expect(instance.host.restore(document.id)).toBeUndefined();
-  expect(requestJson).not.toHaveBeenCalled();
+  expect(vi.mocked(requestJson).mock.calls.every(([path]) => path.endsWith('/test-mode'))).toBe(true);
   instance.dispose();
 });
 
@@ -79,7 +80,7 @@ test('local persistence failure prevents a paid request', async () => {
   vi.mocked(writeReaderAgent).mockRejectedValueOnce(new DOMException('Quota exceeded', 'QuotaExceededError'));
   instance.host.save(document.id, { messages: [], draft: 'Explain', running: true });
   await expect(instance.host.send({ documentId: document.id, message: 'Explain', tools, signal: new AbortController().signal })).rejects.toThrow('无法保存');
-  expect(requestJson).not.toHaveBeenCalled(); instance.dispose();
+  expect(vi.mocked(requestJson).mock.calls.every(([path]) => path.endsWith('/test-mode'))).toBe(true); instance.dispose();
 });
 
 test('server policy failures produce actionable copy without dispatching a run', async () => {
@@ -87,5 +88,25 @@ test('server policy failures produce actionable copy without dispatching a run',
   await vi.waitFor(() => expect(instance.host.session().status).toBe('authenticated'));
   vi.mocked(requestJson).mockRejectedValueOnce(new ServiceError('{"code":"POLICY_LIMIT"}', 429, { code: 'POLICY_LIMIT' }, 'POLICY_LIMIT'));
   await expect(instance.host.send({ documentId: document.id, message: 'Explain', tools, signal: new AbortController().signal })).rejects.toThrow('额度或调用限额');
-  expect(requestJson).toHaveBeenCalledTimes(1); instance.dispose();
+  expect(requestJson).toHaveBeenCalledTimes(2); instance.dispose();
+});
+
+test('anonymous Reader test mode completes a PDF question without wallet calls', async () => {
+  vi.mocked(getCurrentAuthUser).mockResolvedValue(null);
+  vi.mocked(requestJson).mockImplementation(async (path, options) => {
+    if (path.endsWith('/test-mode')) return { enabled: true, maxIterations: 8 } as never;
+    if (path.endsWith('/test/turns')) {
+      expect(options?.auth).toBe('none');
+      expect((options?.body as { documentId: string }).documentId).toBe(document.id);
+      return { text: '**Answer** [p:1]', finishReason: 'stop', usage: { inputTokens: 20, outputTokens: 5 } } as never;
+    }
+    throw new Error(`unexpected paid route: ${path}`);
+  });
+  const instance = createReaderAgentHost(document);
+  await vi.waitFor(() => expect(instance.host.session().status).toBe('test'));
+  const reply = await instance.host.send({ documentId: document.id, message: 'Explain page 1', tools, signal: new AbortController().signal });
+  expect(reply).toMatchObject({ text: '**Answer** [p:1]', usage: { inputTokens: 20, outputTokens: 5 } });
+  expect(reply.costSG).toBeUndefined();
+  expect(vi.mocked(requestJson).mock.calls.some(([path]) => path.includes('/runs'))).toBe(false);
+  instance.dispose();
 });

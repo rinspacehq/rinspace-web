@@ -17,6 +17,7 @@ import {
   loadWalletAdminAIPrice,
   loadWalletAdminDeepSeekPrice,
   loadWalletAdminAgentPolicy,
+  loadWalletAdminReaderTestMode,
   loadWalletAdminAgentUsage,
   loadWalletAdminRefunds,
   releaseWalletAdminRestriction,
@@ -27,6 +28,7 @@ import {
   updateWalletAdminPolicy,
   updateWalletAdminAIPrice,
   updateWalletAdminAgentPolicy,
+  updateWalletAdminReaderTestMode,
   WalletAdminError,
 } from "./walletAdmin";
 
@@ -110,6 +112,22 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+});
+
+it("saves Reader test mode with the managed admin session and no wallet command", async () => {
+  const current = { enabled: false, version: 1, dailyCallsLimit: 1000, concurrentLimit: 3,
+    maxOutputTokens: 4096, updatedBy: "system:bootstrap", reason: "Disabled by default", updatedAt: "2026-11-04T00:00:00Z" };
+  const fetcher = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) =>
+    new Response(JSON.stringify(init?.method === "PUT" ? { ...current, enabled: true, version: 2 } : current), { status: 200 }));
+  vi.stubGlobal("fetch", fetcher);
+  await expect(loadWalletAdminReaderTestMode()).resolves.toMatchObject({ enabled: false, version: 1 });
+  await expect(updateWalletAdminReaderTestMode("wallet-admin", 1, true, 2000, 3, 4096, "Enable Reader test"))
+    .resolves.toMatchObject({ enabled: true, version: 2 });
+  const [, request] = fetcher.mock.calls[1];
+  expect(request.headers["X-Rinspace-CSRF"]).toBe("synthetic-csrf");
+  expect(request.headers.Authorization).toBeUndefined();
+  expect(JSON.parse(request.body)).toEqual({ expectedVersion: 1, enabled: true,
+    dailyCallsLimit: 2000, concurrentLimit: 3, maxOutputTokens: 4096, reason: "Enable Reader test" });
 });
 
 it("reads integer policy values without converting them to JavaScript numbers", async () => {
