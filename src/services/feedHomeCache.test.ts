@@ -1,9 +1,16 @@
-import { expect, test } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import {
   homeFeedForSharedCache,
+  loadHomeFeed,
+  readCachedHomeFeed,
   type FeedItem,
   type HomeFeed,
 } from "./feed";
+
+beforeEach(() => {
+  window.localStorage.clear();
+  vi.restoreAllMocks();
+});
 
 const reviewedBook: FeedItem = {
   id: "41",
@@ -71,4 +78,18 @@ test("shared home cache strips personalized book reviews", () => {
   expect(cached.featuredBlog.collectionActive).toBe(false);
   expect(cached.featuredBlog.reaction_summary?.[0]?.is_active).toBe(false);
   expect(feed.featuredBlog.collectionActive).toBe(true);
+});
+
+test("my home feed never enters the cross-account local cache", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+    new Response(JSON.stringify(feed), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+  await loadHomeFeed({ mode: "my", page: 1, size: 20 });
+
+  expect(readCachedHomeFeed("my")).toBeNull();
+  expect(window.localStorage.length).toBe(0);
 });

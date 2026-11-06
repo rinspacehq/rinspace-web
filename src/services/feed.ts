@@ -408,7 +408,7 @@ export type HomeSidebar = {
   generatedAt: string;
 };
 
-export type HomeFeedMode = "hot" | "latest" | "following" | "unanswered";
+export type HomeFeedMode = "hot" | "latest" | "following" | "my" | "unanswered";
 
 export type HomeFeedInput = {
   mode?: HomeFeedMode;
@@ -4557,6 +4557,7 @@ function writeCachedSnapshot<T>(key: string, data: T) {
 }
 
 export function readCachedHomeFeed(mode: HomeFeedMode) {
+  if (mode === "my") return null;
   return readCachedSnapshot(
     responseCacheKey(["home-feed-v5", mode]),
     parseHomeFeed,
@@ -4585,6 +4586,7 @@ export function homeFeedForSharedCache(feed: HomeFeed): HomeFeed {
 }
 
 function writeCachedHomeFeed(mode: HomeFeedMode, feed: HomeFeed) {
+  if (mode === "my") return;
   writeCachedSnapshot(
     responseCacheKey(["home-feed-v5", mode]),
     homeFeedForSharedCache(feed),

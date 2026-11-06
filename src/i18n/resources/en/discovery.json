@@ -252,6 +252,7 @@
       "hot": "Popular",
       "latest": "Latest",
       "following": "Following",
+      "my": "Mine",
       "unanswered": "Unaccepted",
       "shelf": "Bookshelf"
     },
