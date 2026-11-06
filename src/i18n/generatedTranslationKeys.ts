@@ -1539,6 +1539,7 @@ export type TranslationKey =
   | "discovery:home.modes.following"
   | "discovery:home.modes.hot"
   | "discovery:home.modes.latest"
+  | "discovery:home.modes.my"
   | "discovery:home.modes.shelf"
   | "discovery:home.modes.unanswered"
   | "discovery:home.punctuation.authorSeparator"

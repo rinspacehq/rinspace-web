@@ -124,6 +124,11 @@ html:lang(en) .rin-app-shell > .topbar .brand-word {
   border-radius: 999px;
   background: var(--rin-accent);
   color: var(--rin-on-accent);
+  cursor: pointer;
+}
+
+.rin-app-shell > .topbar .topbar-search > button:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--rin-accent) 88%, var(--rin-ink));
 }
 
 .rin-app-shell > .topbar .account-nav {
@@ -261,6 +266,12 @@ html:lang(en) .rin-app-shell > .topbar .brand-word {
   color: var(--rin-ink);
   font-family: var(--rin-font-mono);
   font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.rin-app-shell > .topbar .account-menu-trigger:is(:hover, :focus-visible) {
+  border-color: var(--rin-border-strong);
+  background: var(--rin-surface-subtle);
 }
 
 .rin-app-shell > .topbar .avatar-name {

@@ -28,6 +28,17 @@
   display: none;
 }
 
+/* The retained route-family stylesheet gives legacy feed buttons an
+   !important white background. Important declarations reverse layer order,
+   so this early interaction layer restores the Animate UI state without
+   broadening the override beyond inactive home-feed tabs. */
+@layer rin-interaction-important {
+  [data-rin-ui="v2"] .home-shell .feed-tabs .rin-animate-tab[data-state="inactive"]:not(:disabled):is(:hover, :focus-visible) {
+    background: var(--rin-surface-subtle) !important;
+    color: var(--rin-accent) !important;
+  }
+}
+
 .home-book-topline-tags {
   margin-block-start: 0;
 }
@@ -71,6 +82,14 @@
   padding: 0.35rem 0.48rem;
 }
 
+.home-card-action:not(:disabled) {
+  cursor: pointer;
+}
+
+.home-card-action:disabled {
+  cursor: not-allowed;
+}
+
 [data-rin-ui="v2"] .home-card-actions .home-card-action {
   background: transparent !important;
 }
@@ -106,6 +125,11 @@
   border-color: var(--stream-card-border);
   box-shadow: none;
   color: var(--rin-ink);
+}
+
+[data-rin-ui="v2"] .home-shell .community-board .stream-card:not(.stream-card-skeleton),
+[data-rin-ui="v2"] .home-shell .community-board .home-book-card {
+  cursor: pointer;
 }
 
 [data-rin-ui="v2"] .home-shell .community-board .stream-card:hover {

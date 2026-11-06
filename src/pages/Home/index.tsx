@@ -90,7 +90,7 @@ type DynamicReactionState = {
   isActive: boolean;
 };
 
-const feedModes: readonly FeedMode[] = ['hot', 'latest', 'following'];
+const feedModes: readonly FeedMode[] = ['hot', 'latest', 'following', 'my'];
 
 function normalizeFeedMode(value: string | null) {
   return feedModes.find((mode) => mode === value) ?? 'hot';
@@ -1120,6 +1120,7 @@ function HomePage() {
     readCachedHomeFeed(initialFeedMode),
   );
   const [user, setUser] = useState<RinspaceUser | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const [homeFeed, setHomeFeed] = useState<HomeFeed>(
     () => initialHomeFeedSnapshot?.data ?? emptyHomeFeed,
   );
@@ -1552,6 +1553,8 @@ function HomePage() {
       }
     } catch (sessionError) {
       setError(messageFromError(sessionError, 'home.sessionLoadFailed'));
+    } finally {
+      setSessionReady(true);
     }
   }, []);
 
@@ -1748,6 +1751,14 @@ function HomePage() {
     item.authorRank ?? authorProfiles[item.author]?.rank;
 
   const reloadHomeFeed = useCallback(async () => {
+    if (feedMode === 'my' && (!sessionReady || !user)) {
+      homeFeedStreamRef.current = emptyHomeFeed.stream;
+      setHomeFeed(emptyHomeFeed);
+      setFeedPage(1);
+      setFeedHasMore(false);
+      setFeedError('');
+      return;
+    }
     const nextFeed = await loadHomeFeed({
       mode: feedMode,
       page: 1,
@@ -1758,7 +1769,7 @@ function HomePage() {
     setFeedPage(1);
     setFeedHasMore(hasMoreHomeFeedPages(nextFeed));
     setFeedError('');
-  }, [feedMode]);
+  }, [feedMode, sessionReady, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1776,6 +1787,18 @@ function HomePage() {
     setFeedLoadingMore(false);
     feedLoadingMoreRef.current = false;
     setFeedLoading(true);
+    if (feedMode === 'my' && !sessionReady) {
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (feedMode === 'my' && !user) {
+      setFeedHasMore(false);
+      setFeedLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
     void loadHomeFeed({
       mode: feedMode,
       page: 1,
@@ -1793,7 +1816,7 @@ function HomePage() {
         if (!cancelled) {
           setFeedError(messageFromError(feedLoadError, 'home.feedLoadFailed'));
           setFeedHasMore(false);
-          if (!cached) {
+          if (!cached && feedMode !== 'my') {
             setHomeFeed(fallbackHomeFeed);
           }
         }
@@ -1806,7 +1829,7 @@ function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [feedMode]);
+  }, [feedMode, sessionReady, user]);
 
   const loadMoreHomeFeed = useCallback(async () => {
     if (communityView !== 'stream' || feedLoading || feedLoadingMoreRef.current || !feedHasMore) return;
