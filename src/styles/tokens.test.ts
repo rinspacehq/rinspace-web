@@ -171,6 +171,21 @@ describe("foundation ownership boundaries", () => {
     );
   });
 
+  it("keeps book reader content blocks on the page canvas without a side accent", () => {
+    const reader = fs.readFileSync(
+      path.resolve("src/styles/product-families/book-reader-docs-layout.css"),
+      "utf8",
+    );
+    const semanticBlock = reader.match(
+      /\.book-reader-shell\s+\.book-reader-article\s+\.rin-writer-html\s+:is\([^}]+\)\s*\{([^}]+)\}/s,
+    )?.[1];
+
+    expect(semanticBlock).toBeDefined();
+    expect(semanticBlock).toContain("background: transparent !important");
+    expect(semanticBlock).toContain("border: 1px solid");
+    expect(semanticBlock).not.toContain("border-left");
+  });
+
   it("lets the Markdown editor content grow without releasing the sticky toolbar", () => {
     const migratedPages = fs.readFileSync(
       path.resolve("src/styles/migrated-pages.css"),
