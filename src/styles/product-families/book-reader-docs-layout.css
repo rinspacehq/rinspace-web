@@ -69,6 +69,17 @@
   max-width: 760px;
 }
 
+@layer route-foundation {
+  .book-reader-shell
+    .book-reader-article
+    .rin-writer-html
+    :is(.rin-env, .theorem, .proof, .definition, .lemma, .proposition) {
+    border: 1px solid var(--rin-border-subtle, rgba(36, 52, 71, 0.12));
+    /* The legacy rich-content layer marks its tinted fill as important. */
+    background: transparent !important;
+  }
+}
+
 .book-reader-shell .book-reader-toc,
 .book-reader-shell .book-reader-page-outline {
   color: var(--rin-ink-muted, #64748b);
