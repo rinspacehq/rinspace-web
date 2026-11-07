@@ -1,13 +1,13 @@
 import {
   AnimateCross,
   Button,
+  Dialog,
+  DialogContent,
   Menu,
   MenuContent,
   MenuItem,
   MenuSeparator,
   MenuTrigger,
-  Sheet,
-  SheetContent,
 } from "components/ui";
 import {
   useCallback,
@@ -56,7 +56,7 @@ type BookAnnotationsLayerProps = {
   };
   articleRef: RefObject<HTMLDivElement | null>;
   hasSession: boolean;
-  preferSheet?: boolean;
+  preferCenteredDialog?: boolean;
 };
 
 type TriggerPosition = { left: number; top: number };
@@ -242,7 +242,6 @@ function AnnotationComposer({
   const bodyRequired = composer.kind !== "erratum";
   return (
     <div className="book-annotation-composer" data-kind={composer.kind}>
-      <strong>{annotationKindLabel(composer.kind, t)}</strong>
       {composer.kind === "erratum" ? (
         <label>
           <span>{t("annotations.suggestedCorrection")}</span>
@@ -459,7 +458,7 @@ export default function BookAnnotationsLayer({
   capabilities,
   articleRef,
   hasSession,
-  preferSheet = false,
+  preferCenteredDialog = false,
 }: BookAnnotationsLayerProps) {
   const { t } = useFeatureTranslation("reader");
   const locale = useResolvedLocale();
@@ -481,7 +480,7 @@ export default function BookAnnotationsLayer({
   const [composer, setComposer] = useState<ComposerState | null>(null);
   const [composerBusy, setComposerBusy] = useState(false);
   const [composerError, setComposerError] = useState("");
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [annotationPanelOpen, setAnnotationPanelOpen] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(
     () => globalThis.window?.innerWidth || 1440,
   );
@@ -496,7 +495,7 @@ export default function BookAnnotationsLayer({
   const canInvokeActions =
     canWrite ||
     (operational && !hasSession && capabilities.annotationsWriteAvailable);
-  const useAnnotationSheet = preferSheet || viewportWidth < 1440;
+  const useCenteredDialog = preferCenteredDialog || viewportWidth < 1440;
 
   const refresh = useCallback(async () => {
     if (!capabilities.annotationsRead || !pageId || !publicationCommit) return;
@@ -539,7 +538,7 @@ export default function BookAnnotationsLayer({
     setActiveAnnotationId("");
     setComposer(null);
     setMenuOpen(false);
-    setSheetOpen(false);
+    setAnnotationPanelOpen(false);
     setComments([]);
     setReplyBody("");
   }, [pageId, publicationCommit]);
@@ -782,13 +781,13 @@ export default function BookAnnotationsLayer({
         setActiveAnnotationId(item.id);
         const block = sourceBlock(articleRef.current, item.blockId);
         block?.scrollIntoView({ block: "center" });
-        if (useAnnotationSheet) setSheetOpen(true);
+        if (useCenteredDialog) setAnnotationPanelOpen(true);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [articleRef, operational, pageId, useAnnotationSheet]);
+  }, [articleRef, operational, pageId, useCenteredDialog]);
 
   useEffect(() => {
     const group = activeGroup;
@@ -833,9 +832,9 @@ export default function BookAnnotationsLayer({
         block: "center",
         behavior: "smooth",
       });
-      if (useAnnotationSheet) setSheetOpen(true);
+      if (useCenteredDialog) setAnnotationPanelOpen(true);
     },
-    [articleRef, useAnnotationSheet],
+    [articleRef, useCenteredDialog],
   );
 
   const openComposer = useCallback(
@@ -860,9 +859,9 @@ export default function BookAnnotationsLayer({
       });
       setComposerError("");
       setMenuOpen(false);
-      if (useAnnotationSheet) setSheetOpen(true);
+      if (useCenteredDialog) setAnnotationPanelOpen(true);
     },
-    [activeBlockId, canWrite, pageId, useAnnotationSheet],
+    [activeBlockId, canWrite, pageId, useCenteredDialog],
   );
 
   const closeComposer = useCallback(() => {
@@ -874,7 +873,7 @@ export default function BookAnnotationsLayer({
     }
     setComposer(null);
     setComposerError("");
-    if (!activeGroup) setSheetOpen(false);
+    if (!activeGroup) setAnnotationPanelOpen(false);
   }, [activeGroup, composer, pageId]);
 
   const saveComposer = useCallback(async () => {
@@ -914,7 +913,7 @@ export default function BookAnnotationsLayer({
       ];
       setComposer(null);
       await refresh();
-      if (!useAnnotationSheet) setSheetOpen(false);
+      if (!useCenteredDialog) setAnnotationPanelOpen(false);
     } catch (error) {
       setComposerError(
         error instanceof BookPublicationConflictError
@@ -931,7 +930,7 @@ export default function BookAnnotationsLayer({
     publicationCommit,
     refresh,
     t,
-    useAnnotationSheet,
+    useCenteredDialog,
   ]);
 
   const removeItem = useCallback(
@@ -1011,8 +1010,10 @@ export default function BookAnnotationsLayer({
   };
 
   const shouldRenderRail =
-    !useAnnotationSheet && (visibleGroups.length > 0 || Boolean(composer));
-  const sheetTitle = composer
+    !useCenteredDialog &&
+    viewportWidth >= 1440 &&
+    (visibleGroups.length > 0 || Boolean(composer));
+  const dialogTitle = composer
     ? annotationKindLabel(composer.kind, t)
     : activeGroup
       ? annotationKindLabel(preferredItem(activeGroup.items).kind, t)
@@ -1021,7 +1022,7 @@ export default function BookAnnotationsLayer({
   return (
     <div
       className="book-annotations-layer"
-      data-layout={useAnnotationSheet ? "sheet" : "rail"}
+      data-layout={useCenteredDialog ? "overlay" : "rail"}
       ref={layerRef}
       style={
         { "--book-annotation-rail-height": `${railHeight}px` } as CSSProperties
@@ -1122,7 +1123,7 @@ export default function BookAnnotationsLayer({
         </aside>
       ) : null}
 
-      {useAnnotationSheet
+      {!shouldRenderRail
         ? visibleGroups.map((group) => (
             <Button
               className="book-annotation-narrow-marker"
@@ -1146,16 +1147,18 @@ export default function BookAnnotationsLayer({
           ))
         : null}
 
-      {useAnnotationSheet && (composer || activeGroup) ? (
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent
-            title={sheetTitle}
-            side={viewportWidth < 900 ? "bottom" : "right"}
-            className="book-annotation-sheet"
+      {useCenteredDialog && (composer || activeGroup) ? (
+        <Dialog
+          open={annotationPanelOpen}
+          onOpenChange={setAnnotationPanelOpen}
+        >
+          <DialogContent
+            title={dialogTitle}
+            className="book-annotation-dialog"
           >
             {renderActiveContent()}
-          </SheetContent>
-        </Sheet>
+          </DialogContent>
+        </Dialog>
       ) : null}
     </div>
   );

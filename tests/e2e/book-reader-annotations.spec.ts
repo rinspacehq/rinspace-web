@@ -190,7 +190,7 @@ test("semantic paragraph exposes one Cross and four tested content actions", asy
   }
 });
 
-test("narrow reader keeps content full-width and opens annotations in a Sheet", async ({
+test("narrow reader keeps content full-width and opens annotations in a centered dialog", async ({
   page,
 }) => {
   test.skip((page.viewportSize()?.width || 0) >= 900, "mobile viewport only");
@@ -206,7 +206,8 @@ test("narrow reader keeps content full-width and opens annotations in a Sheet", 
   await expect(cross).toBeVisible();
   await cross.tap();
   await page.getByRole("menuitem", { name: "问题" }).tap();
-  await expect(page.getByRole("dialog", { name: "问题" })).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "问题" });
+  await expect(dialog).toBeVisible();
 
   const sizes = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -218,10 +219,18 @@ test("narrow reader keeps content full-width and opens annotations in a Sheet", 
       document.documentElement.clientWidth + 1,
   }));
   expect(sizes.overflow).toBe(false);
-  expect(sizes.article).toBeGreaterThan(sizes.viewport - 20);
+  expect(sizes.article).toBeGreaterThan(sizes.viewport - 64);
+  await expect
+    .poll(async () => {
+      const rect = await dialog.boundingBox();
+      return rect
+        ? rect.x + rect.width / 2 - sizes.viewport / 2
+        : Number.POSITIVE_INFINITY;
+    })
+    .toBeCloseTo(0, 0);
 });
 
-test("1440px reader uses the margin rail and matches the blog reading width", async ({
+test("1440px reader centers annotation dialogs and matches the blog reading width", async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -248,10 +257,15 @@ test("1440px reader uses the margin rail and matches the blog reading width", as
   await paragraph.hover();
   await page.locator(".book-annotation-cross-trigger").click();
   await page.getByRole("menuitem", { name: "评论" }).click();
-  await expect(
-    page.locator(".book-annotation-margin-rail .book-annotation-composer"),
-  ).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "评论" })).toHaveCount(0);
+  const dialog = page.getByRole("dialog", { name: "评论" });
+  await expect(dialog).toBeVisible();
+  await expect(page.locator(".book-annotation-margin-rail")).toHaveCount(0);
+  await expect
+    .poll(async () => {
+      const rect = await dialog.boundingBox();
+      return rect ? rect.x + rect.width / 2 - 720 : Number.POSITIVE_INFINITY;
+    })
+    .toBeCloseTo(0, 0);
 
   await page.goto("/a/101/blog-width", { waitUntil: "domcontentloaded" });
   const blogBody = page.locator(".blog-detail-article .rin-writer-html");

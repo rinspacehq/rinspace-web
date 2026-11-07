@@ -13877,7 +13877,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 capabilities={bookReaderPage.capabilities}
                 articleRef={bookAnnotationArticleRef}
                 hasSession={hasSession}
-                preferSheet={currentBookReaderOutline.length > 0}
+                preferCenteredDialog
               />
             ) : null}
 
