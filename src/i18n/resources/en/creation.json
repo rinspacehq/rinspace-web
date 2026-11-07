@@ -85,9 +85,13 @@
       "close": "Close creation dialog",
       "editor": "Editor",
       "online": "Online",
+      "publishingOptions": "Visibility and publication status",
       "visibility": "Visibility",
+      "publicationState": "Publication status",
       "public": "Public",
       "private": "Private",
+      "published": "Published",
+      "draft": "Draft",
       "titleRequired": "Enter a title.",
       "excerptRequired": "Enter a summary.",
       "pdfRequired": "Upload a PDF file first.",
@@ -102,7 +106,7 @@
         "pdfBook": "Uploading PDF book…"
       },
       "openingRepository": "Opening Git repository…",
-	  "activationPending": "The content was committed to Gitea and is waiting for exact-commit validation and activation. It stays unavailable or on the previous version until then.",
+      "activationPending": "The content was committed to Gitea and is waiting for exact-commit validation and activation. It stays unavailable or on the previous version until then.",
       "moderation": {
         "pending": "Content submitted for review.",
         "published": "Content published.",
@@ -376,9 +380,9 @@
       "uploadExternalPdf": "Upload external PDF",
       "submitBook": "Submit book"
     },
-	"status": {
-	  "activationPending": "The content was committed to Gitea and is waiting for exact-commit validation and activation. The new version is not public until activation succeeds."
-	},
+    "status": {
+      "activationPending": "The content was committed to Gitea and is waiting for exact-commit validation and activation. The new version is not public until activation succeeds."
+    },
     "check": {
       "title": "Publish check",
       "signedIn": "Signed in",
@@ -483,7 +487,7 @@
       "articleDraftSaved": "Draft saved. You can continue editing it in Creator Center.",
       "bookDraftSaved": "Book draft saved. You can continue editing it in Creator Center.",
       "published": "Published: {{title}}",
-	  "activationPending": "The change was committed to Gitea and is waiting for exact-commit validation and activation. The site still shows the previous version.",
+      "activationPending": "The change was committed to Gitea and is waiting for exact-commit validation and activation. The site still shows the previous version.",
       "chapterLinkFailed": "Published, but the chapter could not be linked automatically.",
       "coverUploading": "Uploading cover…",
       "coverUploaded": "Cover uploaded. It will take effect after saving or publishing.",
@@ -642,7 +646,7 @@
       "draftContentSaveFailedDraftKept": "Creator Center saving failed, but your source is saved to your account draft. Reopen this editor to continue. {{reason}}",
       "accountDraftFailedLocalKept": "Account draft saving failed, but a local copy remains. Keep this page open and retry.",
       "accountDraftFailed": "Draft saving failed. Copy your source as a backup and retry later.",
-	  "activationPending": "The change was committed to Gitea and is waiting for exact-commit validation and activation. The site still shows the previous version.",
+      "activationPending": "The change was committed to Gitea and is waiting for exact-commit validation and activation. The site still shows the previous version.",
       "published": "Published: {{title}}",
       "privatePublished": "Saved as a private publication: {{title}}"
     },

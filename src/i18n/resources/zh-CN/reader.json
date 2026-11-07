@@ -59,6 +59,7 @@
       "title": "目录",
       "blogLabel": "文章目录",
       "bookLabel": "书籍目录",
+      "pageLabel": "本页目录",
       "expand": "展开 {{title}}",
       "collapse": "折叠 {{title}}",
       "itemCount_one": "{{displayCount}} 项",

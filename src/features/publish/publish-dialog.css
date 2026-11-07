@@ -25,6 +25,25 @@
   margin-inline-start: auto;
 }
 
+.publish-dialog-publication-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.publish-dialog-publication-row > label {
+  min-inline-size: 0;
+}
+
+.publish-dialog-publication-select.rin-ui-control {
+  min-inline-size: 0;
+  min-block-size: 42px;
+  border-radius: 0;
+  font-family: var(--rin-font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
 @media (max-width: 420px) {
   .publish-create-dialog .publish-dialog-editor-choice {
     inline-size: 100%;

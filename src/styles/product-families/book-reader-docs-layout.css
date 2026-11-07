@@ -1,0 +1,237 @@
+.book-reader-shell {
+  --book-reader-rail: clamp(210px, 16vw, 250px);
+  --book-reading-column-max: 860px;
+  width: min(1450px, calc(100vw - 32px));
+  max-width: min(1450px, calc(100vw - 32px));
+}
+
+.book-reader-shell .book-reader-grid {
+  display: grid;
+  grid-template-columns:
+    var(--book-reader-rail) minmax(0, var(--book-reading-column-max))
+    var(--book-reader-rail);
+  gap: clamp(20px, 2vw, 32px);
+  align-items: start;
+  justify-content: center;
+}
+
+.book-reader-shell .book-reader-toc-side,
+.book-reader-shell .book-reader-outline-side {
+  position: sticky;
+  top: 84px;
+  width: 100%;
+  max-height: calc(100dvh - 104px);
+  align-self: start;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.book-reader-shell .book-reader-toc-side {
+  grid-column: 1;
+  justify-self: stretch;
+}
+
+.book-reader-shell .detail-main {
+  grid-column: 2;
+  width: 100%;
+  max-width: var(--book-reading-column-max);
+  justify-self: center;
+}
+
+.book-reader-shell .book-reader-outline-side {
+  grid-column: 3;
+}
+
+.book-reader-shell .book-reader-article {
+  padding: clamp(24px, 3.5vw, 44px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.book-reader-shell .book-reader-article .rin-writer-html {
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.book-reader-shell .book-reader-toc,
+.book-reader-shell .book-reader-page-outline {
+  color: var(--rin-ink-muted, #64748b);
+  font-family: "Rinspace Sans", "Noto Sans SC", sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.book-reader-shell .book-reader-toc-head {
+  display: grid;
+  gap: 5px;
+  padding: 0 8px 12px;
+  border-bottom: 1px solid var(--rin-border-subtle, rgba(36, 52, 71, 0.12));
+}
+
+.book-reader-shell .book-reader-toc-head > span,
+.book-reader-shell .book-reader-page-outline-title {
+  color: var(--rin-ink, #243447);
+  font-family: "Rinspace Code", "IBM Plex Mono", "Noto Sans SC", monospace;
+  font-size: 0.72rem;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+}
+
+.book-reader-shell .book-reader-toc-counts {
+  color: var(--rin-ink-muted, #64748b);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.book-reader-shell .book-reader-toc-list,
+.book-reader-shell .book-reader-toc-list ol,
+.book-reader-shell .book-reader-page-outline ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.book-reader-shell .book-reader-toc-list {
+  padding-top: 10px;
+}
+
+.book-reader-shell .book-reader-toc-list ol {
+  padding-left: 16px;
+}
+
+.book-reader-shell .book-reader-toc-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+}
+
+.book-reader-shell .book-reader-toc-collapse,
+.book-reader-shell .book-reader-toc-spacer {
+  display: grid;
+  width: 20px;
+  height: 30px;
+  place-items: center;
+  color: var(--rin-ink-muted, #64748b);
+}
+
+.book-reader-shell .book-reader-toc-link,
+.book-reader-shell .book-reader-page-outline button {
+  position: relative;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.book-reader-shell
+  .book-reader-toc-node.level-2
+  > .book-reader-toc-row
+  .book-reader-toc-link {
+  color: var(--rin-ink, #243447);
+  font-weight: 720;
+}
+
+.book-reader-shell .book-reader-toc-link:hover,
+.book-reader-shell .book-reader-toc-link:focus-visible,
+.book-reader-shell .book-reader-page-outline button:hover,
+.book-reader-shell .book-reader-page-outline button:focus-visible,
+.book-reader-shell
+  .book-reader-toc-node.current-page
+  > .book-reader-toc-row
+  .book-reader-toc-link,
+.book-reader-shell
+  .book-reader-toc-node.active
+  > .book-reader-toc-row
+  .book-reader-toc-link,
+.book-reader-shell .book-reader-page-outline-node.active > button {
+  color: var(--rin-accent, #2b577a);
+}
+
+.book-reader-shell .book-reader-toc-link:focus-visible,
+.book-reader-shell .book-reader-page-outline button:focus-visible {
+  outline: 2px solid
+    color-mix(in srgb, var(--rin-accent, #2b577a) 55%, transparent);
+  outline-offset: -2px;
+}
+
+.book-reader-shell
+  .book-reader-toc-node.current-page
+  > .book-reader-toc-row
+  .book-reader-toc-link::before {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 0;
+  width: 2px;
+  background: var(--rin-accent, #2b577a);
+  content: "";
+}
+
+.book-reader-shell .book-reader-page-outline {
+  padding-left: 16px;
+  border-left: 1px solid var(--rin-border-subtle, rgba(36, 52, 71, 0.12));
+}
+
+.book-reader-shell .book-reader-page-outline-title {
+  display: block;
+  margin-bottom: 9px;
+  padding: 0 8px;
+}
+
+.book-reader-shell .book-reader-page-outline ol ol {
+  padding-left: 12px;
+}
+
+.book-reader-shell .book-reader-page-outline-node.level-5 > button,
+.book-reader-shell .book-reader-page-outline-node.level-6 > button {
+  font-size: 0.72rem;
+}
+
+.book-reader-shell .book-annotations-layer[data-layout="sheet"] {
+  grid-column: 2;
+  grid-row: 1;
+  width: 0;
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.book-reader-shell .book-reader-no-toc {
+  grid-template-columns: minmax(0, var(--book-reading-column-max));
+}
+
+.book-reader-shell .book-reader-no-toc .detail-main {
+  grid-column: 1;
+}
+
+@media (max-width: 1180px) {
+  .book-reader-shell .book-reader-grid,
+  .book-reader-shell .book-reader-no-toc {
+    grid-template-columns: minmax(0, var(--book-reading-column-max));
+  }
+
+  .book-reader-shell .detail-main,
+  .book-reader-shell .book-reader-no-toc .detail-main,
+  .book-reader-shell .book-annotations-layer[data-layout="sheet"] {
+    grid-column: 1;
+  }
+
+  .book-reader-shell .book-reader-toc-side,
+  .book-reader-shell .book-reader-outline-side {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .book-reader-shell .book-reader-article {
+    padding: 18px clamp(13px, 4.4vw, 18px);
+  }
+}

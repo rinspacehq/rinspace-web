@@ -56,6 +56,7 @@ type BookAnnotationsLayerProps = {
   };
   articleRef: RefObject<HTMLDivElement | null>;
   hasSession: boolean;
+  preferSheet?: boolean;
 };
 
 type TriggerPosition = { left: number; top: number };
@@ -159,10 +160,7 @@ function annotationDate(value: string, locale: LocaleId) {
   });
 }
 
-function annotationKindLabel(
-  kind: BookAnnotationKind,
-  t: TFunction<"reader">,
-) {
+function annotationKindLabel(kind: BookAnnotationKind, t: TFunction<"reader">) {
   return t(`annotations.kinds.${kind}`);
 }
 
@@ -367,11 +365,15 @@ function AnnotationThread({
           {annotationKindLabel(active.kind, t)}
           {status ? ` · ${status}` : ""}
         </strong>
-        <span>{active.replyCount ? formatNumber(locale, active.replyCount) : ""}</span>
+        <span>
+          {active.replyCount ? formatNumber(locale, active.replyCount) : ""}
+        </span>
       </div>
       <div className="book-annotation-thread-byline">
         <span>
-          {active.own ? t("annotations.mine") : active.author || t("annotations.reader")}
+          {active.own
+            ? t("annotations.mine")
+            : active.author || t("annotations.reader")}
         </span>
         <time dateTime={active.createdAt}>
           {annotationDate(active.createdAt, locale)}
@@ -457,6 +459,7 @@ export default function BookAnnotationsLayer({
   capabilities,
   articleRef,
   hasSession,
+  preferSheet = false,
 }: BookAnnotationsLayerProps) {
   const { t } = useFeatureTranslation("reader");
   const locale = useResolvedLocale();
@@ -493,6 +496,7 @@ export default function BookAnnotationsLayer({
   const canInvokeActions =
     canWrite ||
     (operational && !hasSession && capabilities.annotationsWriteAvailable);
+  const useAnnotationSheet = preferSheet || viewportWidth < 1440;
 
   const refresh = useCallback(async () => {
     if (!capabilities.annotationsRead || !pageId || !publicationCommit) return;
@@ -778,13 +782,13 @@ export default function BookAnnotationsLayer({
         setActiveAnnotationId(item.id);
         const block = sourceBlock(articleRef.current, item.blockId);
         block?.scrollIntoView({ block: "center" });
-        if (viewportWidth < 1440) setSheetOpen(true);
+        if (useAnnotationSheet) setSheetOpen(true);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [articleRef, operational, pageId, viewportWidth]);
+  }, [articleRef, operational, pageId, useAnnotationSheet]);
 
   useEffect(() => {
     const group = activeGroup;
@@ -829,9 +833,9 @@ export default function BookAnnotationsLayer({
         block: "center",
         behavior: "smooth",
       });
-      if (viewportWidth < 1440) setSheetOpen(true);
+      if (useAnnotationSheet) setSheetOpen(true);
     },
-    [articleRef, viewportWidth],
+    [articleRef, useAnnotationSheet],
   );
 
   const openComposer = useCallback(
@@ -856,9 +860,9 @@ export default function BookAnnotationsLayer({
       });
       setComposerError("");
       setMenuOpen(false);
-      if (viewportWidth < 1440) setSheetOpen(true);
+      if (useAnnotationSheet) setSheetOpen(true);
     },
-    [activeBlockId, canWrite, pageId, viewportWidth],
+    [activeBlockId, canWrite, pageId, useAnnotationSheet],
   );
 
   const closeComposer = useCallback(() => {
@@ -876,9 +880,11 @@ export default function BookAnnotationsLayer({
   const saveComposer = useCallback(async () => {
     if (!composer) return;
     if (composer.kind !== "erratum" && !composer.body.trim()) {
-      setComposerError(t("annotations.validation.required", {
-        kind: annotationKindLabel(composer.kind, t),
-      }));
+      setComposerError(
+        t("annotations.validation.required", {
+          kind: annotationKindLabel(composer.kind, t),
+        }),
+      );
       return;
     }
     if (composer.kind === "erratum" && !composer.correctionText.trim()) {
@@ -908,7 +914,7 @@ export default function BookAnnotationsLayer({
       ];
       setComposer(null);
       await refresh();
-      if (viewportWidth >= 1440) setSheetOpen(false);
+      if (!useAnnotationSheet) setSheetOpen(false);
     } catch (error) {
       setComposerError(
         error instanceof BookPublicationConflictError
@@ -918,7 +924,15 @@ export default function BookAnnotationsLayer({
     } finally {
       setComposerBusy(false);
     }
-  }, [bookRef, composer, pageId, publicationCommit, refresh, t, viewportWidth]);
+  }, [
+    bookRef,
+    composer,
+    pageId,
+    publicationCommit,
+    refresh,
+    t,
+    useAnnotationSheet,
+  ]);
 
   const removeItem = useCallback(
     async (item: BookAnnotationItem) => {
@@ -997,7 +1011,7 @@ export default function BookAnnotationsLayer({
   };
 
   const shouldRenderRail =
-    viewportWidth >= 1440 && (visibleGroups.length > 0 || Boolean(composer));
+    !useAnnotationSheet && (visibleGroups.length > 0 || Boolean(composer));
   const sheetTitle = composer
     ? annotationKindLabel(composer.kind, t)
     : activeGroup
@@ -1007,6 +1021,7 @@ export default function BookAnnotationsLayer({
   return (
     <div
       className="book-annotations-layer"
+      data-layout={useAnnotationSheet ? "sheet" : "rail"}
       ref={layerRef}
       style={
         { "--book-annotation-rail-height": `${railHeight}px` } as CSSProperties
@@ -1027,7 +1042,10 @@ export default function BookAnnotationsLayer({
               variant="ghost"
               style={{ left: triggerPosition.left, top: triggerPosition.top }}
               aria-label={t("annotations.openBlockActions", {
-                displayIndex: formatNumber(locale, (blockOrder.get(activeBlockId) ?? 0) + 1),
+                displayIndex: formatNumber(
+                  locale,
+                  (blockOrder.get(activeBlockId) ?? 0) + 1,
+                ),
               })}
               onPointerEnter={() => {
                 if (hideTimerRef.current !== null)
@@ -1071,7 +1089,10 @@ export default function BookAnnotationsLayer({
       ) : null}
 
       {shouldRenderRail ? (
-        <aside className="book-annotation-margin-rail" aria-label={t("annotations.bodyAnnotations")}>
+        <aside
+          className="book-annotation-margin-rail"
+          aria-label={t("annotations.bodyAnnotations")}
+        >
           {visibleGroups.map((group) => (
             <div
               className={`book-annotation-margin-group${activeBlockId === group.blockId ? " is-active" : ""}`}
@@ -1101,7 +1122,7 @@ export default function BookAnnotationsLayer({
         </aside>
       ) : null}
 
-      {viewportWidth < 1440
+      {useAnnotationSheet
         ? visibleGroups.map((group) => (
             <Button
               className="book-annotation-narrow-marker"
@@ -1109,7 +1130,10 @@ export default function BookAnnotationsLayer({
               variant="ghost"
               style={{ top: positions[group.blockId]?.viewportTop || 72 }}
               aria-label={t("annotations.openBlockAnnotations", {
-                displayIndex: formatNumber(locale, (blockOrder.get(group.blockId) ?? 0) + 1),
+                displayIndex: formatNumber(
+                  locale,
+                  (blockOrder.get(group.blockId) ?? 0) + 1,
+                ),
               })}
               onClick={() => openGroup(group)}
               key={group.blockId}
@@ -1122,7 +1146,7 @@ export default function BookAnnotationsLayer({
           ))
         : null}
 
-      {viewportWidth < 1440 && (composer || activeGroup) ? (
+      {useAnnotationSheet && (composer || activeGroup) ? (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent
             title={sheetTitle}

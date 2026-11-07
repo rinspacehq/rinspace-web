@@ -1,5 +1,5 @@
 // RINSPACE_SHARED_SOURCE: edit only in rinspace/ui, then run the one-way sync.
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEventHandler, ReactNode, Ref, SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "motion/react";
@@ -27,6 +27,99 @@ export interface RinspaceTopbarFrameProps {
   children: ReactNode;
   onFlipNavigate?: MouseEventHandler<HTMLAnchorElement>;
   onHomeNavigate?: MouseEventHandler<HTMLAnchorElement>;
+}
+
+export type RinspaceTopbarLayout = "full" | "compact" | "minimal";
+
+export interface RinspaceTopbarMeasurements {
+  availableWidth: number;
+  brandWidth: number;
+  searchWidth: number;
+  fullNavigationWidth: number;
+  compactNavigationWidth: number;
+  columnGap: number;
+}
+
+const topbarLayoutRestoreBuffer = 16;
+
+export function resolveRinspaceTopbarLayout(
+  measurements: RinspaceTopbarMeasurements,
+  current: RinspaceTopbarLayout = "full",
+): RinspaceTopbarLayout {
+  const {
+    availableWidth,
+    brandWidth,
+    searchWidth,
+    fullNavigationWidth,
+    compactNavigationWidth,
+    columnGap,
+  } = measurements;
+  const fullSideWidth = Math.max(brandWidth, fullNavigationWidth);
+  const compactSideWidth = Math.max(brandWidth, compactNavigationWidth);
+  const fullRequired =
+    fullSideWidth * 2 + searchWidth + columnGap * 2;
+  const compactRequired =
+    compactSideWidth * 2 + searchWidth + columnGap * 2;
+  const fullRestoreRequired =
+    fullRequired + (current === "full" ? 0 : topbarLayoutRestoreBuffer);
+  const compactRestoreRequired =
+    compactRequired + (current === "minimal" ? topbarLayoutRestoreBuffer : 0);
+
+  if (availableWidth >= fullRestoreRequired) return "full";
+  if (availableWidth >= compactRestoreRequired) return "compact";
+  return "minimal";
+}
+
+export function isMinimalRinspaceTopbar(element: Element | null) {
+  return (
+    element?.closest<HTMLElement>(".rin-topbar-shell")?.dataset.topbarLayout ===
+    "minimal"
+  );
+}
+
+function measuredInlineSize(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return 0;
+  return Math.max(element.getBoundingClientRect().width, element.scrollWidth);
+}
+
+function numericStyleValue(value: string, fallback = 0) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function navigationInlineSize(
+  navigation: HTMLElement,
+  actionClass: "topbar-desktop-actions" | "topbar-compact-actions",
+) {
+  const children = Array.from(navigation.children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement,
+  );
+  const actions = children.find((child) =>
+    child.classList.contains(actionClass),
+  );
+  const otherControls = children.filter(
+    (child) =>
+      !child.classList.contains("topbar-desktop-actions") &&
+      !child.classList.contains("topbar-compact-actions"),
+  );
+  const navigationStyle = getComputedStyle(navigation);
+  const compactControlSize = numericStyleValue(
+    navigationStyle.getPropertyValue("--rin-topbar-compact-control-size"),
+    34,
+  );
+  const widths = [
+    measuredInlineSize(actions ?? null),
+    ...otherControls.map((control) =>
+      actionClass === "topbar-compact-actions"
+        ? compactControlSize
+        : measuredInlineSize(control),
+    ),
+  ].filter((width) => width > 0);
+  const gap = numericStyleValue(navigationStyle.columnGap);
+  return (
+    widths.reduce((total, width) => total + width, 0) +
+    Math.max(0, widths.length - 1) * gap
+  );
 }
 
 export interface RinspaceTopbarControlsProps {
@@ -99,11 +192,109 @@ export function RinspaceTopbarFrame({
   onHomeNavigate,
 }: RinspaceTopbarFrameProps) {
   const reducedMotion = useReducedMotion();
+  const frameRef = useRef<HTMLElement>(null);
+  const fullNavigationWidthRef = useRef(0);
+  const compactNavigationWidthRef = useRef(0);
+  const [layout, setLayout] = useState<RinspaceTopbarLayout>("full");
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+    let animationFrame = 0;
+
+    const measure = () => {
+      animationFrame = 0;
+      const brand = frame.querySelector<HTMLElement>(".brand");
+      const search = frame.querySelector<HTMLElement>(".topbar-search");
+      const navigation = frame.querySelector<HTMLElement>(".account-nav");
+      if (!brand || !search || !navigation) return;
+      const style = getComputedStyle(frame);
+      const availableWidth =
+        frame.clientWidth -
+        numericStyleValue(style.paddingInlineStart) -
+        numericStyleValue(style.paddingInlineEnd);
+      const searchWidth = numericStyleValue(
+        style.getPropertyValue("--rin-topbar-search-min"),
+        240,
+      );
+      const observedFullNavigationWidth = navigationInlineSize(
+        navigation,
+        "topbar-desktop-actions",
+      );
+      const observedCompactNavigationWidth = navigationInlineSize(
+        navigation,
+        "topbar-compact-actions",
+      );
+      fullNavigationWidthRef.current = Math.max(
+        fullNavigationWidthRef.current,
+        observedFullNavigationWidth,
+      );
+      compactNavigationWidthRef.current = Math.max(
+        compactNavigationWidthRef.current,
+        observedCompactNavigationWidth,
+      );
+      const measurements: RinspaceTopbarMeasurements = {
+        availableWidth,
+        brandWidth: measuredInlineSize(brand),
+        searchWidth,
+        fullNavigationWidth: fullNavigationWidthRef.current,
+        compactNavigationWidth: compactNavigationWidthRef.current,
+        columnGap: numericStyleValue(style.columnGap, 16),
+      };
+      setLayout((current) => {
+        const next = resolveRinspaceTopbarLayout(measurements, current);
+        const navigationWidth =
+          next === "full"
+            ? measurements.fullNavigationWidth
+            : measurements.compactNavigationWidth;
+        const sideWidth = Math.max(measurements.brandWidth, navigationWidth);
+        const sideValue = `${Math.ceil(sideWidth)}px`;
+        if (
+          frame.style.getPropertyValue("--rin-topbar-side-min") !== sideValue
+        ) {
+          frame.style.setProperty("--rin-topbar-side-min", sideValue);
+        }
+        return next;
+      });
+    };
+    const scheduleMeasure = () => {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(measure);
+    };
+
+    measure();
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(scheduleMeasure);
+    resizeObserver?.observe(frame);
+    frame
+      .querySelectorAll<HTMLElement>(".brand, .account-nav")
+      .forEach((element) => {
+        resizeObserver?.observe(element);
+      });
+    const mutationObserver = new MutationObserver(scheduleMeasure);
+    mutationObserver.observe(frame, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+    void document.fonts?.ready.then(scheduleMeasure);
+    window.addEventListener("resize", scheduleMeasure);
+    return () => {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      mutationObserver.disconnect();
+      window.removeEventListener("resize", scheduleMeasure);
+    };
+  }, [brandName, sessionState]);
 
   return (
     <header
+      ref={frameRef}
       className="topbar rin-topbar-shell"
       data-session-state={sessionState}
+      data-topbar-layout={layout}
     >
       <span className="brand">
         <motion.a

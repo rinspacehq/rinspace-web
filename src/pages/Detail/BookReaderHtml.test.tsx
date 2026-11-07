@@ -6,10 +6,13 @@ import { createHash, webcrypto } from "node:crypto";
 import { ensureLocaleNamespaces, i18n } from "@/i18n";
 
 import {
+  BookReaderPageOutline,
   BookReaderTableOfContents,
   RinWriterArticle,
   bookPdfPageCount,
+  bookReaderPageOutlineItems,
   bookReaderPageCounts,
+  bookReaderStructureItems,
   rinWriterTocItems,
 } from "./index";
 
@@ -19,18 +22,41 @@ const readerTocItems = [
   { id: "section-2", text: "第二节", level: 3 as const },
 ];
 
+const docsTocItems = [
+  { id: "chapter-1", text: "第一章", level: 2 as const },
+  { id: "section-1", text: "第一节", level: 3 as const },
+  { id: "subsection-1", text: "第一小节", level: 4 as const },
+  { id: "detail-1", text: "细节", level: 5 as const },
+  { id: "section-2", text: "第二节", level: 3 as const },
+  { id: "subsection-2", text: "第二小节", level: 4 as const },
+];
+
 test("only the article opt-in embeds a server-final PDF; book reading keeps its link", async () => {
   const bytes = Buffer.from("%PDF-1.7 reader integration fixture");
   const sha = createHash("sha256").update(bytes).digest("hex");
   const fragment = `<div class="rin-author-pdf" data-rin-pdf="${bytes.toString("base64")}" data-rin-pdf-sha256="${sha}" data-rin-pdf-pages="1" data-rin-pdf-commit="${"a".repeat(40)}" data-rin-pdf-path="main.pdf"></div>`;
   vi.stubGlobal("crypto", webcrypto);
-  vi.stubGlobal("URL", { createObjectURL: () => "blob:reader-fixture", revokeObjectURL: vi.fn() });
-  const view = render(<RinWriterArticle html={fragment} title="Article" serverFinal inlineAuthorPDF />);
+  vi.stubGlobal("URL", {
+    createObjectURL: () => "blob:reader-fixture",
+    revokeObjectURL: vi.fn(),
+  });
+  const view = render(
+    <RinWriterArticle
+      html={fragment}
+      title="Article"
+      serverFinal
+      inlineAuthorPDF
+    />,
+  );
   try {
     expect(await view.findByTitle("Article — PDF")).toBeTruthy();
     expect(view.queryByRole("link")).toBeNull();
-    view.rerender(<RinWriterArticle html={fragment} title="Book" serverFinal />);
-    expect((await view.findByRole("link")).getAttribute("href")).toBe("blob:reader-fixture");
+    view.rerender(
+      <RinWriterArticle html={fragment} title="Book" serverFinal />,
+    );
+    expect((await view.findByRole("link")).getAttribute("href")).toBe(
+      "blob:reader-fixture",
+    );
     expect(view.container.querySelector("iframe")).toBeNull();
   } finally {
     view.unmount();
@@ -130,14 +156,73 @@ test("uses canonical pageCount instead of guessing from outline headings", async
   );
   expect(view.getByText("4 网页页")).toBeTruthy();
   expect(bookReaderPageCounts(readerTocItems, undefined, 4).webPages).toBe(4);
-  expect(bookReaderPageCounts(readerTocItems, undefined, Number.NaN).webPages).toBe(2);
+  expect(
+    bookReaderPageCounts(readerTocItems, undefined, Number.NaN).webPages,
+  ).toBe(2);
+});
+
+test("separates book structure from the current-page outline", async () => {
+  await ensureLocaleNamespaces("zh-CN", ["reader"]);
+  expect(bookReaderStructureItems(docsTocItems).map((item) => item.id)).toEqual(
+    ["chapter-1", "section-1", "section-2"],
+  );
+  expect(
+    bookReaderPageOutlineItems(docsTocItems, "section-1").map(
+      (item) => item.id,
+    ),
+  ).toEqual(["subsection-1", "detail-1"]);
+
+  const view = render(
+    <MemoryRouter>
+      <BookReaderTableOfContents
+        items={docsTocItems}
+        activeId="section-1"
+        pageId="section-1"
+        onSelect={() => undefined}
+      />
+      <BookReaderPageOutline
+        items={docsTocItems}
+        pageId="section-1"
+        activeId="detail-1"
+        onSelect={() => undefined}
+      />
+    </MemoryRouter>,
+  );
+
+  const structure = view.getByRole("navigation", { name: "书籍目录" });
+  expect(structure.textContent).toContain("第一章");
+  expect(structure.textContent).toContain("第一节");
+  expect(structure.textContent).not.toContain("第一小节");
+
+  const outline = view.getByRole("navigation", { name: "本页目录" });
+  expect(outline.textContent).toContain("第一小节");
+  expect(outline.textContent).toContain("细节");
+  expect(outline.textContent).not.toContain("第二节");
+  expect(
+    view.getByRole("button", { name: "细节" }).getAttribute("aria-current"),
+  ).toBe("location");
 });
 
 test("builds navigation only from renderer-owned heading anchors", () => {
-  expect(rinWriterTocItems(
-    '<h2 id="native.section">Section 4</h2><h3>Unanchored authored heading</h3>',
-    "Book",
-  )).toEqual([{ id: "native.section", text: "Section 4", level: 2 }]);
+  expect(
+    rinWriterTocItems(
+      '<h2 id="native.section">Section 4</h2><h3>Unanchored authored heading</h3>',
+      "Book",
+    ),
+  ).toEqual([{ id: "native.section", text: "Section 4", level: 2 }]);
+});
+
+test("keeps deep subsection anchors for the page outline", () => {
+  expect(
+    rinWriterTocItems(
+      '<h4 id="subsection">Subsection</h4><h5 id="detail">Detail</h5><h6 id="note">Note</h6>',
+      "Book",
+    ),
+  ).toEqual([
+    { id: "subsection", text: "Subsection", level: 4 },
+    { id: "detail", text: "Detail", level: 5 },
+    { id: "note", text: "Note", level: 6 },
+  ]);
 });
 
 test("forwards the declared owner page of a cross-page reader reference", () => {
@@ -171,7 +256,9 @@ test("forwards the declared owner page of a cross-page reader reference", () => 
   try {
     fireEvent.click(view.getByText("same page"));
     expect(onReaderReference).toHaveBeenNthCalledWith(2, "intro", undefined);
-    act(() => { vi.runAllTimers(); });
+    act(() => {
+      vi.runAllTimers();
+    });
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
   } finally {
     vi.useRealTimers();

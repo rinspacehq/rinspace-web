@@ -48,6 +48,7 @@ import {
   RinspaceTopbarActionBar,
   RinspaceTopbarAnonymousActionBar,
   RinspaceTopbarControls,
+  isMinimalRinspaceTopbar,
 } from "@/components/shared/RinspaceTopbarFrame";
 import TagCreationFlow from "@/features/tags/TagCreationFlow";
 import {
@@ -556,8 +557,8 @@ export default function SiteTopbar({
   const handleTopbarSearchButtonClick = (
     event: MouseEvent<HTMLButtonElement>,
   ) => {
-    const isMobileTopbar = window.matchMedia("(max-width: 620px)").matches;
-    if (!isMobileTopbar || mobileSearchOpen) return;
+    if (!isMinimalRinspaceTopbar(searchFormRef.current) || mobileSearchOpen)
+      return;
     event.preventDefault();
     setMobileSearchOpen(true);
     setPublishMenuOpen(false);
@@ -734,7 +735,9 @@ export default function SiteTopbar({
           </MenuItem>
           {typstCreationEnabled ? (
             <MenuItem onSelect={() => openPublishDialog("typst-blog")}>
-              <span className="typst-menu-mark" aria-hidden="true">T</span>
+              <span className="typst-menu-mark" aria-hidden="true">
+                T
+              </span>
               <span>Typst</span>
             </MenuItem>
           ) : null}
@@ -767,7 +770,9 @@ export default function SiteTopbar({
           </MenuItem>
           {typstCreationEnabled ? (
             <MenuItem onSelect={() => openPublishDialog("typst-book")}>
-              <span className="typst-menu-mark" aria-hidden="true">T</span>
+              <span className="typst-menu-mark" aria-hidden="true">
+                T
+              </span>
               <span>Typst</span>
             </MenuItem>
           ) : null}
@@ -1128,37 +1133,44 @@ export default function SiteTopbar({
         avatarUrl={avatarDataUrl || undefined}
         onClose={() => setTweetComposerOpen(false)}
       />
-      {publicEnv.localRealClient ? <LocalAuthorizationDialog open={authDialogOpen} onClose={closeAuthDialog} /> : <RinspacePhoneAuthDialog
-        open={authDialogOpen}
-        busy={authBusy}
-        phone={authPhone}
-        code={authCode}
-        challenge={Boolean(authChallenge)}
-        error={authError}
-        status={authStatus}
-        labels={{
-          title: tAuth("title"),
-          close: tAuth("close"),
-          phone: tAuth("phone"),
-          phonePlaceholder: tAuth("phonePlaceholder"),
-          code: tAuth("code"),
-          codePlaceholder: tAuth("codePlaceholder"),
-          changePhone: tAuth("changePhone"),
-          processing: tAuth("processing"),
-          complete: tAuth("complete"),
-          sendCode: tAuth("sendCode"),
-        }}
-        onClose={closeAuthDialog}
-        onPhoneChange={setAuthPhone}
-        onCodeChange={setAuthCode}
-        onChangePhone={() => {
-          setAuthChallenge(null);
-          setAuthCode("");
-          setAuthStatus("");
-          setAuthError("");
-        }}
-        onSubmit={authChallenge ? submitPhoneLogin : submitPhoneOtp}
-      />}
+      {publicEnv.localRealClient ? (
+        <LocalAuthorizationDialog
+          open={authDialogOpen}
+          onClose={closeAuthDialog}
+        />
+      ) : (
+        <RinspacePhoneAuthDialog
+          open={authDialogOpen}
+          busy={authBusy}
+          phone={authPhone}
+          code={authCode}
+          challenge={Boolean(authChallenge)}
+          error={authError}
+          status={authStatus}
+          labels={{
+            title: tAuth("title"),
+            close: tAuth("close"),
+            phone: tAuth("phone"),
+            phonePlaceholder: tAuth("phonePlaceholder"),
+            code: tAuth("code"),
+            codePlaceholder: tAuth("codePlaceholder"),
+            changePhone: tAuth("changePhone"),
+            processing: tAuth("processing"),
+            complete: tAuth("complete"),
+            sendCode: tAuth("sendCode"),
+          }}
+          onClose={closeAuthDialog}
+          onPhoneChange={setAuthPhone}
+          onCodeChange={setAuthCode}
+          onChangePhone={() => {
+            setAuthChallenge(null);
+            setAuthCode("");
+            setAuthStatus("");
+            setAuthError("");
+          }}
+          onSubmit={authChallenge ? submitPhoneLogin : submitPhoneOtp}
+        />
+      )}
     </>
   );
 }
