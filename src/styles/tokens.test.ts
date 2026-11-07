@@ -210,7 +210,7 @@ describe("foundation ownership boundaries", () => {
     );
   });
 
-  it("keeps the full topbar brand while compacting actions at phone and tablet widths", () => {
+  it("keeps the full topbar brand while compacting actions after a measured collision", () => {
     const tokens = fs.readFileSync(
       path.resolve("src/styles/tokens.css"),
       "utf8",
@@ -220,14 +220,15 @@ describe("foundation ownership boundaries", () => {
       "utf8",
     );
     expect(tokens).toContain("--rin-topbar-compact-control-size: 34px");
+    expect(topbar).not.toMatch(/@media \(max-width:\s*900px\)/);
     expect(topbar).toMatch(
-      /@media \(max-width:\s*900px\)\s*\{[\s\S]*?grid-template-columns:\s*max-content minmax\(140px,\s*1fr\) auto;/,
+      /> \.topbar:is\(\[data-topbar-layout="compact"\], \[data-topbar-layout="minimal"\]\)[\s\S]*?\.brand\s*\{[^}]*min-inline-size:\s*max-content;[^}]*max-inline-size:\s*none;/s,
     );
     expect(topbar).toMatch(
-      /\.rin-app-shell > \.topbar\.rin-topbar-shell \.brand\s*\{[^}]*min-inline-size:\s*max-content;[^}]*max-inline-size:\s*none;/s,
+      /> \.topbar:is\(\[data-topbar-layout="compact"\], \[data-topbar-layout="minimal"\]\)[\s\S]*?\.topbar-desktop-actions\s*\{[^}]*visibility:\s*hidden;[^}]*pointer-events:\s*none;[\s\S]*?\.topbar-compact-actions\s*\{[^}]*visibility:\s*visible;[^}]*pointer-events:\s*auto;/s,
     );
     expect(topbar).toMatch(
-      /@media \(max-width:\s*900px\)\s*\{[\s\S]*?\.topbar-desktop-actions\s*\{[^}]*display:\s*none;[\s\S]*?\.topbar-compact-actions\s*\{[^}]*display:\s*inline-flex;/,
+      /> \.topbar\[data-topbar-layout="minimal"\]\s*\{[^}]*grid-template-columns:\s*max-content 36px auto;/s,
     );
     expect(topbar).not.toMatch(
       /data-session-state="(?:authenticated|restoring)"[^\n]*\.brand-word/,
@@ -237,7 +238,7 @@ describe("foundation ownership boundaries", () => {
     );
     expect(topbar).not.toContain("translateY(2px)");
     expect(topbar).toMatch(
-      /\.account-menu-trigger \.avatar-name-mark\s*\{[^}]*inline-size:\s*100%;[^}]*block-size:\s*100%;[^}]*flex-basis:\s*100%;/s,
+      /\.account-menu-trigger\s+\.avatar-name-mark\s*\{[^}]*inline-size:\s*100%;[^}]*block-size:\s*100%;[^}]*flex-basis:\s*100%;/s,
     );
   });
 
@@ -293,20 +294,22 @@ describe("foundation ownership boundaries", () => {
       path.resolve("src/styles/rinspace-topbar-mobile-search.css"),
       "utf8",
     );
+    expect(mobileSearch).toContain("measurement-driven in RinspaceTopbarFrame");
+    expect(mobileSearch).not.toMatch(/@media \(width <= (?:620|900)px\)/);
     expect(mobileSearch).toMatch(
-      /@media \(width <= 900px\)\s*\{[\s\S]*?\.account-menu-trigger\s*\{[^}]*inline-size:\s*var\(--rin-topbar-compact-control-size\);[^}]*max-inline-size:\s*var\(--rin-topbar-compact-control-size\);[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*background:\s*transparent;/s,
+      /\.topbar\.rin-topbar-shell:is\([\s\S]*?\[data-topbar-layout="compact"\],[\s\S]*?\[data-topbar-layout="minimal"\][\s\S]*?\)[\s\S]*?\.account-menu-trigger\s*\{[^}]*inline-size:\s*var\(--rin-topbar-compact-control-size\);[^}]*max-inline-size:\s*var\(--rin-topbar-compact-control-size\);[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*background:\s*transparent;/s,
     );
     expect(mobileSearch).toMatch(
-      /\.account-menu-trigger\s+\.avatar-name-mark\s*\{[^}]*inline-size:\s*100%;[^}]*block-size:\s*100%;[^}]*flex-basis:\s*100%;[^}]*box-sizing:\s*border-box;/s,
+      /\.account-menu-trigger[\s\S]*?\.avatar-name-mark\s*\{[^}]*box-sizing:\s*border-box;[^}]*inline-size:\s*100%;[^}]*block-size:\s*100%;[^}]*flex-basis:\s*100%;/s,
     );
     expect(mobileSearch).toMatch(
-      /\.topbar\.rin-topbar-shell\s*\{[^}]*grid-template-columns:\s*max-content minmax\(36px,\s*1fr\) auto;/s,
+      /\.topbar\.rin-topbar-shell\[data-topbar-layout="minimal"\]\s*\{[^}]*grid-template-columns:\s*max-content minmax\(36px,\s*1fr\) auto;/s,
     );
     expect(mobileSearch).toMatch(
       /:is\(\.rinspace-topbar-search,\s*\.topbar-search\)\s*>\s*button\s*\{[^}]*inline-size:\s*var\(--rin-topbar-compact-control-size\);[^}]*block-size:\s*var\(--rin-topbar-compact-control-size\);[^}]*flex:\s*0 0 var\(--rin-topbar-compact-control-size\);[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*border-radius:\s*999px;/s,
     );
     expect(mobileSearch).toMatch(
-      /@media \(width <= 620px\)\s*\{[\s\S]*?\.mobile-search-open\[role="search"\]\s*\{[^}]*position:\s*absolute;[^}]*grid-column:\s*auto;[^}]*grid-row:\s*auto;[^}]*inset-block-start:\s*calc\(100% \+ 8px\);[^}]*inset-inline-start:\s*max\(10px,\s*env\(safe-area-inset-left\)\);[^}]*inset-inline-end:\s*max\(10px,\s*env\(safe-area-inset-right\)\);[^}]*inline-size:\s*auto;[^}]*justify-self:\s*stretch;/s,
+      /\.topbar\.rin-topbar-shell\[data-topbar-layout="minimal"\][\s\S]*?\.mobile-search-open\[role="search"\]\s*\{[^}]*position:\s*absolute;[^}]*grid-column:\s*auto;[^}]*grid-row:\s*auto;[^}]*inset-block-start:\s*calc\(100% \+ 8px\);[^}]*inset-inline-start:\s*max\(10px,\s*env\(safe-area-inset-left\)\);[^}]*inset-inline-end:\s*max\(10px,\s*env\(safe-area-inset-right\)\);[^}]*inline-size:\s*auto;[^}]*justify-self:\s*stretch;/s,
     );
     expect(mobileSearch).not.toContain("position: fixed");
     expect(mobileSearch).not.toContain("100vw");
