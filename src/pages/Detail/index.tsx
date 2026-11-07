@@ -3027,7 +3027,18 @@ function bookReaderStructureItems(items: BlogTocItem[]) {
 
 function bookReaderPageOutlineItems(items: BlogTocItem[], pageId: string) {
   const contentItems = bookReaderContentItems(items);
-  const pageIndex = contentItems.findIndex((item) => item.id === pageId);
+  // The server appends a synthetic level-2 `page-*` navigation entry for
+  // paginated documents. `bookReaderContentItems` correctly hides that
+  // duplicate from the structural TOC, so resolve it back to the authored
+  // section before looking for the page's subsection outline.
+  const authoredPageId =
+    pageId.startsWith("page-") &&
+    contentItems.some((item) => item.id === pageId.slice(5))
+      ? pageId.slice(5)
+      : pageId;
+  const pageIndex = contentItems.findIndex(
+    (item) => item.id === authoredPageId,
+  );
   if (pageIndex < 0) return [];
   const pageLevel = contentItems[pageIndex].level;
   const outline: BlogTocItem[] = [];
