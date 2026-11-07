@@ -1,58 +1,3 @@
-.book-reader-shell {
-  width: min(1760px, calc(100vw - 32px));
-  max-width: min(1760px, calc(100vw - 32px));
-  padding-top: 18px;
-  overflow-x: clip;
-  --book-reading-column-max: 1040px;
-  --book-reading-toc: 200px;
-  --book-reader-side-column: 240px;
-}
-
-.book-reader-shell .book-reader-grid,
-.book-reader-shell .book-reader-no-toc {
-  grid-template-columns:
-    var(--book-reader-side-column) minmax(760px, var(--book-reading-column-max))
-    var(--book-reader-side-column);
-  gap: clamp(16px, 1.4vw, 26px);
-  justify-content: center;
-  margin-top: 0;
-}
-
-.book-reader-shell .book-reader-toc-side {
-  width: var(--book-reading-toc);
-  justify-self: end;
-}
-
-.book-reader-shell .detail-main {
-  width: 100%;
-  max-width: var(--book-reading-column-max);
-  min-width: 0;
-  justify-self: center;
-}
-
-.book-reader-shell .book-reader-no-toc .detail-main {
-  grid-column: 2;
-}
-
-.book-reader-shell .book-reader-article {
-  width: 100%;
-  max-width: 100%;
-  padding: clamp(22px, 3.8vw, 42px);
-  border-color: rgba(15, 23, 42, 0.08);
-  background: var(--rin-surface, #fff);
-  box-shadow: 0 4px 6px rgba(10, 10, 10, 0.04);
-}
-
-.book-reader-shell .book-reader-article .detail-body,
-.book-reader-shell .book-reader-article .rin-writer-article,
-.book-reader-shell .book-reader-article .rin-writer-html {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  margin-right: 0;
-  margin-left: 0;
-}
-
 .book-reader-shell .book-reader-article .rin-writer-html {
   font-family:
     "Rinspace Newsreader", "Rinspace Noto Serif SC", Georgia, "Noto Serif SC",
@@ -356,25 +301,7 @@
 }
 
 @media (max-width: 1439px) {
-  .book-reader-shell {
-    width: min(1340px, calc(100vw - 24px));
-    max-width: min(1340px, calc(100vw - 24px));
-  }
-
-  .book-reader-shell .book-reader-grid,
-  .book-reader-shell .book-reader-no-toc {
-    grid-template-columns: minmax(184px, 208px) minmax(
-        0,
-        var(--book-reading-column-max)
-      );
-    gap: clamp(16px, 2vw, 26px);
-  }
-
-  .book-reader-shell .book-reader-no-toc .detail-main {
-    grid-column: 2;
-  }
-
-  .book-annotations-layer {
+  .book-annotations-layer:not([data-layout="overlay"]) {
     position: static;
     min-height: 0;
     padding: 0;
@@ -389,38 +316,9 @@
   }
 }
 
-@media (max-width: 1119px) {
-  .book-reader-shell .book-reader-grid,
-  .book-reader-shell .book-reader-no-toc {
-    grid-template-columns: minmax(0, var(--book-reading-column-max));
-  }
-
-  .book-reader-shell .book-reader-no-toc .detail-main,
-  .book-reader-shell .detail-main {
-    grid-column: 1;
-  }
-
-  .book-reader-toc-side {
-    display: none;
-  }
-}
-
 @media (max-width: 899px) {
   .book-annotation-narrow-marker {
     right: max(6px, env(safe-area-inset-right));
-  }
-}
-
-@media (max-width: 620px) {
-  .book-reader-shell {
-    width: 100%;
-    max-width: 100%;
-    padding-right: max(6px, env(safe-area-inset-right));
-    padding-left: max(6px, env(safe-area-inset-left));
-  }
-
-  .book-reader-shell .book-reader-article {
-    padding: 18px clamp(13px, 4.4vw, 18px);
   }
 }
 
