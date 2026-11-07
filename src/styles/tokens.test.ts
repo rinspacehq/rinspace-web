@@ -225,7 +225,7 @@ describe("foundation ownership boundaries", () => {
       /> \.topbar:is\(\[data-topbar-layout="compact"\], \[data-topbar-layout="minimal"\]\)[\s\S]*?\.brand\s*\{[^}]*min-inline-size:\s*max-content;[^}]*max-inline-size:\s*none;/s,
     );
     expect(topbar).toMatch(
-      /> \.topbar:is\(\[data-topbar-layout="compact"\], \[data-topbar-layout="minimal"\]\)[\s\S]*?\.topbar-desktop-actions\s*\{[^}]*visibility:\s*hidden;[^}]*pointer-events:\s*none;[\s\S]*?\.topbar-compact-actions\s*\{[^}]*visibility:\s*visible;[^}]*pointer-events:\s*auto;/s,
+      /> \.topbar:is\(\[data-topbar-layout="compact"\], \[data-topbar-layout="minimal"\]\)[\s\S]*?\.topbar-desktop-actions\s*\{[^}]*inline-size:\s*0;[^}]*max-inline-size:\s*0;[^}]*overflow:\s*hidden;[^}]*visibility:\s*hidden;[^}]*pointer-events:\s*none;[\s\S]*?\.topbar-compact-actions\s*\{[^}]*visibility:\s*visible;[^}]*pointer-events:\s*auto;/s,
     );
     expect(topbar).toMatch(
       /> \.topbar\[data-topbar-layout="minimal"\]\s*\{[^}]*grid-template-columns:\s*max-content 36px auto;/s,

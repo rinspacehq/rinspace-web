@@ -163,6 +163,9 @@ html:lang(en) .rin-app-shell > .topbar .brand-word {
   > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
   .topbar-desktop-actions {
   position: absolute;
+  inline-size: 0;
+  max-inline-size: 0;
+  overflow: hidden;
   visibility: hidden;
   pointer-events: none;
 }
