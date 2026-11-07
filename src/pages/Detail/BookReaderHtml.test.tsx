@@ -203,6 +203,22 @@ test("separates book structure from the current-page outline", async () => {
   ).toBe("location");
 });
 
+test("resolves the server synthetic page id to its authored subsection outline", () => {
+  const serverItems = [
+    ...docsTocItems,
+    {
+      id: "page-section-1",
+      text: "第一节",
+      level: 2 as const,
+    },
+  ];
+  expect(
+    bookReaderPageOutlineItems(serverItems, "page-section-1").map(
+      (item) => item.id,
+    ),
+  ).toEqual(["subsection-1", "detail-1"]);
+});
+
 test("builds navigation only from renderer-owned heading anchors", () => {
   expect(
     rinWriterTocItems(
