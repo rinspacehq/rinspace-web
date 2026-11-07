@@ -30,6 +30,32 @@ test('route families fit exact reference widths and 200% zoom equivalent', async
   }
 });
 
+test('authenticated compact topbar clips hidden full actions without horizontal overflow', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-light');
+  await page.unroute('**/api/identity/v1/session');
+  await page.unroute('**/auth/v1/**');
+  await page.route('**/api/identity/v1/session', (route) => route.fulfill({ json: identitySessionMock('reader-7', 'reader') }));
+  await page.route('**/auth/v1/user/me?*', (route) => route.fulfill({ json: { sub: 'reader-7', username: 'reader' } }));
+
+  let sawCompactLayout = false;
+  for (const width of [900, 720, 520]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const topbar = page.locator('header.rin-topbar-shell');
+    await expect(topbar).toHaveAttribute('data-session-state', 'authenticated');
+    await expect.poll(() => topbar.getAttribute('data-topbar-layout')).not.toBe('');
+    const layout = await topbar.getAttribute('data-topbar-layout');
+    if (layout === 'compact' || layout === 'minimal') {
+      sawCompactLayout = true;
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1),
+        `authenticated ${layout} topbar overflows at ${width}px`,
+      ).toBe(false);
+    }
+  }
+  expect(sawCompactLayout).toBe(true);
+});
+
 test('keyboard navigation reaches content, search and route announcement', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-light');
   await page.goto('/', { waitUntil: 'domcontentloaded' });
