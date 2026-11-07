@@ -78,6 +78,11 @@
     /* The legacy rich-content layer marks its tinted fill as important. */
     background: transparent !important;
   }
+
+  .book-reader-shell .book-reader-page-footer a,
+  .book-reader-shell .book-reader-page-footer > span {
+    background: transparent;
+  }
 }
 
 .book-reader-shell .book-reader-toc,

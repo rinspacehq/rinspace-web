@@ -186,6 +186,19 @@ describe("foundation ownership boundaries", () => {
     expect(semanticBlock).not.toContain("border-left");
   });
 
+  it("keeps book reader previous and next cards on the page canvas", () => {
+    const reader = fs.readFileSync(
+      path.resolve("src/styles/product-families/book-reader-docs-layout.css"),
+      "utf8",
+    );
+    const footerCards = reader.match(
+      /\.book-reader-shell \.book-reader-page-footer a,\s*\.book-reader-shell \.book-reader-page-footer > span\s*\{([^}]+)\}/s,
+    )?.[1];
+
+    expect(footerCards).toBeDefined();
+    expect(footerCards).toContain("background: transparent");
+  });
+
   it("lets the Markdown editor content grow without releasing the sticky toolbar", () => {
     const migratedPages = fs.readFileSync(
       path.resolve("src/styles/migrated-pages.css"),
