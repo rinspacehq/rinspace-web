@@ -13003,7 +13003,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                     : kind === "blog"
                       ? "detail-article panel blog-detail-article"
                       : isBookReadingPage
-                        ? "detail-article panel book-reader-article"
+                        ? "book-reader-article"
                         : isDynamicDetail
                           ? "detail-article panel dynamic-detail-article"
                           : isThreadLikeDetail

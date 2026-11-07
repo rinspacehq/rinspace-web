@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { identitySessionMock } from './identity-session-mock';
+import { identitySessionMock } from "./identity-session-mock";
 
 const commit = "a".repeat(40);
 const now = new Date().toISOString();
@@ -44,12 +44,17 @@ const blog = {
 
 const reader = {
   post: book,
-  toc: [{ id: "chapter-1", text: "第一章", level: 2 }],
+  toc: [
+    { id: "chapter-1", text: "第一章", level: 2 },
+    { id: "section-1", text: "第一节", level: 3 },
+    { id: "subsection-1", text: "第一小节", level: 4 },
+    { id: "detail-1", text: "实现细节", level: 5 },
+  ],
   page: {
-    id: "chapter-1",
-    text: "第一章",
-    level: 2,
-    html: `<h2 data-rin-block-id="${headingBlock}" data-rin-block-kind="heading">第一章</h2><p data-rin-block-id="${paragraphBlock}" data-rin-block-kind="paragraph">成熟段评系统把操作入口放在原文旁边。</p>`,
+    id: "section-1",
+    text: "第一节",
+    level: 3,
+    html: `<h3 id="section-1" data-rin-block-id="${headingBlock}" data-rin-block-kind="heading">第一节</h3><p data-rin-block-id="${paragraphBlock}" data-rin-block-kind="paragraph">成熟段评系统把操作入口放在原文旁边。</p><h4 id="subsection-1">第一小节</h4><p>小节正文。</p><h5 id="detail-1">实现细节</h5><p>细节正文。</p>`,
   },
   pageIndex: 0,
   pageCount: 1,
@@ -68,6 +73,7 @@ const reader = {
 async function installFixture(
   page: import("@playwright/test").Page,
   blockCount = 0,
+  withOutline = true,
 ) {
   const fixtureReader =
     blockCount > 0
@@ -81,9 +87,24 @@ async function installFixture(
             }).join(""),
           },
         }
-      : reader;
+      : withOutline
+        ? reader
+        : {
+            ...reader,
+            toc: [{ id: "chapter-1", text: "第一章", level: 2 }],
+            page: {
+              ...reader.page,
+              id: "chapter-1",
+              text: "第一章",
+              level: 2,
+              html: `<h2 id="chapter-1" data-rin-block-id="${headingBlock}" data-rin-block-kind="heading">第一章</h2><p data-rin-block-id="${paragraphBlock}" data-rin-block-kind="paragraph">没有小节的正文仍然保持居中。</p>`,
+            },
+          };
   await page.addInitScript(() => {
-    localStorage.setItem("rinspace-auth-hint", JSON.stringify({ sub: "reader-7" }));
+    localStorage.setItem(
+      "rinspace-auth-hint",
+      JSON.stringify({ sub: "reader-7" }),
+    );
   });
   await page.route("**/auth/v1/user/me", (route) =>
     route.fulfill({
@@ -111,7 +132,10 @@ async function installFixture(
       await route.fulfill({ json: { items: [] } });
       return;
     }
-    if (pathname === "/api/books/202/reader/pages/chapter-1/annotations") {
+    if (
+      pathname === "/api/books/202/reader/pages/section-1/annotations" ||
+      pathname === "/api/books/202/reader/pages/chapter-1/annotations"
+    ) {
       await route.fulfill({
         json: {
           anchorVersion: "rin-document-bundle/v2",
@@ -130,7 +154,7 @@ test("semantic paragraph exposes one Cross and four tested content actions", asy
   page,
 }) => {
   await installFixture(page);
-  await page.goto("/books/202/read/book-actions#chapter-1", {
+  await page.goto("/books/202/read/book-actions#section-1", {
     waitUntil: "domcontentloaded",
   });
 
@@ -195,7 +219,7 @@ test("narrow reader keeps content full-width and opens annotations in a centered
 }) => {
   test.skip((page.viewportSize()?.width || 0) >= 900, "mobile viewport only");
   await installFixture(page);
-  await page.goto("/books/202/read/book-actions#chapter-1", {
+  await page.goto("/books/202/read/book-actions#section-1", {
     waitUntil: "domcontentloaded",
   });
 
@@ -239,12 +263,55 @@ test("1440px reader centers annotation dialogs and matches the blog reading widt
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
   await installFixture(page);
-  await page.goto("/books/202/read/book-actions#chapter-1", {
+  await page.goto("/books/202/read/book-actions#section-1", {
     waitUntil: "domcontentloaded",
   });
 
   const paragraph = page.locator(`[data-rin-block-id="${paragraphBlock}"]`);
   await expect(paragraph).toBeVisible({ timeout: 20_000 });
+  const tableOfContents = page.getByRole("navigation", { name: "书籍目录" });
+  const pageOutline = page.getByRole("navigation", { name: "本页目录" });
+  await expect(tableOfContents).toBeVisible();
+  await expect(pageOutline).toBeVisible();
+  await expect(tableOfContents).toContainText("第一章");
+  await expect(tableOfContents).toContainText("第一节");
+  await expect(tableOfContents).not.toContainText("第一小节");
+  await expect(pageOutline).toContainText("第一小节");
+  await expect(pageOutline).toContainText("实现细节");
+
+  const layoutMetrics = await page.evaluate(() => {
+    const grid = document
+      .querySelector(".book-reader-grid")
+      ?.getBoundingClientRect();
+    const toc = document
+      .querySelector(".book-reader-toc-side")
+      ?.getBoundingClientRect();
+    const main = document
+      .querySelector(".detail-main")
+      ?.getBoundingClientRect();
+    const outline = document
+      .querySelector(".book-reader-outline-side")
+      ?.getBoundingClientRect();
+    const article = document.querySelector<HTMLElement>(".book-reader-article");
+    const articleStyle = article ? getComputedStyle(article) : null;
+    return {
+      gridTop: grid?.top ?? -1,
+      tocTop: toc?.top ?? -1,
+      mainTop: main?.top ?? -1,
+      outlineTop: outline?.top ?? -1,
+      articleMinHeight: articleStyle?.minHeight || "",
+      articleBackground: articleStyle?.backgroundColor || "",
+    };
+  });
+  expect(
+    Math.abs(layoutMetrics.mainTop - layoutMetrics.gridTop),
+  ).toBeLessThanOrEqual(2);
+  expect(
+    Math.abs(layoutMetrics.outlineTop - layoutMetrics.tocTop),
+  ).toBeLessThanOrEqual(2);
+  expect(layoutMetrics.articleMinHeight).toBe("0px");
+  expect(layoutMetrics.articleBackground).toBe("rgba(0, 0, 0, 0)");
+
   const bookMetrics = await page
     .locator(".book-reader-article .rin-writer-html")
     .evaluate((element) => {
@@ -287,6 +354,42 @@ test("1440px reader centers annotation dialogs and matches the blog reading widt
   ).toBeLessThanOrEqual(1);
 });
 
+test("page without subsections stays top-aligned and centered without a phantom outline", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "desktop-light",
+    "single desktop structure gate",
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await installFixture(page, 0, false);
+  await page.goto("/books/202/read/book-actions#chapter-1", {
+    waitUntil: "domcontentloaded",
+  });
+
+  const body = page.locator(".book-reader-article .rin-writer-html");
+  await expect(body).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".book-reader-outline-side")).toHaveCount(0);
+  const metrics = await page.evaluate(() => {
+    const grid = document
+      .querySelector(".book-reader-grid")
+      ?.getBoundingClientRect();
+    const main = document
+      .querySelector(".detail-main")
+      ?.getBoundingClientRect();
+    const content = document
+      .querySelector(".book-reader-article .rin-writer-html")
+      ?.getBoundingClientRect();
+    return {
+      topDelta: (main?.top ?? -1) - (grid?.top ?? -1),
+      centerDelta:
+        (content?.left ?? 0) + (content?.width ?? 0) / 2 - innerWidth / 2,
+    };
+  });
+  expect(Math.abs(metrics.topDelta)).toBeLessThanOrEqual(2);
+  expect(Math.abs(metrics.centerDelta)).toBeLessThanOrEqual(1);
+});
+
 test("1000-block page keeps one delegated Cross and scrolls without horizontal overflow", async ({
   page,
 }, testInfo) => {
@@ -296,7 +399,7 @@ test("1000-block page keeps one delegated Cross and scrolls without horizontal o
   );
   await installFixture(page, 1000);
   const startedAt = Date.now();
-  await page.goto("/books/202/read/book-actions#chapter-1", {
+  await page.goto("/books/202/read/book-actions#section-1", {
     waitUntil: "domcontentloaded",
   });
 
