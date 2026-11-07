@@ -85,9 +85,13 @@
       "close": "关闭创建窗口",
       "editor": "编辑器",
       "online": "在线",
-      "visibility": "发布目标",
+      "publishingOptions": "可见性与发布状态",
+      "visibility": "可见范围",
+      "publicationState": "发布状态",
       "public": "公开",
       "private": "私密",
+      "published": "发布",
+      "draft": "草稿",
       "titleRequired": "请填写标题。",
       "excerptRequired": "请填写简介。",
       "pdfRequired": "请先上传 PDF 文件。",
@@ -102,7 +106,7 @@
         "pdfBook": "正在上传 PDF 书籍…"
       },
       "openingRepository": "正在打开 Git 仓库…",
-	  "activationPending": "内容已写入 Gitea，正在校验并激活精确 commit。激活完成前主站继续保持上一版本或暂不公开。",
+      "activationPending": "内容已写入 Gitea，正在校验并激活精确 commit。激活完成前主站继续保持上一版本或暂不公开。",
       "moderation": {
         "pending": "内容已提交审核。",
         "published": "内容已发布。",
@@ -376,9 +380,9 @@
       "uploadExternalPdf": "上传站外 PDF",
       "submitBook": "提交书籍"
     },
-	"status": {
-	  "activationPending": "内容已写入 Gitea，正在校验并激活精确 commit。激活完成前主站不会公开新版本。"
-	},
+    "status": {
+      "activationPending": "内容已写入 Gitea，正在校验并激活精确 commit。激活完成前主站不会公开新版本。"
+    },
     "check": {
       "title": "发布检查",
       "signedIn": "已登录",
@@ -483,7 +487,7 @@
       "articleDraftSaved": "草稿已保存，可在创作中心继续编辑。",
       "bookDraftSaved": "书籍草稿已保存，可在创作中心继续编辑。",
       "published": "已发布：{{title}}",
-	  "activationPending": "修改已写入 Gitea，正在校验并激活精确 commit。主站当前仍显示上一版本。",
+      "activationPending": "修改已写入 Gitea，正在校验并激活精确 commit。主站当前仍显示上一版本。",
       "chapterLinkFailed": "已发布，但章节自动关联失败。",
       "coverUploading": "正在上传封面…",
       "coverUploaded": "封面已上传，保存或发布后生效。",
@@ -642,7 +646,7 @@
       "draftContentSaveFailedDraftKept": "创作中心保存失败，但原文已写入账号草稿，重新打开编辑器可继续编辑。{{reason}}",
       "accountDraftFailedLocalKept": "账号草稿保存失败，本机仍有副本；请保持此页打开并稍后重试。",
       "accountDraftFailed": "草稿保存失败，请先复制原文备份并稍后重试。",
-	  "activationPending": "修改已写入 Gitea，正在校验并激活精确 commit。主站当前仍显示上一版本。",
+      "activationPending": "修改已写入 Gitea，正在校验并激活精确 commit。主站当前仍显示上一版本。",
       "published": "已发布：{{title}}",
       "privatePublished": "已保存为私密发布：{{title}}"
     },

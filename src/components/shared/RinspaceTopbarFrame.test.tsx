@@ -5,7 +5,45 @@ import { describe, expect, it } from "vitest";
 
 import { AnimateButton } from "@/components/ui";
 
-import { RinspacePhoneAuthDialog } from "./RinspaceTopbarFrame";
+import {
+  RinspacePhoneAuthDialog,
+  resolveRinspaceTopbarLayout,
+} from "./RinspaceTopbarFrame";
+
+describe("Rinspace topbar collision layout", () => {
+  const measurements = {
+    availableWidth: 900,
+    brandWidth: 112,
+    searchWidth: 240,
+    fullNavigationWidth: 290,
+    compactNavigationWidth: 96,
+    columnGap: 16,
+  };
+
+  it("keeps every action visible while the measured row fits", () => {
+    expect(resolveRinspaceTopbarLayout(measurements)).toBe("full");
+  });
+
+  it("moves actions into more only when they would collide with search", () => {
+    expect(
+      resolveRinspaceTopbarLayout({ ...measurements, availableWidth: 700 }),
+    ).toBe("compact");
+  });
+
+  it("collapses search only when the compact navigation can no longer fit", () => {
+    expect(
+      resolveRinspaceTopbarLayout({ ...measurements, availableWidth: 460 }),
+    ).toBe("minimal");
+  });
+
+  it("uses a restore buffer so resize jitter cannot flap the actions", () => {
+    const nearFullBoundary = { ...measurements, availableWidth: 860 };
+    expect(resolveRinspaceTopbarLayout(nearFullBoundary, "full")).toBe("full");
+    expect(resolveRinspaceTopbarLayout(nearFullBoundary, "compact")).toBe(
+      "compact",
+    );
+  });
+});
 
 const labels = {
   title: "登录",

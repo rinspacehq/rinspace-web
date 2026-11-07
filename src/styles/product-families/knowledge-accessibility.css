@@ -24,11 +24,11 @@
   }
 }
 
-.book-annotation-sheet > .rin-ui-dialog-heading {
+.book-annotation-dialog > .rin-ui-dialog-heading {
   padding-inline-end: 2.75rem;
 }
 
-.book-annotation-sheet > .rin-ui-dialog-heading .rin-editorial-title {
+.book-annotation-dialog > .rin-ui-dialog-heading .rin-editorial-title {
   font-size: 1rem;
 }
 

@@ -8,41 +8,45 @@ import {
   DialogTitle,
   Icon,
   Select,
-} from 'components/ui';
+} from "components/ui";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import ImageCropDialog from "@/components/ImageCropDialog";
+import TagPicker from "@/components/TagPicker";
+import { formatNumber } from "@/i18n/format";
+import { resolveLocale } from "@/i18n/resolveLocale";
+import { useFeatureTranslation } from "@/i18n/useFeatureTranslation";
 import {
-  type ChangeEvent,
-  type FormEvent,
-  useEffect,
-  useState,
-} from 'react';
-import { useNavigate } from 'react-router-dom';
+  createContent,
+  isContentModerationSubmission,
+} from "@/services/domains/article";
+import { uploadAnswerFile } from "@/services/domains/publication";
+import { messageFromError } from "@/services/errors";
+import type { BookTOCItem } from "@/services/feed";
+import type { RinspaceUser } from "@/services/phoneAuth";
+import { uploadCoverFile } from "@/services/profile";
+import { openGiteaPath } from "@/utils/giteaPaths";
+import { openOnlineEditorProject } from "@/utils/onlineEditor";
+import { bookWorkspacePath, contentPath } from "@/utils/routes";
+import { extractPDFTOC, renderPDFCover } from "@/utils/pdfToc";
 
-import ImageCropDialog from '@/components/ImageCropDialog';
-import TagPicker from '@/components/TagPicker';
-import { formatNumber } from '@/i18n/format';
-import { resolveLocale } from '@/i18n/resolveLocale';
-import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
-import { createContent, isContentModerationSubmission } from '@/services/domains/article';
-import { uploadAnswerFile } from '@/services/domains/publication';
-import { messageFromError } from '@/services/errors';
-import type { BookTOCItem } from '@/services/feed';
-import type { RinspaceUser } from '@/services/phoneAuth';
-import { uploadCoverFile } from '@/services/profile';
-import { openGiteaPath } from '@/utils/giteaPaths';
-import { openOnlineEditorProject } from '@/utils/onlineEditor';
-import { bookWorkspacePath, contentPath } from '@/utils/routes';
-import { extractPDFTOC, renderPDFCover } from '@/utils/pdfToc';
-
-import { latexArticleInitialSource } from './latexArticleTemplate';
-import { typstCreationEnabled } from './typstFeature';
+import { latexArticleInitialSource } from "./latexArticleTemplate";
+import { typstCreationEnabled } from "./typstFeature";
 import {
   readArticleEditorPreference,
   writeArticleEditorPreference,
-} from './articleEditorPreference';
+} from "./articleEditorPreference";
 
-import './publish-dialog.css';
+import "./publish-dialog.css";
 
-export type PublishDialogMode = 'blog' | 'typst-blog' | 'latex-book' | 'typst-book' | 'markdown-book' | 'pdf-book';
+export type PublishDialogMode =
+  | "blog"
+  | "typst-blog"
+  | "latex-book"
+  | "typst-book"
+  | "markdown-book"
+  | "pdf-book";
 
 type PublishCreateDialogProps = {
   open: boolean;
@@ -56,86 +60,154 @@ type PendingCoverCrop = {
   fileName: string;
 };
 
+type ArticleVisibility = "open" | "private";
+type ArticlePublicationState = "published" | "draft";
+
+export function articleCreationPublishingState(
+  visibility: ArticleVisibility,
+  publicationState: ArticlePublicationState,
+) {
+  return {
+    status:
+      publicationState === "draft"
+        ? ("draft" as const)
+        : visibility === "open"
+          ? ("published" as const)
+          : ("private" as const),
+    repositoryStatus: publicationState,
+    sourceVisibility: visibility,
+  };
+}
+
 const DIALOG_META: Record<
   PublishDialogMode,
-  { aspect: number; outputWidth: number; outputHeight: number; ratioLabel: string }
+  {
+    aspect: number;
+    outputWidth: number;
+    outputHeight: number;
+    ratioLabel: string;
+  }
 > = {
-  blog: { aspect: 16 / 9, outputWidth: 1600, outputHeight: 900, ratioLabel: '16:9' },
-  'typst-blog': { aspect: 16 / 9, outputWidth: 1600, outputHeight: 900, ratioLabel: '16:9' },
-  'latex-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
-  'typst-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
-  'markdown-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
-  'pdf-book': { aspect: 2 / 3, outputWidth: 900, outputHeight: 1350, ratioLabel: '2:3' },
+  blog: {
+    aspect: 16 / 9,
+    outputWidth: 1600,
+    outputHeight: 900,
+    ratioLabel: "16:9",
+  },
+  "typst-blog": {
+    aspect: 16 / 9,
+    outputWidth: 1600,
+    outputHeight: 900,
+    ratioLabel: "16:9",
+  },
+  "latex-book": {
+    aspect: 2 / 3,
+    outputWidth: 900,
+    outputHeight: 1350,
+    ratioLabel: "2:3",
+  },
+  "typst-book": {
+    aspect: 2 / 3,
+    outputWidth: 900,
+    outputHeight: 1350,
+    ratioLabel: "2:3",
+  },
+  "markdown-book": {
+    aspect: 2 / 3,
+    outputWidth: 900,
+    outputHeight: 1350,
+    ratioLabel: "2:3",
+  },
+  "pdf-book": {
+    aspect: 2 / 3,
+    outputWidth: 900,
+    outputHeight: 1350,
+    ratioLabel: "2:3",
+  },
 };
 
-const MODE_TRANSLATION_KEYS: Record<PublishDialogMode, 'blog' | 'typstBlog' | 'latexBook' | 'typstBook' | 'markdownBook' | 'pdfBook'> = {
-  blog: 'blog',
-  'typst-blog': 'typstBlog',
-  'latex-book': 'latexBook',
-  'typst-book': 'typstBook',
-  'markdown-book': 'markdownBook',
-  'pdf-book': 'pdfBook',
+const MODE_TRANSLATION_KEYS: Record<
+  PublishDialogMode,
+  "blog" | "typstBlog" | "latexBook" | "typstBook" | "markdownBook" | "pdfBook"
+> = {
+  blog: "blog",
+  "typst-blog": "typstBlog",
+  "latex-book": "latexBook",
+  "typst-book": "typstBook",
+  "markdown-book": "markdownBook",
+  "pdf-book": "pdfBook",
 };
 
 function latexArticleInitialBody() {
   return [
-    '[[RIN_WRITER]]',
+    "[[RIN_WRITER]]",
     '<h2 id="introduction">Introduction</h2>',
-    '<p>Start writing the article here.</p>',
-    '[[/RIN_WRITER]]',
-    '',
-    '[[RIN_SOURCE]]',
+    "<p>Start writing the article here.</p>",
+    "[[/RIN_WRITER]]",
+    "",
+    "[[RIN_SOURCE]]",
     latexArticleInitialSource,
-    '[[/RIN_SOURCE]]',
-  ].join('\n');
+    "[[/RIN_SOURCE]]",
+  ].join("\n");
 }
 
-export default function PublishCreateDialog({ open, mode, user, onClose }: PublishCreateDialogProps) {
+export default function PublishCreateDialog({
+  open,
+  mode,
+  user,
+  onClose,
+}: PublishCreateDialogProps) {
   const navigate = useNavigate();
-  const { t, i18n } = useFeatureTranslation('creation');
+  const { t, i18n } = useFeatureTranslation("creation");
   const locale = resolveLocale(i18n.resolvedLanguage || i18n.language, []);
   const meta = DIALOG_META[mode];
   const modeTranslationKey = MODE_TRANSLATION_KEYS[mode];
-  const isBook = mode !== 'blog' && mode !== 'typst-blog';
-  const isPdf = mode === 'pdf-book';
+  const isBook = mode !== "blog" && mode !== "typst-blog";
+  const isPdf = mode === "pdf-book";
 
-  const [title, setTitle] = useState('');
-  const [editorPreference, setEditorPreference] = useState(readArticleEditorPreference);
-  const [excerpt, setExcerpt] = useState('');
+  const [title, setTitle] = useState("");
+  const [editorPreference, setEditorPreference] = useState(
+    readArticleEditorPreference,
+  );
+  const [excerpt, setExcerpt] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [coverUrl, setCoverUrl] = useState('');
-  const [status, setStatus] = useState<'private' | 'published'>('published');
-  const [pendingCoverCrop, setPendingCoverCrop] = useState<PendingCoverCrop | null>(null);
+  const [coverUrl, setCoverUrl] = useState("");
+  const [visibility, setVisibility] = useState<ArticleVisibility>("open");
+  const [publicationState, setPublicationState] =
+    useState<ArticlePublicationState>("published");
+  const [pendingCoverCrop, setPendingCoverCrop] =
+    useState<PendingCoverCrop | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [pdfUrl, setPdfUrl] = useState('');
-  const [pdfFilename, setPdfFilename] = useState('');
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfFilename, setPdfFilename] = useState("");
   const [pdfToc, setPdfToc] = useState<BookTOCItem[]>([]);
   const [pdfUploading, setPdfUploading] = useState(false);
-  const [pdfTocStatus, setPdfTocStatus] = useState('');
-  const [pdfCoverStatus, setPdfCoverStatus] = useState('');
+  const [pdfTocStatus, setPdfTocStatus] = useState("");
+  const [pdfCoverStatus, setPdfCoverStatus] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setTitle('');
+    setTitle("");
     setEditorPreference((current) => readArticleEditorPreference(current));
-    setExcerpt('');
+    setExcerpt("");
     setTags([]);
-    setCoverUrl('');
-    setStatus('published');
+    setCoverUrl("");
+    setVisibility("open");
+    setPublicationState("published");
     setPendingCoverCrop(null);
     setCoverUploading(false);
     setCreating(false);
-    setError('');
-    setNotice('');
-    setPdfUrl('');
-    setPdfFilename('');
+    setError("");
+    setNotice("");
+    setPdfUrl("");
+    setPdfFilename("");
     setPdfToc([]);
     setPdfUploading(false);
-    setPdfTocStatus('');
-    setPdfCoverStatus('');
+    setPdfTocStatus("");
+    setPdfCoverStatus("");
   }, [open, mode]);
 
   const busy = creating || coverUploading || pdfUploading;
@@ -151,17 +223,17 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
 
   const changeCover = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = '';
+    event.currentTarget.value = "";
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError(t('publishDialog.cover.imageOnly'));
+    if (!file.type.startsWith("image/")) {
+      setError(t("publishDialog.cover.imageOnly"));
       return;
     }
     if (pendingCoverCrop) {
       URL.revokeObjectURL(pendingCoverCrop.imageUrl);
     }
-    setError('');
-    setNotice('');
+    setError("");
+    setNotice("");
     setPendingCoverCrop({
       imageUrl: URL.createObjectURL(file),
       fileName: file.name || `${mode}-cover.jpg`,
@@ -179,22 +251,22 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
   const uploadCroppedCover = async (file: File) => {
     if (!pendingCoverCrop) return;
     if (!user) {
-      setError(t('publishPage.validation.signInToUploadCover'));
-      setNotice('');
+      setError(t("publishPage.validation.signInToUploadCover"));
+      setNotice("");
       return;
     }
     setCoverUploading(true);
-    setError('');
-    setNotice(t('publishDialog.cover.uploading'));
+    setError("");
+    setNotice(t("publishDialog.cover.uploading"));
     try {
       const uploaded = await uploadCoverFile(user, file);
       setCoverUrl(uploaded.fileID);
-      setNotice(t('publishDialog.cover.uploaded'));
+      setNotice(t("publishDialog.cover.uploaded"));
       URL.revokeObjectURL(pendingCoverCrop.imageUrl);
       setPendingCoverCrop(null);
     } catch (uploadError) {
-      setError(messageFromError(uploadError, 'creation.coverUploadFailed'));
-      setNotice('');
+      setError(messageFromError(uploadError, "creation.coverUploadFailed"));
+      setNotice("");
     } finally {
       setCoverUploading(false);
     }
@@ -202,23 +274,26 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
 
   const uploadPDF = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = '';
+    event.currentTarget.value = "";
     if (!file) return;
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      setError(t('publishDialog.pdf.fileOnly'));
+    if (
+      file.type !== "application/pdf" &&
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setError(t("publishDialog.pdf.fileOnly"));
       return;
     }
     if (file.size > 80 * 1024 * 1024) {
-      setError(t('publishDialog.pdf.tooLarge'));
+      setError(t("publishDialog.pdf.tooLarge"));
       return;
     }
     setPdfUploading(true);
-    setError('');
-    setPdfTocStatus(t('publishDialog.pdf.extractingToc'));
+    setError("");
+    setPdfTocStatus(t("publishDialog.pdf.extractingToc"));
     setPdfCoverStatus(
       coverUrl.trim()
-        ? t('publishDialog.pdf.keepingCover')
-        : t('publishDialog.pdf.generatingCover'),
+        ? t("publishDialog.pdf.keepingCover")
+        : t("publishDialog.pdf.generatingCover"),
     );
     setPdfToc([]);
     try {
@@ -227,33 +302,33 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
         setPdfToc(toc);
         setPdfTocStatus(
           toc.length
-            ? t('publishDialog.pdf.tocExtracted', {
-              count: toc.length,
-              displayCount: formatNumber(locale, toc.length),
-            })
-            : t('publishDialog.pdf.tocUnavailable'),
+            ? t("publishDialog.pdf.tocExtracted", {
+                count: toc.length,
+                displayCount: formatNumber(locale, toc.length),
+              })
+            : t("publishDialog.pdf.tocUnavailable"),
         );
       } catch {
         setPdfToc([]);
-        setPdfTocStatus(t('publishDialog.pdf.tocUnavailable'));
+        setPdfTocStatus(t("publishDialog.pdf.tocUnavailable"));
       }
       if (!coverUrl.trim()) {
         try {
           const coverFile = await renderPDFCover(file);
-          const cover = await uploadAnswerFile('post', coverFile);
+          const cover = await uploadAnswerFile("post", coverFile);
           setCoverUrl(cover);
-          setPdfCoverStatus(t('publishDialog.pdf.coverGenerated'));
+          setPdfCoverStatus(t("publishDialog.pdf.coverGenerated"));
         } catch {
-          setPdfCoverStatus(t('publishDialog.pdf.coverUnavailable'));
+          setPdfCoverStatus(t("publishDialog.pdf.coverUnavailable"));
         }
       }
-      const url = await uploadAnswerFile('post_attachment', file);
+      const url = await uploadAnswerFile("post_attachment", file);
       setPdfUrl(url);
       setPdfFilename(file.name);
     } catch (uploadError) {
-      setError(messageFromError(uploadError, 'creation.pdfUploadFailed'));
-      setPdfTocStatus('');
-      setPdfCoverStatus('');
+      setError(messageFromError(uploadError, "creation.pdfUploadFailed"));
+      setPdfTocStatus("");
+      setPdfCoverStatus("");
     } finally {
       setPdfUploading(false);
     }
@@ -262,60 +337,71 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user || creating) return;
-    if ((mode === 'typst-blog' || mode === 'typst-book') && !typstCreationEnabled) return;
+    if (
+      (mode === "typst-blog" || mode === "typst-book") &&
+      !typstCreationEnabled
+    )
+      return;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setError(t('publishDialog.create.titleRequired'));
+      setError(t("publishDialog.create.titleRequired"));
       return;
     }
     if (!isBook && !excerpt.trim()) {
-      setError(t('publishDialog.create.excerptRequired'));
+      setError(t("publishDialog.create.excerptRequired"));
       return;
     }
     if (isPdf && !pdfUrl) {
-      setError(t('publishDialog.create.pdfRequired'));
+      setError(t("publishDialog.create.pdfRequired"));
       return;
     }
     setCreating(true);
-    setError('');
+    setError("");
     setNotice(t(`publishDialog.create.creating.${modeTranslationKey}`));
     try {
-      if (mode === 'blog' || mode === 'typst-blog') {
+      if (mode === "blog" || mode === "typst-blog") {
         const saved = await createContent({
-          type: 'blog',
-          status: 'draft',
-          repositoryStatus: 'published',
-          sourceVisibility: status === 'published' ? 'open' : 'private',
+          type: "blog",
+          ...articleCreationPublishingState(visibility, publicationState),
           title: trimmedTitle,
           excerpt: excerpt.trim(),
           tags: tags.slice(0, 6),
           coverUrl,
-          editor: mode === 'typst-blog' ? 'typst' : 'rin',
-          body: mode === 'typst-blog' ? '' : latexArticleInitialBody(),
+          editor: mode === "typst-blog" ? "typst" : "rin",
+          body: mode === "typst-blog" ? "" : latexArticleInitialBody(),
         });
         if (isContentModerationSubmission(saved)) {
-          setNotice(t(`publishDialog.create.moderation.${saved.state === 'rejected' ? 'rejected' : saved.state === 'published' ? 'published' : 'pending'}`));
+          setNotice(
+            t(
+              `publishDialog.create.moderation.${saved.state === "rejected" ? "rejected" : saved.state === "published" ? "published" : "pending"}`,
+            ),
+          );
           setCreating(false);
           return;
         }
         setCreating(false);
         onClose();
-        if (editorPreference === 'online') {
-          openOnlineEditorProject('a', saved.id);
+        if (editorPreference === "online") {
+          openOnlineEditorProject("a", saved.id);
         } else {
-          openGiteaPath('a', saved.id);
+          openGiteaPath("a", saved.id);
         }
         return;
       }
       const saved = await createContent({
-        type: 'book',
+        type: "book",
         title: trimmedTitle,
-        body: '',
+        body: "",
         excerpt: excerpt.trim(),
         tags: tags.slice(0, 6),
         coverUrl,
         book: {
-          kind: mode === 'markdown-book' ? 'markdown' : mode === 'typst-book' ? 'typst' : 'original',
+          kind:
+            mode === "markdown-book"
+              ? "markdown"
+              : mode === "typst-book"
+                ? "typst"
+                : "original",
           bookTitle: trimmedTitle,
           authors: [],
           pdfUrl: pdfUrl || undefined,
@@ -324,22 +410,35 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
         },
       });
       if (isContentModerationSubmission(saved)) {
-        setNotice(t(`publishDialog.create.moderation.${saved.state === 'rejected' ? 'rejected' : saved.state === 'published' ? 'published' : 'pending'}`));
+        setNotice(
+          t(
+            `publishDialog.create.moderation.${saved.state === "rejected" ? "rejected" : saved.state === "published" ? "published" : "pending"}`,
+          ),
+        );
         setCreating(false);
         return;
       }
       setCreating(false);
       onClose();
-      navigate(isPdf ? contentPath('book', saved.id, saved.title) : bookWorkspacePath(saved.id));
+      navigate(
+        isPdf
+          ? contentPath("book", saved.id, saved.title)
+          : bookWorkspacePath(saved.id),
+      );
     } catch (submitError) {
-      setError(messageFromError(submitError, 'creation.contentCreateFailed'));
-      setNotice('');
+      setError(messageFromError(submitError, "creation.contentCreateFailed"));
+      setNotice("");
       setCreating(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) closeDialog(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) closeDialog();
+      }}
+    >
       <DialogPortal>
         <DialogOverlay className="rin-ui-overlay" />
         <DialogBody
@@ -354,16 +453,19 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
               <AnimateButton
                 unstyled
                 type="button"
-                aria-label={t('publishDialog.create.close')}
+                aria-label={t("publishDialog.create.close")}
                 disabled={busy}
               >
                 <Icon name="x-lg" />
               </AnimateButton>
             </DialogClose>
           </div>
-          <form className="auth-dialog-form latex-blog-dialog-form" onSubmit={submit}>
+          <form
+            className="auth-dialog-form latex-blog-dialog-form"
+            onSubmit={submit}
+          >
             <label>
-              <span>{t('publishDialog.fields.title')}</span>
+              <span>{t("publishDialog.fields.title")}</span>
               <input
                 type="text"
                 value={title}
@@ -373,7 +475,7 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
               />
             </label>
             <label>
-              <span>{t('publishDialog.fields.excerpt')}</span>
+              <span>{t("publishDialog.fields.excerpt")}</span>
               <textarea
                 value={excerpt}
                 maxLength={240}
@@ -383,52 +485,86 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
               />
             </label>
             <div className="latex-blog-field">
-              <span>{t('publishDialog.fields.tags')}</span>
+              <span>{t("publishDialog.fields.tags")}</span>
               <TagPicker
                 value={tags}
                 disabled={creating}
                 max={6}
-                placeholder={t('publishDialog.fields.tagPlaceholder')}
+                placeholder={t("publishDialog.fields.tagPlaceholder")}
                 createMode="add"
                 onChange={setTags}
               />
             </div>
             {!isBook ? (
               <div
-                className="latex-blog-visibility"
+                className="publish-dialog-publication-row"
                 role="group"
-                aria-label={t('publishDialog.create.visibility')}
+                aria-label={t("publishDialog.create.publishingOptions")}
               >
-                <AnimateButton
-                  unstyled
-                  type="button"
-                  className={status === 'published' ? 'active' : ''}
-                  disabled={creating}
-                  onClick={() => setStatus('published')}
-                >
-                  {t('publishDialog.create.public')}
-                </AnimateButton>
-                <AnimateButton
-                  unstyled
-                  type="button"
-                  className={status === 'private' ? 'active' : ''}
-                  disabled={creating}
-                  onClick={() => setStatus('private')}
-                >
-                  {t('publishDialog.create.private')}
-                </AnimateButton>
+                <label>
+                  <span>{t("publishDialog.create.visibility")}</span>
+                  <Select
+                    className="publish-dialog-publication-select"
+                    value={visibility}
+                    disabled={creating}
+                    aria-label={t("publishDialog.create.visibility")}
+                    onChange={(event) =>
+                      setVisibility(
+                        event.currentTarget.value === "private"
+                          ? "private"
+                          : "open",
+                      )
+                    }
+                  >
+                    <option value="open">
+                      {t("publishDialog.create.public")}
+                    </option>
+                    <option value="private">
+                      {t("publishDialog.create.private")}
+                    </option>
+                  </Select>
+                </label>
+                <label>
+                  <span>{t("publishDialog.create.publicationState")}</span>
+                  <Select
+                    className="publish-dialog-publication-select"
+                    value={publicationState}
+                    disabled={creating}
+                    aria-label={t("publishDialog.create.publicationState")}
+                    onChange={(event) =>
+                      setPublicationState(
+                        event.currentTarget.value === "draft"
+                          ? "draft"
+                          : "published",
+                      )
+                    }
+                  >
+                    <option value="published">
+                      {t("publishDialog.create.published")}
+                    </option>
+                    <option value="draft">
+                      {t("publishDialog.create.draft")}
+                    </option>
+                  </Select>
+                </label>
               </div>
             ) : null}
             <div className="latex-blog-cover-row">
-              <div className={`latex-blog-cover-preview ${isBook ? 'publish-dialog-book-cover' : ''}`}>
-                {coverUrl ? <img src={coverUrl} alt="" /> : <span>{meta.ratioLabel}</span>}
+              <div
+                className={`latex-blog-cover-preview ${isBook ? "publish-dialog-book-cover" : ""}`}
+              >
+                {coverUrl ? (
+                  <img src={coverUrl} alt="" />
+                ) : (
+                  <span>{meta.ratioLabel}</span>
+                )}
               </div>
               <label className="latex-blog-cover-upload">
                 <Icon name="image" />
                 <span>
                   {coverUrl
-                    ? t('publishDialog.cover.replace')
-                    : t('publishDialog.cover.upload')}
+                    ? t("publishDialog.cover.replace")
+                    : t("publishDialog.cover.upload")}
                 </span>
                 <input
                   type="file"
@@ -443,9 +579,9 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
                   type="button"
                   className="latex-blog-cover-remove"
                   disabled={busy}
-                  onClick={() => setCoverUrl('')}
+                  onClick={() => setCoverUrl("")}
                 >
-                  {t('publishDialog.cover.remove')}
+                  {t("publishDialog.cover.remove")}
                 </AnimateButton>
               ) : null}
             </div>
@@ -455,8 +591,8 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
                   <Icon name="filetype-pdf" />
                   <span>
                     {pdfUrl
-                      ? t('publishDialog.pdf.replace')
-                      : t('publishDialog.pdf.upload')}
+                      ? t("publishDialog.pdf.replace")
+                      : t("publishDialog.pdf.upload")}
                   </span>
                   <input
                     type="file"
@@ -465,32 +601,52 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
                     onChange={uploadPDF}
                   />
                 </label>
-                {pdfFilename ? <span className="publish-dialog-pdf-name">{pdfFilename}</span> : null}
-                {pdfTocStatus ? <span className="publish-dialog-pdf-status">{pdfTocStatus}</span> : null}
-                {pdfCoverStatus ? <span className="publish-dialog-pdf-status">{pdfCoverStatus}</span> : null}
+                {pdfFilename ? (
+                  <span className="publish-dialog-pdf-name">{pdfFilename}</span>
+                ) : null}
+                {pdfTocStatus ? (
+                  <span className="publish-dialog-pdf-status">
+                    {pdfTocStatus}
+                  </span>
+                ) : null}
+                {pdfCoverStatus ? (
+                  <span className="publish-dialog-pdf-status">
+                    {pdfCoverStatus}
+                  </span>
+                ) : null}
               </div>
             ) : null}
-            {error ? <p className="auth-dialog-error" role="alert">{error}</p> : null}
+            {error ? (
+              <p className="auth-dialog-error" role="alert">
+                {error}
+              </p>
+            ) : null}
             {notice ? (
-              <p className="auth-dialog-status" role="status" aria-live="polite">
+              <p
+                className="auth-dialog-status"
+                role="status"
+                aria-live="polite"
+              >
                 {notice}
               </p>
             ) : null}
             <div className="auth-dialog-actions">
               {!isBook ? (
                 <label className="publish-dialog-editor-choice">
-                  <span>{t('publishDialog.create.editor')}</span>
+                  <span>{t("publishDialog.create.editor")}</span>
                   <Select
                     value={editorPreference}
                     disabled={busy}
                     onChange={(event) => {
                       const value = event.currentTarget.value;
-                      if (value !== 'online' && value !== 'git') return;
+                      if (value !== "online" && value !== "git") return;
                       setEditorPreference(value);
                       writeArticleEditorPreference(value);
                     }}
                   >
-                    <option value="online">{t('publishDialog.create.online')}</option>
+                    <option value="online">
+                      {t("publishDialog.create.online")}
+                    </option>
                     <option value="git">Git</option>
                   </Select>
                 </label>
@@ -503,12 +659,12 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
                   disabled={busy}
                   onClick={closeDialog}
                 >
-                  {t('common:actions.cancel')}
+                  {t("common:actions.cancel")}
                 </AnimateButton>
                 <AnimateButton unstyled type="submit" disabled={busy}>
                   {creating
-                    ? t('publishDialog.create.creatingAction')
-                    : t('publishDialog.create.createAction')}
+                    ? t("publishDialog.create.creatingAction")
+                    : t("publishDialog.create.createAction")}
                 </AnimateButton>
               </div>
             </div>
@@ -519,7 +675,11 @@ export default function PublishCreateDialog({ open, mode, user, onClose }: Publi
         <ImageCropDialog
           open
           imageUrl={pendingCoverCrop.imageUrl}
-          title={t(isBook ? 'publishDialog.cover.cropBook' : 'publishDialog.cover.cropBlog')}
+          title={t(
+            isBook
+              ? "publishDialog.cover.cropBook"
+              : "publishDialog.cover.cropBlog",
+          )}
           aspect={meta.aspect}
           cropShape="rect"
           outputWidth={meta.outputWidth}

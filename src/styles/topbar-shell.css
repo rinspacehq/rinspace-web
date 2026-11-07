@@ -3,14 +3,16 @@
 }
 
 .rin-app-shell > .topbar {
+  --rin-topbar-search-min: 240px;
+  --rin-topbar-side-min: 160px;
   position: sticky;
   inset-block-start: 0;
   z-index: 100;
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(240px, 420px) minmax(
-      160px,
-      1fr
-    );
+  grid-template-columns:
+    minmax(var(--rin-topbar-side-min), 1fr)
+    minmax(var(--rin-topbar-search-min), 420px)
+    minmax(var(--rin-topbar-side-min), 1fr);
   align-items: center;
   gap: 16px;
   block-size: 64px;
@@ -29,6 +31,7 @@
 }
 
 .rin-app-shell > .topbar .brand {
+  grid-column: 1;
   justify-self: start;
   color: var(--rin-ink);
   font-family: var(--rin-font-editorial);
@@ -89,6 +92,7 @@ html:lang(en) .rin-app-shell > .topbar .brand-word {
 }
 
 .rin-app-shell > .topbar .topbar-search {
+  grid-column: 2;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -132,6 +136,8 @@ html:lang(en) .rin-app-shell > .topbar .brand-word {
 }
 
 .rin-app-shell > .topbar .account-nav {
+  grid-column: 3;
+  position: relative;
   min-inline-size: 0;
   justify-self: end;
 }
@@ -147,7 +153,26 @@ html:lang(en) .rin-app-shell > .topbar .brand-word {
 }
 
 .rin-app-shell > .topbar .topbar-compact-actions {
-  display: none;
+  position: absolute;
+  display: inline-flex;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-desktop-actions {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-compact-actions {
+  position: static;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .rin-app-shell > .topbar .topbar-auth-icon {
@@ -378,191 +403,207 @@ html:lang(en) .rin-app-shell > .topbar .brand-word {
   min-block-size: calc(100dvh - 64px);
 }
 
-@media (max-width: 900px) {
-  .rin-app-shell > .topbar {
-    grid-template-columns: max-content minmax(140px, 1fr) auto;
-    gap: 10px;
-    block-size: 64px;
-    min-block-size: 64px;
-    padding: 0 16px;
-  }
-
-  .rin-app-shell > .topbar.rin-topbar-shell .brand {
-    min-inline-size: max-content;
-    max-inline-size: none;
-    flex: 0 0 auto;
-  }
-
-  .rin-app-shell > .topbar.rin-topbar-shell .brand > .brand-word,
-  .rin-app-shell > .topbar.rin-topbar-shell .brand .brand-word-text {
-    max-inline-size: none;
-    overflow: visible;
-    text-overflow: clip;
-    white-space: nowrap;
-  }
-
-  .rin-app-shell > .topbar .topbar-search {
-    grid-column: 2;
-    grid-row: 1;
-    inline-size: 100%;
-    min-inline-size: 0;
-  }
-
-  .rin-app-shell > .topbar .account-nav {
-    grid-column: 3;
-    grid-row: 1;
-    gap: 8px;
-    overflow: visible;
-  }
-
-  .rin-app-shell > .topbar .topbar-desktop-actions {
-    display: none;
-  }
-
-  .rin-app-shell > .topbar .topbar-compact-actions {
-    display: inline-flex;
-  }
-
-  .rin-app-shell > .topbar .account-menu-trigger {
-    inline-size: var(--rin-topbar-compact-control-size);
-    max-inline-size: var(--rin-topbar-compact-control-size);
-    justify-content: center;
-    padding: 0;
-    border: 0;
-    background: transparent;
-  }
-
-  .rin-app-shell > .topbar .account-menu-trigger .avatar-name {
-    inline-size: 100%;
-    block-size: 100%;
-    justify-content: center;
-  }
-
-  .rin-app-shell > .topbar .account-menu-trigger .avatar-name-mark {
-    inline-size: 100%;
-    block-size: 100%;
-    flex-basis: 100%;
-  }
-
-  .rin-app-shell
-    > .topbar
-    .account-menu-trigger
-    :where(.avatar-name-text, .cultivation-badge, .account-menu-chevron) {
-    display: none;
-  }
-
-  .rin-app-shell > .topbar .topbar-auth-control {
-    display: inline-grid;
-    inline-size: var(--rin-topbar-compact-control-size);
-    block-size: var(--rin-topbar-compact-control-size);
-    flex: 0 0 var(--rin-topbar-compact-control-size);
-    place-items: center;
-    padding: 0;
-    border: 1px solid var(--rin-border);
-    border-radius: 999px;
-    background: var(--rin-surface);
-    color: var(--rin-ink);
-    text-decoration: none;
-  }
-
-  .rin-app-shell > .topbar .topbar-auth-label {
-    display: none;
-  }
-
-  .rin-app-shell > .topbar .topbar-auth-icon {
-    display: inline-grid;
-    place-items: center;
-  }
-
-  .topbar-session-placeholder {
-    gap: 8px;
-  }
-
-  .topbar-session-placeholder-account {
-    min-inline-size: var(--rin-topbar-compact-control-size);
-  }
-
-  .topbar-session-placeholder-name {
-    display: none;
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"]) {
+  grid-template-columns:
+    minmax(var(--rin-topbar-side-min), 1fr)
+    minmax(var(--rin-topbar-search-min), 420px)
+    minmax(var(--rin-topbar-side-min), 1fr);
+  gap: 10px;
+  padding-inline: 16px;
 }
 
-@media (max-width: 620px) {
-  .rin-app-shell > .topbar {
-    grid-template-columns: max-content 36px auto;
-    justify-items: stretch;
-    gap: 8px;
-    block-size: 54px;
-    min-block-size: 54px;
-    overflow: visible;
-    padding: 8px max(10px, env(safe-area-inset-right)) 8px
-      max(10px, env(safe-area-inset-left));
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .brand {
+  min-inline-size: max-content;
+  max-inline-size: none;
+  flex: 0 0 auto;
+}
 
-  .rin-app-shell > .topbar .brand {
-    min-inline-size: max-content;
-    max-inline-size: none;
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .brand
+  > .brand-word,
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .brand
+  .brand-word-text {
+  max-inline-size: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
 
-  .rin-app-shell > .topbar .topbar-search {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-    inline-size: 36px;
-    min-block-size: 36px;
-    padding: 0;
-    border-radius: 999px;
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .account-nav {
+  gap: 8px;
+  overflow: visible;
+}
 
-  .rin-app-shell > .topbar .topbar-search input {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    opacity: 0;
-    pointer-events: none;
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .account-menu-trigger {
+  inline-size: var(--rin-topbar-compact-control-size);
+  max-inline-size: var(--rin-topbar-compact-control-size);
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
 
-  .rin-app-shell > .topbar .topbar-search > button {
-    inline-size: 34px;
-    block-size: 34px;
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .account-menu-trigger
+  .avatar-name {
+  inline-size: 100%;
+  block-size: 100%;
+  justify-content: center;
+}
 
-  .rin-app-shell > .topbar .topbar-search.mobile-search-open {
-    position: fixed;
-    inset-block-start: 62px;
-    inset-inline: 10px;
-    z-index: 165;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 34px;
-    inline-size: calc(100vw - 20px);
-    max-inline-size: none;
-    min-block-size: 44px;
-    padding: 4px;
-    border-radius: var(--rin-radius-md);
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .account-menu-trigger
+  .avatar-name-mark {
+  inline-size: 100%;
+  block-size: 100%;
+  flex-basis: 100%;
+}
 
-  .rin-app-shell > .topbar .topbar-search.mobile-search-open input {
-    position: static;
-    inline-size: 100%;
-    block-size: auto;
-    min-block-size: 34px;
-    padding: 0 6px;
-    opacity: 1;
-    pointer-events: auto;
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .account-menu-trigger
+  :where(.avatar-name-text, .cultivation-badge, .account-menu-chevron) {
+  display: none;
+}
 
-  .rin-app-shell > .topbar .account-nav {
-    grid-column: 3;
-    grid-row: 1;
-    max-inline-size: none;
-    overflow-x: visible;
-    overflow-y: visible;
-    gap: 8px;
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-auth-control {
+  display: inline-grid;
+  inline-size: var(--rin-topbar-compact-control-size);
+  block-size: var(--rin-topbar-compact-control-size);
+  flex: 0 0 var(--rin-topbar-compact-control-size);
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--rin-border);
+  border-radius: 999px;
+  background: var(--rin-surface);
+  color: var(--rin-ink);
+  text-decoration: none;
+}
 
-  .rin-app-shell .rin-app-frame {
-    min-block-size: calc(100dvh - 54px);
-  }
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-auth-label {
+  display: none;
+}
+
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-auth-icon {
+  display: inline-grid;
+  place-items: center;
+}
+
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-session-placeholder {
+  gap: 8px;
+}
+
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-session-placeholder-account {
+  min-inline-size: var(--rin-topbar-compact-control-size);
+}
+
+.rin-app-shell
+  > .topbar:is([data-topbar-layout="compact"], [data-topbar-layout="minimal"])
+  .topbar-session-placeholder-name {
+  display: none;
+}
+
+.rin-app-shell > .topbar[data-topbar-layout="minimal"] {
+  grid-template-columns: max-content 36px auto;
+  justify-items: stretch;
+  gap: 8px;
+  block-size: 54px;
+  min-block-size: 54px;
+  overflow: visible;
+  padding: 8px max(10px, env(safe-area-inset-right)) 8px
+    max(10px, env(safe-area-inset-left));
+}
+
+.rin-app-shell > .topbar[data-topbar-layout="minimal"] .brand {
+  min-inline-size: max-content;
+  max-inline-size: none;
+}
+
+.rin-app-shell > .topbar[data-topbar-layout="minimal"] .topbar-search {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  inline-size: 36px;
+  min-block-size: 36px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.rin-app-shell > .topbar[data-topbar-layout="minimal"] .topbar-search input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rin-app-shell > .topbar[data-topbar-layout="minimal"] .topbar-search > button {
+  inline-size: 34px;
+  block-size: 34px;
+}
+
+.rin-app-shell
+  > .topbar[data-topbar-layout="minimal"]
+  .topbar-search.mobile-search-open {
+  position: fixed;
+  inset-block-start: 62px;
+  inset-inline: 10px;
+  z-index: 165;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  inline-size: calc(100vw - 20px);
+  max-inline-size: none;
+  min-block-size: 44px;
+  padding: 4px;
+  border-radius: var(--rin-radius-md);
+}
+
+.rin-app-shell
+  > .topbar[data-topbar-layout="minimal"]
+  .topbar-search.mobile-search-open
+  input {
+  position: static;
+  inline-size: 100%;
+  block-size: auto;
+  min-block-size: 34px;
+  padding: 0 6px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.rin-app-shell > .topbar[data-topbar-layout="minimal"] .account-nav {
+  grid-column: 3;
+  grid-row: 1;
+  max-inline-size: none;
+  overflow-x: visible;
+  overflow-y: visible;
+  gap: 8px;
+}
+
+.rin-app-shell:has(> .topbar[data-topbar-layout="minimal"]) .rin-app-frame {
+  min-block-size: calc(100dvh - 54px);
 }
 
 @media (max-width: 360px) {

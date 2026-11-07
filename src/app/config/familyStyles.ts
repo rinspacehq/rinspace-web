@@ -1,10 +1,14 @@
 let darkLegacyStyles: Promise<unknown> | undefined;
 
 export function loadDarkLegacyStyles() {
-  if (typeof document === "undefined" || document.documentElement.dataset.theme !== "dark") {
+  if (
+    typeof document === "undefined" ||
+    document.documentElement.dataset.theme !== "dark"
+  ) {
     return Promise.resolve();
   }
-  darkLegacyStyles ??= import("@/styles/product-families/dark-legacy-overrides.css");
+  darkLegacyStyles ??=
+    import("@/styles/product-families/dark-legacy-overrides.css");
   return darkLegacyStyles;
 }
 
@@ -20,6 +24,7 @@ const loaders: Record<string, () => Promise<unknown>> = {
     await import("@/styles/product-families/unified-comments.css");
     await import("@/styles/product-families/unified-book-reviews.css");
     await import("@/styles/product-families/book-reader-annotations.css");
+    await import("@/styles/product-families/book-reader-docs-layout.css");
     await import("@/styles/product-families/dark-legacy-tokens.css");
     return loadDarkLegacyStyles();
   },

@@ -54,9 +54,11 @@ const commit = "a".repeat(40);
 function Fixture({
   withSummary = false,
   hasSession = true,
+  preferCenteredDialog = false,
 }: {
   withSummary?: boolean;
   hasSession?: boolean;
+  preferCenteredDialog?: boolean;
 }) {
   const articleRef = useRef<HTMLDivElement | null>(null);
   return (
@@ -86,6 +88,7 @@ function Fixture({
         }}
         articleRef={articleRef}
         hasSession={hasSession}
+        preferCenteredDialog={preferCenteredDialog}
       />
       {withSummary ? <span data-testid="summary-fixture" /> : null}
     </div>
@@ -147,6 +150,25 @@ describe("book reader semantic block actions", () => {
     expect(screen.queryByRole("menuitem", { name: "高亮" })).toBeNull();
     expect(
       screen.queryByText(/对本段|如何使用|还没有内容|批注回复/),
+    ).toBeNull();
+  });
+
+  it("opens annotation actions in a centered dialog when the reader has side navigation", async () => {
+    const user = userEvent.setup();
+    render(<Fixture preferCenteredDialog />);
+    await waitFor(() => expect(annotationMocks.loadPage).toHaveBeenCalled());
+    fireEvent.pointerOver(screen.getByText("稳定段落"), {
+      pointerType: "mouse",
+    });
+    await user.click(
+      await screen.findByRole("button", { name: "打开第 1 段操作" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "笔记" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "笔记" });
+    expect(dialog.classList.contains("book-annotation-dialog")).toBe(true);
+    expect(
+      screen.queryByRole("complementary", { name: "正文批注" }),
     ).toBeNull();
   });
 

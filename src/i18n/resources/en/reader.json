@@ -59,6 +59,7 @@
       "title": "Contents",
       "blogLabel": "Article table of contents",
       "bookLabel": "Book table of contents",
+      "pageLabel": "On this page",
       "expand": "Expand {{title}}",
       "collapse": "Collapse {{title}}",
       "itemCount_one": "{{displayCount}} item",

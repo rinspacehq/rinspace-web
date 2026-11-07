@@ -20,6 +20,7 @@ import {
   RinspaceTopbarAnonymousActionBar,
   RinspaceTopbarCompactMenuControl,
   RinspaceTopbarControls,
+  isMinimalRinspaceTopbar,
 } from "@/components/shared/RinspaceTopbarFrame";
 import {
   AnimateIconButton,
@@ -196,7 +197,7 @@ function SiteTopbarInstance({ ariaLabel, onSessionChange }: SiteTopbarProps) {
             type="submit"
             onClick={(event) => {
               if (
-                !window.matchMedia("(max-width: 620px)").matches ||
+                !isMinimalRinspaceTopbar(searchFormRef.current) ||
                 mobileSearchOpen
               ) {
                 return;
@@ -263,7 +264,7 @@ function SiteTopbarInstance({ ariaLabel, onSessionChange }: SiteTopbarProps) {
 
 export function SiteTopbarHost({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const pdfReader = pathname.startsWith('/reader/pdf/');
+  const pdfReader = pathname.startsWith("/reader/pdf/");
   const sessionChangeCallbacks = useRef(new Set<() => void | Promise<void>>());
   const registerSessionChange = useCallback<RegisterSessionChange>(
     (callback) => {
