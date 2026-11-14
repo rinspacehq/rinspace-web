@@ -1941,7 +1941,7 @@ packages:
     version: 2.15.1-rinspace.6
 
   '@rinspacehq/markdown-writer@https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz':
-    resolution: {tarball: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz}
+    resolution: {integrity: sha512-0uqZQvj1pww4s7XReNxng+BXRJdO+Lq+VA6+32qmpoRGW/xAjJZjK5V9SOhr86VXSrU9K3v26Hessm9JtGnPzw==, tarball: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz}
     version: 0.3.5
     engines: {node: '>=20'}
     hasBin: true
