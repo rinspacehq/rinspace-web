@@ -11,3 +11,4 @@ test-results/
 playwright/.auth/
 public/assets/rin-uploads/
 public/assets/reader/
+public/assets/reader-voice/

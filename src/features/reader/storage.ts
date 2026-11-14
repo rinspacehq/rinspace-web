@@ -6,6 +6,7 @@ const DOCUMENTS = 'documents';
 const THUMBNAILS = 'thumbnails';
 const AGENT = 'agent';
 const THUMBNAIL_BUDGET = 32 * 1024 * 1024;
+const LEARNING_IDLE_MS = 30 * 24 * 60 * 60 * 1000;
 let database: Promise<IDBDatabase> | undefined;
 
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
@@ -124,12 +125,98 @@ export async function readReaderAgent<T>(key: string): Promise<T | undefined> {
   return requestResult(db.transaction(AGENT).objectStore(AGENT).get(key) as IDBRequest<T | undefined>);
 }
 
-export async function writeReaderAgent(key: string, value: unknown): Promise<void> {
+export class ReaderConversationChangedError extends Error {}
+
+const archivedConversationKey = (key: string, id: string) => JSON.stringify(['reader-conversation', key, id]);
+export function readReaderConversation<T>(key: string, id: string): Promise<T | undefined> {
+  return readReaderAgent<T>(archivedConversationKey(key, id));
+}
+
+function learningActivity(value: object): number | undefined {
+  if ('activityAt' in value && typeof value.activityAt === 'number' && Number.isFinite(value.activityAt)) return value.activityAt;
+  if ('createdAt' in value && typeof value.createdAt === 'string') {
+    const at = Date.parse(value.createdAt);
+    if (Number.isFinite(at)) return at;
+  }
+  return undefined; // Undated legacy records are preserved.
+}
+
+export function readerLearningContentExpired(value: unknown, now = Date.now()): boolean {
+  if (!value || typeof value !== 'object' || !('learning' in value) || !value.learning || 'deleting' in value && value.deleting) return false;
+  const at = learningActivity(value);
+  return at !== undefined && at <= now - LEARNING_IDLE_MS;
+}
+
+export function readerLearningHistoryExpired(value: unknown, now = Date.now()): boolean {
+  if (!value || typeof value !== 'object' || !('cloud' in value) || value.cloud !== true || 'deleting' in value && value.deleting) return false;
+  const at = learningActivity(value);
+  return at !== undefined && at <= now - LEARNING_IDLE_MS;
+}
+
+function pruneLearningHistory(store: IDBObjectStore, key: string, value: unknown): unknown {
+  let parts: unknown;
+  try { parts = JSON.parse(key); } catch { return value; }
+  if (!Array.isArray(parts) || parts.length !== 4 || parts[0] !== 'reader-learning/v1' ||
+    !value || typeof value !== 'object' || !('history' in value) || !Array.isArray(value.history)) return value;
+  const history: unknown[] = value.history;
+  const kept = history.filter(item => {
+    if (!readerLearningHistoryExpired(item) || !item || typeof item !== 'object' || !('id' in item) || typeof item.id !== 'string') return true;
+    store.delete(archivedConversationKey(key, item.id));
+    return false;
+  });
+  return kept.length === history.length ? value : { ...value, history: kept };
+}
+
+/** Local cache expiry uses one IndexedDB transaction. It does not delete the
+ * PDF, advance any model, or use the browser clock to delete server content. */
+export async function pruneExpiredReaderLearning(key: string): Promise<boolean> {
+  let parts: unknown;
+  try { parts = JSON.parse(key); } catch { return false; }
+  if (!Array.isArray(parts) || parts.length !== 4 || parts[0] !== 'reader-learning/v1') return false;
+  const db = await openDatabase(), tx = db.transaction(AGENT, 'readwrite'), done = transactionDone(tx), store = tx.objectStore(AGENT);
+  let changed = false;
+  const lookup = store.get(key) as IDBRequest<unknown>;
+  lookup.onsuccess = () => {
+    const previous: unknown = lookup.result;
+    let next = pruneLearningHistory(store, key, previous);
+    if (readerLearningContentExpired(next)) {
+      const history = next && typeof next === 'object' && 'history' in next && Array.isArray(next.history) ? next.history : [];
+      next = { conversationId: crypto.randomUUID(), createdAt: new Date().toISOString(), activityAt: Date.now(), history,
+        snapshot: { messages: [], draft: '', running: false }, learning: { openingRequestId: crypto.randomUUID() } };
+    }
+    if (next !== previous) { store.put(next, key); changed = true; }
+  };
+  await done;
+  return changed;
+}
+
+export async function writeReaderAgent(key: string, value: unknown, expected?: { conversationId?: string }, archive?: { id: string; value: unknown }, removeArchive?: string): Promise<void> {
   const db = await openDatabase();
   const tx = db.transaction(AGENT, 'readwrite');
   const done = transactionDone(tx);
-  tx.objectStore(AGENT).put(value, key);
-  await done;
+  const store = tx.objectStore(AGENT);
+  let changed = false;
+  const write = () => {
+    if (archive) store.put(archive.value, archivedConversationKey(key, archive.id));
+    if (removeArchive) store.delete(archivedConversationKey(key, removeArchive));
+    // Apply archive TTL to every write, including a host with an older in-memory
+    // history index, so active questions cannot resurrect expired local bodies.
+    store.put(pruneLearningHistory(store, key, value), key);
+  };
+  if (expected) {
+    // A tab displaying an archived conversation must not replace a newer one.
+    // Compare inside the same IndexedDB write transaction, including legacy
+    // records whose conversation ID has not been assigned yet.
+    const lookup = store.get(key) as IDBRequest<{ conversationId?: string } | undefined>;
+    lookup.onsuccess = () => {
+      if (lookup.result?.conversationId !== expected.conversationId) { changed = true; tx.abort(); return; }
+      write();
+    };
+  } else write();
+  try { await done; } catch (error) {
+    if (changed) throw new ReaderConversationChangedError('另一个页面已切换对话，请刷新。');
+    throw error;
+  }
 }
 
 export async function clearReaderLocalData(): Promise<void> {

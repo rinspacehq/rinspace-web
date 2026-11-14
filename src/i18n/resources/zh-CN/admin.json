@@ -740,5 +740,27 @@
       "impactHash": "影响哈希"
     },
     "reason": "操作原因"
+  },
+  "learningAdmin": {
+    "title": "学习验收测试",
+    "enable": "启用学习验收测试",
+    "ready": "运行环境已就绪",
+    "unavailable": "运行环境未就绪",
+    "advanced": "上下文预算",
+    "inputTokens": "输入 token 上限",
+    "outputTokens": "输出 token 上限",
+    "reason": "变更理由",
+    "accounts": "授权账号",
+    "account": "账号 UID",
+    "expires": "有效期至",
+    "state": "状态",
+    "active": "有效",
+    "inactive": "未启用或已过期",
+    "grant": "保存授权",
+    "revoke": "撤销授权",
+    "saved": "已保存",
+    "loadFailed": "学习验收设置暂时无法加载。",
+    "saveFailed": "未能确认保存结果，请刷新查证。",
+    "conflict": "设置已变化，请刷新后再编辑。"
   }
 }

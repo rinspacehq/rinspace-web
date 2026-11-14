@@ -83,8 +83,9 @@ try {
     // Exactly the existing package.json build pipeline, executed once in the
     // isolated writable snapshot, never on the host source/production runner.
     const command = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts.build;
-    if (command !== 'node scripts/prepare-reader-assets.mjs && node scripts/build-latex-template-archives.mjs && node scripts/generate-core-font-css.mjs && vite build') throw Error('Build entry changed; review the isolated build pipeline');
+    if (command !== 'node scripts/prepare-reader-assets.mjs && node scripts/prepare-reader-voice-assets.mjs && node scripts/build-latex-template-archives.mjs && node scripts/generate-core-font-css.mjs && vite build') throw Error('Build entry changed; review the isolated build pipeline');
     run(['scripts/prepare-reader-assets.mjs']);
+    run(['scripts/prepare-reader-voice-assets.mjs']);
     run(['scripts/build-latex-template-archives.mjs']);
     run(['scripts/generate-core-font-css.mjs']);
     // Leave room for esbuild's native memory, the runner and the HTTPS relay.

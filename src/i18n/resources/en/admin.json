@@ -750,5 +750,27 @@
       "impactHash": "Impact hash"
     },
     "reason": "Operation reason"
+  },
+  "learningAdmin": {
+    "title": "Learning acceptance testing",
+    "enable": "Enable learning acceptance testing",
+    "ready": "Runtime ready",
+    "unavailable": "Runtime unavailable",
+    "advanced": "Context budget",
+    "inputTokens": "Input token limit",
+    "outputTokens": "Output token limit",
+    "reason": "Reason for change",
+    "accounts": "Authorized accounts",
+    "account": "Account UID",
+    "expires": "Expires at",
+    "state": "Status",
+    "active": "Active",
+    "inactive": "Disabled or expired",
+    "grant": "Save access",
+    "revoke": "Revoke access",
+    "saved": "Saved",
+    "loadFailed": "Learning test settings could not be loaded.",
+    "saveFailed": "Save could not be confirmed. Refresh to check.",
+    "conflict": "Settings changed. Refresh before editing."
   }
 }
