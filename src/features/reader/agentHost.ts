@@ -203,15 +203,15 @@ export function createReaderAgentHost(document: ReaderDocument) {
         }
         if (disposed || current !== epoch) return;
       }
-      if (accountId === previousSession.accountId && status === previousSession.status && nextLearning === learningMode && nativeState?.conversationId === state.conversationId) {
+      const nextState = accountId === nativeId ? nativeState : accountId === legacyAccount ? legacyState : undefined;
+      if (accountId === previousSession.accountId && status === previousSession.status && nextLearning === learningMode && nextState?.conversationId === state.conversationId) {
         if (nativeLearningState) state.history = nativeLearningState.history;
         session = previousSession; notify(); return;
       }
       disposeExecution(); learningMode = nextLearning;
       session = { status: 'loading' }; state = {}; notify();
-      const restored = accountId === nativeId ? nativeState : accountId === legacyAccount ? legacyState : undefined;
       if (disposed || current !== epoch) return;
-      state = restored || {};
+      state = nextState || {};
       if (state.snapshot) state.snapshot.running = false;
       storageError = undefined;
       session = accountId ? { status, accountId } : { status };

@@ -121,6 +121,25 @@ test('anonymous Reader test mode completes a PDF question without wallet calls',
   instance.dispose();
 });
 
+test('same-account focus refresh preserves an anonymous test conversation', async () => {
+  vi.mocked(getCurrentAuthUser).mockResolvedValue(null);
+  vi.mocked(requestJson).mockImplementation(async path => {
+    if (path.endsWith('/test-mode')) return { enabled: true, maxIterations: 8 } as never;
+    if (path.endsWith('/test/turns')) return { text: 'Answer', finishReason: 'stop' } as never;
+    throw new Error(`unexpected route: ${path}`);
+  });
+  const instance = createReaderAgentHost(document);
+  await vi.waitFor(() => expect(instance.host.session().status).toBe('test'));
+  instance.host.save(document.id, { messages: [], draft: 'Explain', running: true });
+  const statuses: string[] = [];
+  const unsubscribe = instance.host.subscribeSession(() => { statuses.push(instance.host.session().status); });
+  window.dispatchEvent(new Event('focus'));
+  await vi.waitFor(() => expect(vi.mocked(requestJson).mock.calls.filter(([path]) => path.endsWith('/test-mode'))).toHaveLength(2));
+  expect(statuses).not.toContain('loading');
+  expect(instance.host.restore(document.id)).toMatchObject({ draft: 'Explain', running: false });
+  unsubscribe(); instance.dispose();
+});
+
 test('Native recovery failures never create an anonymous test identity', async () => {
   vi.mocked(getCurrentAuthUser).mockRejectedValue(new Error('temporary identity recovery failure'));
   vi.mocked(requestJson).mockResolvedValue({ enabled: true, maxIterations: 8 } as never);
