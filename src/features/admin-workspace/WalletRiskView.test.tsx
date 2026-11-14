@@ -8,6 +8,7 @@ import {
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { WalletRiskView } from "./WalletRiskView";
+vi.mock('./ReaderLearningAdminPanel', () => ({ ReaderLearningAdminPanel: () => null }));
 import { ModelPricingView } from "./ModelPricingView";
 import {
   agentMicrosToYuan,

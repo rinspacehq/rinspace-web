@@ -2,6 +2,7 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Button, Input, Select, Surface, Switch } from "components/ui";
 
 import { useFeatureTranslation } from "@/i18n/useFeatureTranslation";
+import { ReaderLearningAdminPanel } from './ReaderLearningAdminPanel';
 import {
   loadWalletAdminAgentPolicy,
   loadWalletAdminReaderTestMode,
@@ -672,6 +673,8 @@ export function RinAgentAdminPanel({
           readerTestConcurrent === String(readerTestMode.concurrentLimit) && readerTestMaxOutput === String(readerTestMode.maxOutputTokens)}
           onClick={() => { void saveReaderTestMode(); }}>{t("agent.readerTestSave")}</Button> : null}
       </div> : null}
+
+      <ReaderLearningAdminPanel uid={uid} canConfigure={canConfigure} />
 
       <div className="admin-agent-audit-heading">
         <h3>{t("agent.auditTitle")}</h3>

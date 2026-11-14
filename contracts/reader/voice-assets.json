@@ -1,0 +1,82 @@
+{
+  "schema": "reader-browser-voice-assets/v1",
+  "directory": "vad-0.0.31-ort-1.31.1-v5",
+  "packages": [
+    {
+      "name": "@ricky0123/vad-web",
+      "version": "0.0.31",
+      "license": "ISC",
+      "sourceSha": "de9b3ff83fd44cd7a2b3e07e9454e6b6f0bc249d"
+    },
+    {
+      "name": "onnxruntime-web",
+      "version": "1.31.1",
+      "license": "MIT",
+      "sourceSha": "6af1a932e2286d5c58166085d24c68783033edee"
+    }
+  ],
+  "model": {
+    "name": "Silero VAD",
+    "version": "5.1.2",
+    "license": "MIT",
+    "sourceSha": "6478567951ae5c9979ad7b234185b5515f4be7a1",
+    "sourceUrl": "https://raw.githubusercontent.com/snakers4/silero-vad/6478567951ae5c9979ad7b234185b5515f4be7a1/src/silero_vad/data/silero_vad.onnx",
+    "sha256": "2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f"
+  },
+  "assets": [
+    {
+      "package": "@ricky0123/vad-web",
+      "path": "dist/vad.worklet.bundle.min.js",
+      "name": "vad.worklet.bundle.min.js",
+      "bytes": 2480,
+      "sha256": "8a48fdc7429948a2fde3d29a84bb1a64c1f67b4ba578ccaa7548b7f989f06a74"
+    },
+    {
+      "package": "@ricky0123/vad-web",
+      "path": "dist/silero_vad_v5.onnx",
+      "name": "silero_vad_v5.onnx",
+      "bytes": 2327524,
+      "sha256": "2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f"
+    },
+    {
+      "package": "onnxruntime-web",
+      "path": "dist/ort-wasm-simd-threaded.mjs",
+      "name": "ort-wasm-simd-threaded.mjs",
+      "bytes": 24738,
+      "sha256": "30ed0b5cd1182ede931fea448afb567d4dc705ec957af09f108a2be5f770dac3"
+    },
+    {
+      "package": "onnxruntime-web",
+      "path": "dist/ort-wasm-simd-threaded.wasm",
+      "name": "ort-wasm-simd-threaded.wasm",
+      "bytes": 14848852,
+      "sha256": "4b884c203b0fa48d057be3332c65513ff85aa3c5bddd6946acc0fab7ecda001d"
+    }
+  ],
+  "notices": [
+    {
+      "path": "third_party/reader-voice/ONNXRUNTIME-LICENSE.txt",
+      "name": "ONNXRUNTIME-LICENSE.txt",
+      "bytes": 1073,
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "path": "third_party/reader-voice/ONNXRUNTIME-ThirdPartyNotices.txt",
+      "name": "ONNXRUNTIME-ThirdPartyNotices.txt",
+      "bytes": 338088,
+      "sha256": "143764b952fdb1a7c69ce653bfba74a7744d6a8a573bfb73e235fba356c83de3"
+    },
+    {
+      "path": "third_party/reader-voice/SILERO-LICENSE.txt",
+      "name": "SILERO-LICENSE.txt",
+      "bytes": 1075,
+      "sha256": "2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b"
+    },
+    {
+      "path": "third_party/reader-voice/VAD-LICENSE.txt",
+      "name": "VAD-LICENSE.txt",
+      "bytes": 1896,
+      "sha256": "239ebca4207803d3507124517c0dd6324c0d5cf73e1c486ade16bac1788f4a79"
+    }
+  ]
+}
