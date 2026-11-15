@@ -250,6 +250,23 @@ test('refresh after an accepted evidence response is lost resumes the original c
   second.dispose();
 });
 
+test('a terminal render rejection releases recovery and never exposes the raw service payload', async () => {
+  const setup = harness(), original = vi.mocked(requestJson).getMockImplementation()!;
+  vi.mocked(requestJson).mockImplementation(async (path, options) => {
+    if (path.endsWith('/advance')) {
+      throw new ServiceError('{"code":"RENDER_FAILED"}', 422, { code: 'RENDER_FAILED' }, 'RENDER_FAILED');
+    }
+    return original(path, options);
+  });
+  const driver = learningSessionDriver(setup.options(setup.state));
+  await expect(driver.send('Explain the condition.', setup.tools, new AbortController().signal))
+    .rejects.toThrow('回答渲染失败，请重试。');
+  expect(setup.state.pending?.failed).toBe(true);
+  expect(driver.recoverable()).toBe(false);
+  expect(JSON.stringify(setup.cache())).not.toContain('render_failed');
+  driver.dispose();
+});
+
 test('local persistence failure and an old viewer stop before any model request', async () => {
   const setup = harness();
   const options = setup.options(setup.state);
