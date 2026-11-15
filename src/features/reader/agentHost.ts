@@ -436,8 +436,9 @@ export function createReaderAgentHost(document: ReaderDocument) {
       if (readerLearningContentExpired(state) || state.learning?.session?.status === 'deleted') return { messages: [], draft: '', running: false, recoverable: false, error: '这段学习记录已过期或删除。' };
       const pending = learningMode ? state.learning?.pending : state.job;
       const recoverable = Boolean(pending && !pending.aborted && !pending.delivered && (!('failed' in pending) || !pending.failed));
+      const retryable = Boolean(pending && !pending.aborted && !pending.delivered);
       return { ...state.snapshot, running: false, recoverable,
-        pendingRequest: recoverable && pending ? { message: pending.message, ...('action' in pending && pending.action ? { action: pending.action } : {}) } : undefined };
+        pendingRequest: retryable && pending ? { message: pending.message, ...('action' in pending && pending.action ? { action: pending.action } : {}) } : undefined };
     },
     save: (id, snapshot) => {
       if (id !== document.id) throw new Error('PDF 会话不匹配。');

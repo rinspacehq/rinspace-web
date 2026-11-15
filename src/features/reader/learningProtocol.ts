@@ -62,7 +62,7 @@ export function validateLearningResponse(value: LearningResponse, document: Read
   if (!uuid.test(op.operationId) || !uuid.test(op.questionId) || !positive(op.iteration, 32) ||
     !['prepared', 'unknown', 'continued', 'rendering', 'completed', 'failed', 'obsolete', 'deleted'].includes(op.state) ||
     op.parentOperationId && !uuid.test(op.parentOperationId) || (op.state === 'deleted') !== (s.status === 'deleted') ||
-    op.problem !== undefined && (op.state !== 'failed' || !['MODEL_REQUEST_EXPIRED', 'MODEL_OUTPUT_INVALID', 'MODEL_REQUEST_FAILED'].includes(op.problem))) invalidResponse();
+    op.problem !== undefined && (op.state !== 'failed' || !['MODEL_REQUEST_EXPIRED', 'MODEL_OUTPUT_INVALID', 'MODEL_REQUEST_FAILED', 'RENDER_FAILED'].includes(op.problem))) invalidResponse();
   if (op.commands) {
     if (op.state !== 'unknown' || !s.activeOperation || s.activeOperation !== op.operationId || !Array.isArray(op.commands) || op.commands.length > 32 || !reading) invalidResponse();
     const calls = new Set<string>();

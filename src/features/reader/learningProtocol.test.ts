@@ -50,6 +50,8 @@ test('a completed model call cannot masquerade as a published rendered lesson', 
   failed.session.status = 'ready'; failed.session.activeOperation = undefined;
   failed.operation!.state = 'failed'; failed.operation!.commands = undefined; failed.operation!.problem = 'MODEL_OUTPUT_INVALID';
   expect(validateLearningResponse(failed, document, sessionId).operation?.problem).toBe('MODEL_OUTPUT_INVALID');
+  failed.operation!.problem = 'RENDER_FAILED';
+  expect(validateLearningResponse(failed, document, sessionId).operation?.problem).toBe('RENDER_FAILED');
   failed.operation!.problem = 'ARBITRARY_DETAIL';
   expect(() => validateLearningResponse(failed, document, sessionId)).toThrow('学习会话数据无效');
 });
