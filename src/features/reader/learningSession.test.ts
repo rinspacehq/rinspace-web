@@ -267,6 +267,29 @@ test('a terminal render rejection releases recovery and never exposes the raw se
   driver.dispose();
 });
 
+test('a recorded render failure releases the session and the same question can be retried', async () => {
+  const setup = harness(), original = vi.mocked(requestJson).getMockImplementation()!;
+  let failRender = true;
+  vi.mocked(requestJson).mockImplementation(async (path, options) => {
+    if (path.endsWith('/advance') && (options?.body as { operationId?: string })?.operationId === childId && failRender) {
+      failRender = false;
+      const completed = await original(path, options) as LearningResponse;
+      return { ...completed, operation: { operationId: childId, questionId: parentId, parentOperationId: parentId,
+        iteration: 2, state: 'failed', problem: 'RENDER_FAILED' } } as never;
+    }
+    return original(path, options);
+  });
+  const driver = learningSessionDriver(setup.options(setup.state));
+  await expect(driver.send('Introduce this book.', setup.tools, new AbortController().signal)).rejects.toThrow('lost evidence acknowledgement');
+  await expect(driver.send('Introduce this book.', setup.tools, new AbortController().signal)).rejects.toThrow('回答渲染失败，请重试。');
+  expect(setup.state.session).toMatchObject({ status: 'ready' });
+  expect(setup.state.session?.activeOperation).toBeUndefined();
+  expect(setup.state.pending?.failed).toBe(true);
+  await expect(driver.send('Introduce this book.', setup.tools, new AbortController().signal)).resolves.toMatchObject({ lesson: { operationId: childId } });
+  expect(setup.questionKeys).toHaveLength(2);
+  driver.dispose();
+});
+
 test('local persistence failure and an old viewer stop before any model request', async () => {
   const setup = harness();
   const options = setup.options(setup.state);
