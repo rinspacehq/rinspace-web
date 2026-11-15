@@ -24,7 +24,20 @@ export type LearningState = { openingRequestId: string; session?: LearningSessio
 
 type Options = { document: ReaderDocument; accountId: string; state: LearningState; assertActive(): void; persist(): Promise<void>; available(): boolean;
   reload?(): Promise<LearningState | undefined> };
-const failureMessages: Record<string, string> = { MODEL_REQUEST_EXPIRED: '上次请求未发送成功，请重新提问。', MODEL_OUTPUT_INVALID: '这次回答未通过校验，请重试。', MODEL_REQUEST_FAILED: '模型请求失败，请重试。' };
+const failureMessages: Record<string, string> = {
+  MODEL_REQUEST_EXPIRED: '上次请求未发送成功，请重新提问。',
+  MODEL_OUTPUT_INVALID: '这次回答未通过校验，请重试。',
+  MODEL_REQUEST_FAILED: '模型请求失败，请重试。',
+  RENDER_FAILED: '回答渲染失败，请重试。',
+};
+
+function terminalLearningError(error: unknown): error is ServiceError {
+  return error instanceof ServiceError && [400, 403, 413, 422].includes(error.status);
+}
+
+function learningFailureMessage(error: ServiceError) {
+  return failureMessages[error.code] || '本次学习请求失败，请重试。';
+}
 
 export type LearningVoiceInput = { signal: AbortSignal; transcribe(id: string, pcm: Uint8Array): Promise<string>; cancel(): Promise<void>; release(): Promise<void> };
 export type LearningVoicePlayback = { signal: AbortSignal; start(source: NarrationSource, regenerate: boolean): Promise<PlaybackScope>;
@@ -438,7 +451,7 @@ export function learningSessionDriver(options: Options) {
               } catch (error) {
                 // An explicit rejection at preparation created no operation.
                 // Preserve uncertain network failures for original-key replay.
-                if (error instanceof ServiceError && [400,403,413,422].includes(error.status)) { pending.failed = true; await persist(); }
+                if (terminalLearningError(error)) { pending.failed = true; await persist(); }
                 if (error instanceof ServiceError && error.code === 'CHECK_HINT_UNAVAILABLE') {
                   if (pending.action) state.exhaustedHints = [...new Set([...(state.exhaustedHints || []), pending.action.checkId])];
                   await persist(); throw new Error('这道题没有更多已保存的提示。');
@@ -458,7 +471,18 @@ export function learningSessionDriver(options: Options) {
                 if (!response.operation) throw new Error('原文读取结果未完成登记。');
                 pending.operationId = response.operation.operationId; pending.evidence = undefined; pending.advanceCommandId = crypto.randomUUID(); await persist();
               }
-              response = await api(`sessions/${state.session!.sessionId}/advance`, { ...command(), commandId: pending.advanceCommandId, operationId: pending.operationId }, signal);
+              try {
+                response = await api(`sessions/${state.session!.sessionId}/advance`, { ...command(), commandId: pending.advanceCommandId, operationId: pending.operationId }, signal);
+              } catch (error) {
+                // An explicit terminal response is not resumable with the same
+                // command. Mark it failed so New conversation remains usable;
+                // uncertain transport and server failures retain replay state.
+                if (terminalLearningError(error)) {
+                  pending.failed = true; await persist();
+                  throw new Error(learningFailureMessage(error));
+                }
+                throw error;
+              }
               guard(); await take(response);
               const op: LearningOperation | undefined = response.operation;
               if (!op) throw new Error('学习任务状态无效。');
