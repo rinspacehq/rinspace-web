@@ -324,8 +324,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
     canHint: (id, checkId) => id === document.id && learningMode && !state.learning?.exhaustedHints?.includes(checkId),
     canStartConversation: id => Boolean(navigator.locks) && id === document.id && session.status === 'authenticated' && Boolean(session.accountId) &&
       validLearningConfig(learningConfig) && !changingConversation && !state.deleting && !state.learning?.deleteRequest && !state.snapshot?.running &&
-      !(state.job && !state.job.aborted && !state.job.delivered) &&
-      !(state.learning?.pending && !state.learning.pending.aborted && !state.learning.pending.delivered && !state.learning.pending.failed) && !state.learning?.stopRequest,
+      !(state.job && !state.job.aborted && !state.job.delivered),
     history: id => id === document.id && session.accountId ? structuredClone((state.history || []).filter(item => !readerLearningHistoryExpired(item))) : [],
     readHistory: async (id, conversationId) => {
       const account = session.accountId; const current = identityEpoch, version = state.conversationId;
@@ -344,6 +343,15 @@ export function createReaderAgentHost(document: ReaderDocument) {
       const assertAccount = () => {
         if (disposed || identityEpoch !== current || session.accountId !== account) throw new Error('账号或 PDF 已切换。');
       };
+      // A restored tab has no live request to expose as a Stop button, but its
+      // durable operation may still be unresolved.  Stop that exact operation
+      // before archiving it so New conversation never becomes a dead end and
+      // never abandons a potentially billable server task.
+      if (learningMode && state.learning && (state.learning.stopRequest ||
+        state.learning.pending && !state.learning.pending.aborted && !state.learning.pending.delivered && !state.learning.pending.failed)) {
+        await getLearningDriver(account).stop();
+        assertAccount();
+      }
       changingConversation = true;
       try {
         await withConversationLock(account, async () => {
