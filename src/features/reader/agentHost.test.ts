@@ -304,6 +304,48 @@ test('explicit new conversation preserves old paid history and draft without dis
   });
 });
 
+test('explicit new conversation stops a restored unresolved learning task before archiving it', async () => {
+  await withConversationLocks(async () => {
+    const sessionId = '20000000-0000-4000-8000-000000000044';
+    let revision = 5, fence = 3, controllerId = '30000000-0000-4000-8000-000000000044', status = 'working';
+    const frame = () => ({ eventSequence: revision, replayed: false,
+      session: { sessionId, documentId: document.id, documentVersion: document.contentVersion, profileDigest: 'c'.repeat(64), revision, generation: 1, mediaEpoch: 1,
+        status, activeOperation: status === 'working' ? '40000000-0000-4000-8000-000000000044' : undefined,
+        controller: { controllerId, fence, expiresAt: '2099-01-01T00:00:00Z' } },
+      readingContext: { documentVersion: document.contentVersion, profileDigest: 'c'.repeat(64), maxPages: 24, maxChars: 80000 } });
+    records.set(learningRecordKey(), { conversationId: 'restored-unresolved', activityAt: Date.now(),
+      snapshot: { messages: [{ role: 'user', text: 'Unresolved question' }], draft: 'New question', running: true },
+      learning: { openingRequestId: '50000000-0000-4000-8000-000000000044', session: frame().session,
+        readingContext: frame().readingContext, pending: { commandId: '60000000-0000-4000-8000-000000000044', message: 'Unresolved question',
+          advanceCommandId: '70000000-0000-4000-8000-000000000044', operationId: '40000000-0000-4000-8000-000000000044', pages: [],
+          source: { documentVersion: document.contentVersion, documentTitle: document.title, pageCount: 3, currentPage: 1 } } } });
+    const stops: unknown[] = [];
+    vi.mocked(requestJson).mockImplementation(async (path, options) => {
+      if (path.endsWith('/test-mode')) return { enabled: false } as never;
+      if (path === 'reader/v1/learning/config') return { enabled: true, protocol: 'reader-learning/v1', profileDigest: 'c'.repeat(64), maxPages: 24, maxChars: 80000, maxIterations: 32 } as never;
+      if (path.endsWith(sessionId)) return frame() as never;
+      if (path.endsWith('/commands')) {
+        const body = options?.body as { kind: string; controllerId: string };
+        controllerId = body.controllerId;
+        if (body.kind === 'lease') { revision++; fence++; return frame() as never; }
+        if (body.kind === 'stop') { stops.push(structuredClone(body)); revision++; status = 'paused'; return frame() as never; }
+      }
+      throw new Error(`unexpected route: ${path}`);
+    });
+    const owner = createReaderAgentHost(document);
+    await vi.waitFor(() => expect(owner.host.session().accountId).toBe('reader-a'));
+    expect(owner.host.restore(document.id)).toMatchObject({ recoverable: true, running: false });
+    expect(owner.host.canStartConversation(document.id)).toBe(true);
+    await owner.host.newConversation(document.id);
+    expect(stops).toHaveLength(1);
+    expect(owner.host.restore(document.id)).toMatchObject({ messages: [], draft: '', running: false, recoverable: false });
+    expect(owner.host.history(document.id)).toMatchObject([{ title: 'Unresolved question', cloud: true }]);
+    const stored = records.get(learningRecordKey()) as { learning: { pending?: unknown } };
+    expect(stored.learning.pending).toBeUndefined();
+    owner.dispose();
+  });
+});
+
 test('does not archive an unresolved operation and leaves the old conversation intact if storage fails', async () => {
   await withConversationLocks(async () => {
     enableLearning();
