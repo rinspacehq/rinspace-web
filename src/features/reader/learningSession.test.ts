@@ -99,6 +99,49 @@ function harness() {
     failStop: () => { stopAckLost = true; }, conflictStop: () => { stopConflict = true; } };
 }
 
+test('an authoritative session refresh replaces a stale restored fence before leasing', async () => {
+  const setup = harness(), original = vi.mocked(requestJson).getMockImplementation()!;
+  setup.state.session = { sessionId, documentId: document.id, documentVersion: document.contentVersion, profileDigest: 'b'.repeat(64),
+    revision: 9, generation: 1, mediaEpoch: 1, status: 'ready',
+    controller: { controllerId: '71000000-0000-4000-8000-000000000005', fence: 9, expiresAt: '2099-01-01T00:00:00Z' } };
+  vi.mocked(requestJson).mockImplementation(async (path, options) => {
+    if (path.endsWith('/commands') && (options?.body as { kind?: string })?.kind === 'lease') {
+      expect((options?.body as { expectedRevision?: number }).expectedRevision).toBe(1);
+    }
+    return original(path, options);
+  });
+  const driver = learningSessionDriver(setup.options(setup.state));
+  await expect(driver.send('Explain.', setup.tools, new AbortController().signal)).rejects.toThrow('lost evidence acknowledgement');
+  expect(setup.state.session?.revision).toBe(2);
+  expect(setup.questionKeys).toHaveLength(1);
+  driver.dispose();
+});
+
+test('an expired controller fence renews once and replays the same advance intent', async () => {
+  const setup = harness(), original = vi.mocked(requestJson).getMockImplementation()!;
+  const advances: { commandId: string; fence: number }[] = [];
+  let fenced = false;
+  vi.mocked(requestJson).mockImplementation(async (path, options) => {
+    if (path.endsWith('/advance') && (options?.body as { operationId?: string })?.operationId === parentId) {
+      const body = options?.body as { commandId: string; fence: number };
+      advances.push({ commandId: body.commandId, fence: body.fence });
+      if (!fenced) {
+        fenced = true;
+        setup.state.session!.controller.expiresAt = '2000-01-01T00:00:00Z';
+        throw new ServiceError('fenced', 409, { code: 'CONTROLLER_FENCED' }, 'CONTROLLER_FENCED');
+      }
+    }
+    return original(path, options);
+  });
+  const driver = learningSessionDriver(setup.options(setup.state));
+  await expect(driver.send('Explain.', setup.tools, new AbortController().signal)).rejects.toThrow('lost evidence acknowledgement');
+  expect(advances).toHaveLength(2);
+  expect(advances[1].commandId).toBe(advances[0].commandId);
+  expect(setup.questionKeys).toHaveLength(1);
+  expect(driver.recoverable()).toBe(true);
+  driver.dispose();
+});
+
 test('voice retransmission keeps the original intent and never persists microphone data or dispatches a model', async () => {
   const setup = harness(), original = vi.mocked(requestJson).getMockImplementation()!;
   const bodies: string[] = [];

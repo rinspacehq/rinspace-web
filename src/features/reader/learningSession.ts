@@ -83,11 +83,11 @@ export function learningSessionDriver(options: Options) {
   const voice = voiceApi(document, active);
   const playbackApi = voicePlaybackApi(document, active);
   const persist = async () => { active(); await options.persist(); active(); };
-  const take = async (response: LearningResponse) => {
+  const take = async (response: LearningResponse, authoritative = false) => {
     active();
     const current = state.session;
-    if (current && (response.session.revision < current.revision || response.session.controller.fence < current.controller.fence)) return;
-    if (current && response.session.revision === current.revision && response.session.controller.fence === current.controller.fence &&
+    if (!authoritative && current && (response.session.revision < current.revision || response.session.controller.fence < current.controller.fence)) return;
+    if (!authoritative && current && response.session.revision === current.revision && response.session.controller.fence === current.controller.fence &&
       Date.parse(response.session.controller.expiresAt) < Date.parse(current.controller.expiresAt)) response.session.controller = current.controller;
     state.session = response.session; state.readingContext = response.readingContext;
     if (response.session.status === 'deleted') {
@@ -101,7 +101,7 @@ export function learningSessionDriver(options: Options) {
   const ensureSession = async (signal?: AbortSignal, allowDeleted = false) => {
     await take(state.session
       ? await api(`sessions/${state.session.sessionId}`, undefined, signal)
-      : await api('sessions', { requestId: state.openingRequestId, documentId: document.id, documentVersion: document.contentVersion }, signal));
+      : await api('sessions', { requestId: state.openingRequestId, documentId: document.id, documentVersion: document.contentVersion }, signal), Boolean(state.session));
     if (state.session!.status === 'deleted' && !allowDeleted) throw new Error('这段学习记录已删除。');
   };
   const lease = async (signal?: AbortSignal) => {
@@ -110,6 +110,17 @@ export function learningSessionDriver(options: Options) {
     learningCommand(state.session!, controllerId);
   };
   const command = () => learningCommand(state.session!, controllerId);
+  const withControllerRecovery = async <T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T> => {
+    try { return await operation(); }
+    catch (error) {
+      // A fenced command is rejected before its idempotency key commits. A
+      // backgrounded tab may therefore renew once and replay that exact intent.
+      // A live controller owned by another page still fails as CONTROLLER_BUSY.
+      if (!(error instanceof ServiceError) || error.code !== 'CONTROLLER_FENCED') throw error;
+      await ensureSession(signal); await lease(signal);
+      return operation();
+    }
+  };
   const underLock = async <T>(operation: () => Promise<T>): Promise<T> => {
     // The host's microphone and text loop may share THEIR existing controller;
     // a different driver/tab must still acquire the actual browser Web Lock.
@@ -447,7 +458,7 @@ export function learningSessionDriver(options: Options) {
             if (!pending.operationId) {
               let response: LearningResponse;
               try {
-                response = await api(`sessions/${state.session!.sessionId}/questions`, { ...command(), commandId: pending.commandId, question: pending.message, source: pending.source, ...(pending.action ? { action: pending.action } : {}) }, signal);
+                response = await withControllerRecovery(() => api(`sessions/${state.session!.sessionId}/questions`, { ...command(), commandId: pending.commandId, question: pending.message, source: pending.source, ...(pending.action ? { action: pending.action } : {}) }, signal), signal);
               } catch (error) {
                 // An explicit rejection at preparation created no operation.
                 // Preserve uncertain network failures for original-key replay.
@@ -466,13 +477,13 @@ export function learningSessionDriver(options: Options) {
               guard();
               let response: LearningResponse;
               if (pending.evidence) {
-                response = await api(`sessions/${state.session!.sessionId}/evidence`, { ...command(), ...pending.evidence }, signal);
+                response = await withControllerRecovery(() => api(`sessions/${state.session!.sessionId}/evidence`, { ...command(), ...pending.evidence! }, signal), signal);
                 guard(); await take(response);
                 if (!response.operation) throw new Error('原文读取结果未完成登记。');
                 pending.operationId = response.operation.operationId; pending.evidence = undefined; pending.advanceCommandId = crypto.randomUUID(); await persist();
               }
               try {
-                response = await api(`sessions/${state.session!.sessionId}/advance`, { ...command(), commandId: pending.advanceCommandId, operationId: pending.operationId }, signal);
+                response = await withControllerRecovery(() => api(`sessions/${state.session!.sessionId}/advance`, { ...command(), commandId: pending.advanceCommandId, operationId: pending.operationId }, signal), signal);
               } catch (error) {
                 // An explicit terminal response is not resumable with the same
                 // command. Mark it failed so New conversation remains usable;
