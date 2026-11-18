@@ -374,18 +374,53 @@ test('explicit new conversation stops a restored unresolved learning task before
   });
 });
 
-test('does not archive an unresolved operation and leaves the old conversation intact if storage fails', async () => {
+test.each([false, true])('new conversation settles a recoverable ordinary run before archiving (test mode: %s)', async testMode => {
+  await withConversationLocks(async () => {
+    const run = { id: '20000000-0000-4000-8000-000000000025', source: 'reader', projectId: document.id,
+      documentVersion: document.contentVersion, status: 'ABORTED', billing: { goodnessChargedSg: '0', pendingTurns: 0 } };
+    const account = testMode ? 'reader-test:anonymous' : 'reader-a';
+    if (testMode) vi.mocked(getCurrentAuthUser).mockResolvedValue(null);
+    vi.mocked(requestJson).mockImplementation(async path => {
+      if (path.endsWith('/test-mode')) return { enabled: testMode } as never;
+      if (path.endsWith('/config')) return { enabled: false } as never;
+      if (path === `reader/v1/agent/runs/${run.id}/abort` && !testMode) return run as never;
+      throw new Error(`unexpected route: ${path}`);
+    });
+    records.set(JSON.stringify([account, document.id, document.contentVersion]), {
+      snapshot: { messages: [{ role: 'user', text: 'Previous topic' }], draft: 'Failed question', running: false },
+      job: { requestId: 'original', message: 'Failed question', operationKey: 'original-key', step: 0,
+        readPages: [], messages: [], ...(testMode ? {} : { runId: run.id }) },
+    });
+    const owner = createReaderAgentHost(document);
+    try {
+      await vi.waitFor(() => expect(owner.host.session().accountId).toBe(account));
+      expect(owner.host.restore(document.id)).toMatchObject({ recoverable: true, pendingRequest: { message: 'Failed question' } });
+      expect(owner.host.canStartConversation(document.id)).toBe(true);
+      await owner.host.newConversation(document.id);
+      expect(owner.host.restore(document.id)).toMatchObject({ messages: [], draft: '', running: false, recoverable: false });
+      const [archived] = owner.host.history(document.id);
+      expect(await owner.host.readHistory(document.id, archived.id)).toMatchObject({ draft: 'Failed question', recoverable: false });
+      expect(vi.mocked(requestJson).mock.calls.map(([path]) => path).filter(path => path.includes('/agent/runs')))
+        .toEqual(testMode ? [] : [`reader/v1/agent/runs/${run.id}/abort`]);
+    } finally { owner.dispose(); }
+  });
+});
+
+test('leaves the old conversation intact if an abort or storage write is unconfirmed', async () => {
   await withConversationLocks(async () => {
     enableLearning();
     const key = JSON.stringify(['reader-a', document.id, document.contentVersion]);
     const previous = { snapshot: { messages: [{ role: 'user', text: 'Retained question' }], draft: 'Retained draft', running: false },
-      job: { requestId: 'original', message: 'Retained question', operationKey: 'original-key', step: 0, readPages: [], messages: [] } };
+      job: { requestId: 'original', message: 'Retained question', operationKey: 'original-key', step: 0, readPages: [], messages: [],
+        runId: '20000000-0000-4000-8000-000000000026' } };
     records.set(key, previous);
     const owner = createReaderAgentHost(document);
     await vi.waitFor(() => expect(owner.host.session().accountId).toBe('reader-a'));
-    expect(owner.host.canStartConversation(document.id)).toBe(false);
-    await expect(owner.host.newConversation(document.id)).rejects.toThrow('恢复或停止');
+    expect(owner.host.canStartConversation(document.id)).toBe(true);
+    vi.mocked(requestJson).mockRejectedValueOnce(new Error('Synthetic lost abort confirmation'));
+    await expect(owner.host.newConversation(document.id)).rejects.toThrow('Synthetic lost abort confirmation');
     expect(records.get(key)).toEqual(previous);
+    expect(owner.host.restore(document.id)).toMatchObject({ recoverable: true, pendingRequest: { message: 'Retained question' } });
     owner.dispose();
     records.set(key, { snapshot: previous.snapshot });
     const second = createReaderAgentHost(document);
