@@ -8,6 +8,7 @@ import { publicAsset } from '@/app/config/env';
 import { chooseReaderPdf, identifyReaderFile, resolveReaderFile } from '@/features/reader/files';
 import { getReaderDocument, getReaderThumbnail, markReaderOpened, registerReaderDocument, saveReaderProgress, saveReaderThumbnail } from '@/features/reader/storage';
 import { createReaderAgentHost } from '@/features/reader/agentHost';
+import { readReaderAnnotationEdits, saveReaderAnnotationEdit } from '@/features/reader/annotations';
 import type { ReaderDocument, ReaderProgress } from '@/features/reader/types';
 import '@/features/reader/reader.css';
 import readerRelease from '../../../contracts/reader/embedpdf-release.json';
@@ -24,6 +25,7 @@ export default function ReaderPdfPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const [annotationStatus, setAnnotationStatus] = useState<'saving' | 'saved' | 'error' | 'restoreError'>();
 
   const choose = useCallback(async () => {
     try {
@@ -64,6 +66,7 @@ export default function ReaderPdfPage() {
 
   useEffect(() => {
     if (!file || !document || !mount.current) return;
+    setAnnotationStatus(undefined);
     let disposed = false;
     let viewer: ReaderHandle | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -72,6 +75,8 @@ export default function ReaderPdfPage() {
     let conflict = false;
     let pending: ReaderProgress | undefined;
     const agent = createReaderAgentHost(document);
+    let annotationWrites = 0;
+    let annotationError = false;
     const persist = () => {
       if (!pending || conflict) return;
       const progress = pending; pending = undefined;
@@ -88,11 +93,35 @@ export default function ReaderPdfPage() {
       try {
         const moduleUrl = new URL(publicAsset(`/assets/reader/${readerRelease.version}/embedpdf.js`), location.origin).href;
         const pdf = await import(/* @vite-ignore */ moduleUrl) as typeof import('@rinspacehq/embedpdf-snippet/dist/reader');
-        const buffer = await file.arrayBuffer();
+        const [buffer, edits] = await Promise.all([
+          file.arrayBuffer(),
+          readReaderAnnotationEdits(document.contentVersion).catch(() => {
+            if (!disposed) setAnnotationStatus('restoreError');
+            return undefined;
+          }),
+        ]);
         if (disposed || !mount.current) return;
         const handle = await pdf.initReader({ target: mount.current,
           wasmUrl: new URL(publicAsset(`/assets/reader/${readerRelease.version}/pdfium.wasm`), location.origin).href,
           documentId: document.id, title: document.title, buffer, host: agent.host, view: document.progress,
+          annotations: edits && {
+            edits,
+            onRestoreError: () => {
+              annotationError = true;
+              if (!disposed) setAnnotationStatus('restoreError');
+            },
+            onEdit: edit => {
+              annotationWrites++;
+              if (!disposed && !annotationError) setAnnotationStatus('saving');
+              void saveReaderAnnotationEdit(document.contentVersion, edit).catch(() => {
+                annotationError = true;
+                if (!disposed) setAnnotationStatus('error');
+              }).finally(() => {
+                annotationWrites--;
+                if (!disposed && !annotationWrites && !annotationError) setAnnotationStatus('saved');
+              });
+            },
+          },
           locale: getI18n().resolvedLanguage?.startsWith('zh') ? 'zh-CN' : 'en',
           onOpenFile: () => { void choose(); }, onClose: () => navigate('/reader'),
           onViewChange: view => {
@@ -128,5 +157,12 @@ export default function ReaderPdfPage() {
     }}>{t('library.permission')}</Button>}
     <Link to="/reader">{t('library.back')}</Link>
   </main>;
-  return <main className="reader-viewer">{error && <div role="alert" className="reader-viewer-error">{error}</div>}<div ref={mount} /></main>;
+  const annotationFailed = annotationStatus === 'error' || annotationStatus === 'restoreError';
+  return <main className="reader-viewer">
+    {error ? <div role="alert" className="reader-viewer-error">{error}</div> : annotationStatus &&
+      <div role={annotationFailed ? 'alert' : 'status'} className={annotationFailed ? 'reader-viewer-error' : 'reader-annotation-status'}>
+        {t(`localAnnotations.${annotationStatus}`)}
+      </div>}
+    <div ref={mount} />
+  </main>;
 }

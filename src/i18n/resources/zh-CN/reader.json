@@ -986,9 +986,15 @@
     "error": "PDF 暂时无法打开，请重新加载。",
     "loading": "正在加载 PDF…"
   },
+  "localAnnotations": {
+    "saving": "正在保存批注…",
+    "saved": "批注已保存到此设备",
+    "error": "批注保存失败，请在关闭前下载 PDF 副本。",
+    "restoreError": "部分本地批注无法恢复。"
+  },
   "library": {
     "clear": "清除本地阅读记录",
-    "clearConfirm": "清除书架、进度、缩略图和本地琳会话？原 PDF 文件不会删除。",
+    "clearConfirm": "清除书架、进度、缩略图、批注和本地琳会话？原 PDF 文件不会删除。",
     "recent": "最近阅读",
     "shelf": "书架",
     "open": "打开 PDF",

@@ -23,6 +23,7 @@
 .reader-viewer { height: 100dvh; width: 100%; overflow: hidden; }
 .rin-app-shell[data-reader-pdf] > .topbar { display: none; }
 .reader-viewer-error { position: fixed; bottom: 12px; left: 12px; z-index: 1000; padding: 12px; border-radius: 6px; background: var(--rin-surface, #fff); color: var(--rin-danger, #a12828); }
+.reader-annotation-status { position: fixed; bottom: 12px; left: 12px; z-index: 1000; padding: 4px 8px; border-radius: 6px; background: var(--rin-surface, #fff); color: var(--rin-text, #404040); font-size: .75rem; pointer-events: none; }
 .reader-viewer > div, .reader-viewer embedpdf-container { display: block; height: 100%; width: 100%; }
 .reader-file-state { min-height: 80dvh; display: flex; flex-direction: column; gap: 18px; align-items: center; justify-content: center; padding: 24px; text-align: center; }
 @media (max-width: 600px) {

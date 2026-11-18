@@ -1,5 +1,6 @@
 import type { ReaderDocument, ReaderFileSelection, ReaderProgress, ReaderThumbnail } from './types';
 import { rememberReaderFile, clearReaderFiles } from './files';
+import { clearReaderAnnotationEdits } from './annotations';
 
 const DB_NAME = 'rinspace-local-reader';
 const DOCUMENTS = 'documents';
@@ -220,6 +221,7 @@ export async function writeReaderAgent(key: string, value: unknown, expected?: {
 }
 
 export async function clearReaderLocalData(): Promise<void> {
+  await clearReaderAnnotationEdits();
   const db = await openDatabase();
   const tx = db.transaction([DOCUMENTS, THUMBNAILS, AGENT], 'readwrite');
   const done = transactionDone(tx);
