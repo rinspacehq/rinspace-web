@@ -324,8 +324,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
     canHint: (id, checkId) => id === document.id && learningMode && !state.learning?.exhaustedHints?.includes(checkId),
     canStartConversation: id => Boolean(navigator.locks) && id === document.id &&
       (session.status === 'authenticated' || session.status === 'test') && Boolean(session.accountId) &&
-      !changingConversation && !state.deleting && !state.learning?.deleteRequest && !state.snapshot?.running &&
-      !(state.job && !state.job.aborted && !state.job.delivered),
+      !changingConversation && !state.deleting && !state.learning?.deleteRequest && !state.snapshot?.running,
     history: id => id === document.id && session.accountId ? structuredClone((state.history || []).filter(item => !readerLearningHistoryExpired(item))) : [],
     readHistory: async (id, conversationId) => {
       const account = session.accountId; const current = identityEpoch, version = state.conversationId;
@@ -369,10 +368,18 @@ export function createReaderAgentHost(document: ReaderDocument) {
         const stored = await readReaderAgent<State>(key);
         assertAccount();
         if (stored?.conversationId !== state.conversationId) throw new Error('另一个页面已切换对话，请刷新。');
-        if (stored?.snapshot?.running || stored?.job && !stored.job.aborted && !stored.job.delivered ||
+        if (stored?.snapshot?.running ||
           stored?.learning?.pending && !stored.learning.pending.aborted && !stored.learning.pending.delivered && !stored.learning.pending.failed || stored?.learning?.stopRequest) throw new Error('请先恢复或停止当前任务。');
         if (!learningMode && !test && await readReaderAgent<State>(learningKeyFor(account))) {
           throw new ReaderConversationChangedError('另一个页面已切换对话，请刷新。');
+        }
+        if (stored?.job && !stored.job.aborted && !stored.job.delivered) {
+          if (state.job?.requestId !== stored.job.requestId || state.job?.runId !== stored.job.runId) {
+            throw new ReaderConversationChangedError('另一个页面已切换对话，请刷新。');
+          }
+          await host.stop(id);
+          assertAccount();
+          if (!state.job.aborted) throw new Error('请先恢复或停止当前任务。');
         }
         const history = [...(state.history || [])];
         let archive: { id: string; value: Conversation } | undefined;
