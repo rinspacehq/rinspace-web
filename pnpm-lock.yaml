@@ -89,8 +89,8 @@ importers:
         specifier: 0.0.31
         version: 0.0.31
       '@rinspacehq/embedpdf-snippet':
-        specifier: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.9/rinspacehq-embedpdf-snippet-2.15.1-rinspace.9.tgz
-        version: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.9/rinspacehq-embedpdf-snippet-2.15.1-rinspace.9.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
+        specifier: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.10/rinspacehq-embedpdf-snippet-2.15.1-rinspace.10.tgz
+        version: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.10/rinspacehq-embedpdf-snippet-2.15.1-rinspace.10.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
       '@rinspacehq/markdown-writer':
         specifier: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz
         version: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz(@codemirror/commands@6.10.3)(@codemirror/lang-markdown@6.5.0)(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.43.1)(@lezer/highlight@1.2.3)(@milkdown/crepe@7.22.2(prosemirror-model@1.25.10)(prosemirror-state@1.4.4)(prosemirror-view@1.42.0)(typescript@5.9.3))(@milkdown/kit@7.22.2(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.43.1)(typescript@5.9.3))(katex@0.19.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1936,9 +1936,9 @@ packages:
   '@ricky0123/vad-web@0.0.31':
     resolution: {integrity: sha512-ePVq8TvB21sdHSxVMZOEIf9JVa7MAYpaIaNXeGgsPOiMCN8xbPCdF2LS5aYj7VRR3ZxzutedgV9ZplV65IA1Fg==}
 
-  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.9/rinspacehq-embedpdf-snippet-2.15.1-rinspace.9.tgz':
-    resolution: {integrity: sha512-SB/BFz+QKMEbro5tgxrDChxM/0q+9FIDtGDsuJoaHRTpG5XgKukjvajxoXxvgQscLl7cLFipPLVZgfYEe7wrNQ==, tarball: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.9/rinspacehq-embedpdf-snippet-2.15.1-rinspace.9.tgz}
-    version: 2.15.1-rinspace.9
+  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.10/rinspacehq-embedpdf-snippet-2.15.1-rinspace.10.tgz':
+    resolution: {integrity: sha512-ABb2hQwPEExoy45JVUkPHWZLsFsv1uFgnOCMGs7bw57bALgarNLUOPBV6o0s3fokApQFXLQWclyff6/eZz3VMA==, tarball: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.10/rinspacehq-embedpdf-snippet-2.15.1-rinspace.10.tgz}
+    version: 2.15.1-rinspace.10
 
   '@rinspacehq/markdown-writer@https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz':
     resolution: {integrity: sha512-0uqZQvj1pww4s7XReNxng+BXRJdO+Lq+VA6+32qmpoRGW/xAjJZjK5V9SOhr86VXSrU9K3v26Hessm9JtGnPzw==, tarball: https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz}
@@ -7259,7 +7259,7 @@ snapshots:
     dependencies:
       onnxruntime-web: 1.31.1
 
-  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.9/rinspacehq-embedpdf-snippet-2.15.1-rinspace.9.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))':
+  '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.10/rinspacehq-embedpdf-snippet-2.15.1-rinspace.10.tgz(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))':
     dependencies:
       '@embedpdf/core': 2.15.1(preact@10.29.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
       '@embedpdf/engines': 2.15.1(preact@10.29.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
@@ -7294,6 +7294,7 @@ snapshots:
       '@embedpdf/plugin-viewport': 2.15.1(@embedpdf/core@2.15.1(preact@10.29.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3)))(preact@10.29.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(svelte@5.57.3)(vue@3.5.39(typescript@5.9.3))
       '@embedpdf/plugin-zoom': 2.15.1(rx2s5uvtydiaelfdnegel7w6eu)
       dompurify: 3.3.1
+      katex: 0.19.0
       marked: 16.4.2
       preact: 10.29.8
       tailwind-merge: 3.7.0

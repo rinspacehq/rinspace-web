@@ -322,8 +322,9 @@ export function createReaderAgentHost(document: ReaderDocument) {
     conversationVersion: id => id === document.id ? `${state.conversationId || ''}:${readerLearningContentExpired(state) ? 'expired' : state.learning?.session?.status === 'deleted' ? 'deleted' : ''}` : undefined,
     readingContext: id => session.accountId && learningMode && id === document.id ? state.learning?.readingContext : undefined,
     canHint: (id, checkId) => id === document.id && learningMode && !state.learning?.exhaustedHints?.includes(checkId),
-    canStartConversation: id => Boolean(navigator.locks) && id === document.id && session.status === 'authenticated' && Boolean(session.accountId) &&
-      validLearningConfig(learningConfig) && !changingConversation && !state.deleting && !state.learning?.deleteRequest && !state.snapshot?.running &&
+    canStartConversation: id => Boolean(navigator.locks) && id === document.id &&
+      (session.status === 'authenticated' || session.status === 'test') && Boolean(session.accountId) &&
+      !changingConversation && !state.deleting && !state.learning?.deleteRequest && !state.snapshot?.running &&
       !(state.job && !state.job.aborted && !state.job.delivered),
     history: id => id === document.id && session.accountId ? structuredClone((state.history || []).filter(item => !readerLearningHistoryExpired(item))) : [],
     readHistory: async (id, conversationId) => {
@@ -339,9 +340,12 @@ export function createReaderAgentHost(document: ReaderDocument) {
     newConversation: async id => {
       if (!host.canStartConversation(id)) throw new Error('请先恢复或停止当前任务。');
       const account = session.accountId!;
+      const test = session.status === 'test';
       const current = identityEpoch;
       const assertAccount = () => {
-        if (disposed || identityEpoch !== current || session.accountId !== account) throw new Error('账号或 PDF 已切换。');
+        if (disposed || identityEpoch !== current || session.accountId !== account || (session.status === 'test') !== test) {
+          throw new Error('账号或 PDF 已切换。');
+        }
       };
       // A restored tab has no live request to expose as a Stop button, but its
       // durable operation may still be unresolved.  Stop that exact operation
@@ -356,15 +360,20 @@ export function createReaderAgentHost(document: ReaderDocument) {
       try {
         await withConversationLock(account, async () => {
         await flush(); assertAccount();
-        if ((await getCurrentAuthUser())?.id !== account) throw new Error('账号已切换。');
+        const nativeId = (await getCurrentAuthUser())?.id;
+        if ((test ? `reader-test:${nativeId || 'anonymous'}` : nativeId) !== account) throw new Error('账号已切换。');
         assertAccount();
-        const key = keyFor(account), targetKey = learningKeyFor(account);
+        const key = keyFor(account);
+        const nextLearning = learningMode || !test && validLearningConfig(learningConfig);
+        const targetKey = nextLearning ? learningKeyFor(account) : key;
         const stored = await readReaderAgent<State>(key);
         assertAccount();
         if (stored?.conversationId !== state.conversationId) throw new Error('另一个页面已切换对话，请刷新。');
         if (stored?.snapshot?.running || stored?.job && !stored.job.aborted && !stored.job.delivered ||
           stored?.learning?.pending && !stored.learning.pending.aborted && !stored.learning.pending.delivered && !stored.learning.pending.failed || stored?.learning?.stopRequest) throw new Error('请先恢复或停止当前任务。');
-        if (!learningMode && await readReaderAgent<State>(targetKey)) throw new ReaderConversationChangedError('另一个页面已切换对话，请刷新。');
+        if (!learningMode && !test && await readReaderAgent<State>(learningKeyFor(account))) {
+          throw new ReaderConversationChangedError('另一个页面已切换对话，请刷新。');
+        }
         const history = [...(state.history || [])];
         let archive: { id: string; value: Conversation } | undefined;
         if (state.learning?.session?.status !== 'deleted' && (state.snapshot?.messages.length || state.snapshot?.draft || state.learning?.session || state.learning?.pending || state.job)) {
@@ -375,14 +384,14 @@ export function createReaderAgentHost(document: ReaderDocument) {
             title: previous.snapshot?.messages.find(message => message.role === 'user')?.text.slice(0, 60) || '对话记录' });
         }
         const next: State = { conversationId: crypto.randomUUID(), createdAt: new Date().toISOString(), activityAt: Date.now(), history,
-          snapshot: { messages: [], draft: '', running: false }, learning: { openingRequestId: crypto.randomUUID() } };
-        await writeReaderAgent(targetKey, next, { conversationId: learningMode ? state.conversationId : undefined }, archive);
+          snapshot: { messages: [], draft: '', running: false },
+          ...(nextLearning ? { learning: { openingRequestId: crypto.randomUUID() } } : {}) };
+        await writeReaderAgent(targetKey, next, { conversationId: key === targetKey ? state.conversationId : undefined }, archive);
         assertAccount();
         disposeExecution();
-        state = next; learningMode = true; storageError = undefined;
-        notify();
+        state = next; learningMode = nextLearning; storageError = undefined;
         });
-      } finally { changingConversation = false; }
+      } finally { changingConversation = false; notify(); }
     },
     canDeleteConversation: (id, conversationId) => Boolean(navigator.locks) && learningMode && id === document.id && session.status === 'authenticated' && Boolean(session.accountId) &&
       !changingConversation && !state.snapshot?.running &&

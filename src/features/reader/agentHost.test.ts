@@ -238,6 +238,34 @@ function enableLearning() {
     : { enabled: false } as never);
 }
 
+test.each([
+  ['ordinary native', false, 'reader-a', 'authenticated'],
+  ['signed-in test', true, 'reader-a', 'test'],
+  ['anonymous test', true, null, 'test'],
+] as const)('%s can start a fresh local conversation with teaching disabled', async (_label, testMode, nativeId, status) => {
+  await withConversationLocks(async () => {
+    const account = testMode ? `reader-test:${nativeId || 'anonymous'}` : nativeId;
+    vi.mocked(getCurrentAuthUser).mockResolvedValue(nativeId ? { id: nativeId } as Awaited<ReturnType<typeof getCurrentAuthUser>> : null);
+    vi.mocked(requestJson).mockImplementation(async path => ({ enabled: path.endsWith('/test-mode') && testMode }) as never);
+    const key = JSON.stringify([account, document.id, document.contentVersion]);
+    records.set(key, { snapshot: { messages: [{ role: 'user', text: 'Previous topic' }], draft: 'Saved draft', running: false } });
+    const owner = createReaderAgentHost(document);
+    try {
+      await vi.waitFor(() => expect(owner.host.session().status).toBe(status));
+      expect(owner.host.canStartConversation(document.id)).toBe(true);
+      await owner.host.newConversation(document.id);
+      expect(owner.host.restore(document.id)).toMatchObject({ messages: [], draft: '', running: false });
+      const [archived] = owner.host.history(document.id);
+      expect(archived).toMatchObject({ title: 'Previous topic', cloud: false });
+      expect(await owner.host.readHistory(document.id, archived.id)).toMatchObject({ draft: 'Saved draft' });
+      expect(records.get(key)).not.toHaveProperty('learning');
+      expect(vi.mocked(requestJson).mock.calls.every(([path]) => path.endsWith('/config') || path.endsWith('/test-mode'))).toBe(true);
+    } finally {
+      owner.dispose();
+    }
+  });
+});
+
 async function withVoiceSupport(run: () => Promise<void>) {
   const audio = Object.getOwnPropertyDescriptor(globalThis, 'AudioContext');
   const worklet = Object.getOwnPropertyDescriptor(globalThis, 'AudioWorkletNode');

@@ -986,9 +986,15 @@
     "error": "The PDF cannot be opened right now. Please reload.",
     "loading": "Loading PDF…"
   },
+  "localAnnotations": {
+    "saving": "Saving annotations…",
+    "saved": "Annotations saved on this device",
+    "error": "Annotations could not be saved. Download a PDF copy before closing.",
+    "restoreError": "Some local annotations could not be restored."
+  },
   "library": {
     "clear": "Clear local reading data",
-    "clearConfirm": "Clear your shelf, progress, thumbnails and local Rin sessions? Original PDF files will remain.",
+    "clearConfirm": "Clear your shelf, progress, thumbnails, annotations and local Rin sessions? Original PDF files will remain.",
     "recent": "Recently read",
     "shelf": "Bookshelf",
     "open": "Open PDF",
