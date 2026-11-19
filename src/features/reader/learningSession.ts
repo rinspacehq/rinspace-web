@@ -22,7 +22,7 @@ export type LearningState = { openingRequestId: string; session?: LearningSessio
   deleteRequest?: { commandId: string; documentVersion: string; expectedRevision: number };
   evidencePages?: Record<string, number>; exhaustedHints?: string[] };
 
-type Options = { document: ReaderDocument; accountId: string; state: LearningState; assertActive(): void; persist(): Promise<void>; available(): boolean;
+type Options = { document: ReaderDocument; accountId: string; testSessionId?: string; state: LearningState; assertActive(): void; persist(): Promise<void>; available(): boolean;
   reload?(): Promise<LearningState | undefined> };
 const failureMessages: Record<string, string> = {
   MODEL_REQUEST_EXPIRED: '上次请求未发送成功，请重新提问。',
@@ -79,9 +79,9 @@ export function learningSessionDriver(options: Options) {
   // under an exclusive Web Lock so refresh can renew its existing lease.
   let controllerId: string = crypto.randomUUID();
   const active = () => { if (disposed) throw new Error('阅读会话已关闭。'); options.assertActive(); };
-  const api = learningApi(document, active);
-  const voice = voiceApi(document, active);
-  const playbackApi = voicePlaybackApi(document, active);
+  const api = learningApi(document, active, options.testSessionId);
+  const voice = voiceApi(document, active, options.testSessionId);
+  const playbackApi = voicePlaybackApi(document, active, options.testSessionId);
   const persist = async () => { active(); await options.persist(); active(); };
   const take = async (response: LearningResponse, authoritative = false) => {
     active();
@@ -152,7 +152,7 @@ export function learningSessionDriver(options: Options) {
 
   const releaseTranscript = async () => {
     if (!state.voiceConsumption) return;
-    await takeVoice(await consumeVoiceTranscript(document, state.voiceConsumption, active));
+    await takeVoice(await consumeVoiceTranscript(document, state.voiceConsumption, active, options.testSessionId));
     state.voiceConsumption = undefined; await persist();
   };
   const flushPlaybackAcks = async () => {

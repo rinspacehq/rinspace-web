@@ -1,5 +1,5 @@
 import { requestJson } from '@/services/httpClient';
-import { LEARNING_ROOT, validateLearningResponse, type LearningCommand, type LearningSession } from './learningProtocol';
+import { LEARNING_ROOT, learningAuthorization, validateLearningResponse, type LearningCommand, type LearningSession } from './learningProtocol';
 import type { ReaderDocument } from './types';
 import { MAX_TTS_GENERATED_SAMPLES, type VoiceStart } from './voiceProtocol';
 
@@ -38,7 +38,7 @@ type PlaybackStart = LearningCommand & { playbackId: string; voiceOperationId: s
 type PlaybackPoll = LearningCommand & { after: number };
 type PlaybackAck = { documentVersion: string; receivedSamples: number; playedSamples: number };
 
-export function voicePlaybackApi(document: ReaderDocument, active: () => void) {
+export function voicePlaybackApi(document: ReaderDocument, active: () => void, testSessionId?: string) {
   return async (scope: PlaybackScope, action: 'prepare' | 'poll' | 'ack', body: PlaybackStart | PlaybackPoll | PlaybackAck, signal: AbortSignal, after: number): Promise<VoicePlaybackResult> => {
     active(); signal.throwIfAborted();
     if (!uuid.test(scope.playbackId) || !uuid.test(scope.voiceOperationId) || !uuid.test(scope.sessionId) || body.documentVersion !== document.contentVersion ||
@@ -46,7 +46,7 @@ export function voicePlaybackApi(document: ReaderDocument, active: () => void) {
       action === 'poll' && (!('after' in body) || body.after !== after) ||
       action === 'ack' && (!('receivedSamples' in body) || !natural(body.receivedSamples, MAX_TTS_GENERATED_SAMPLES) || !natural(body.playedSamples, body.receivedSamples))) invalid();
     const path = `${LEARNING_ROOT}/sessions/${scope.sessionId}/voice/playbacks${action === 'prepare' ? '' : `/${scope.playbackId}/${action}`}`;
-    const result = await requestJson<VoicePlaybackResult>(path, { auth: 'required', method: 'POST', body, signal });
+    const result = await requestJson<VoicePlaybackResult>(path, { ...learningAuthorization(testSessionId), method: 'POST', body, signal });
     active(); signal.throwIfAborted();
     return validateVoicePlayback(result, document, scope, after, action !== 'poll');
   };

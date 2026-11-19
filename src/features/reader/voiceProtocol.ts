@@ -1,5 +1,5 @@
 import { requestJson } from '@/services/httpClient';
-import { LEARNING_ROOT, validateLearningResponse, type LearningCommand, type LearningSession } from './learningProtocol';
+import { LEARNING_ROOT, learningAuthorization, validateLearningResponse, type LearningCommand, type LearningSession } from './learningProtocol';
 import type { ReaderDocument } from './types';
 
 export type VoiceScope = { operationId: string; sessionId: string; generation: number; mediaEpoch: number; kind: 'stt' | 'tts' };
@@ -57,24 +57,24 @@ export function voicePCMBase64(pcm: Uint8Array): string {
   return btoa(binary);
 }
 
-export function voiceApi(document: ReaderDocument, active: () => void) {
+export function voiceApi(document: ReaderDocument, active: () => void, testSessionId?: string) {
   return async (scope: VoiceScope, body: VoiceStart | LearningCommand & { after: number }, signal: AbortSignal, after?: number, stopped = false) => {
     active(); signal.throwIfAborted();
     if (!uuid.test(scope.operationId) || !uuid.test(scope.sessionId)) invalid();
     if (body.documentVersion !== document.contentVersion || !uuid.test(body.controllerId) || !nonnegative(body.fence) || body.fence < 1 || !nonnegative(body.expectedRevision) || body.expectedRevision < 1 ||
       after === undefined && (!('operationId' in body) || body.operationId !== scope.operationId || body.generation !== scope.generation || body.mediaEpoch !== scope.mediaEpoch || body.kind !== scope.kind)) invalid();
     const path = `${LEARNING_ROOT}/sessions/${scope.sessionId}/voice/operations${after === undefined ? '' : `/${scope.operationId}/poll`}`;
-    const result = await requestJson<VoiceResult>(path, { auth: 'required', method: 'POST', body, signal });
+    const result = await requestJson<VoiceResult>(path, { ...learningAuthorization(testSessionId), method: 'POST', body, signal });
     active(); signal.throwIfAborted();
     return validateVoiceResult(result, document, scope, after || 0, stopped);
   };
 }
 
-export async function consumeVoiceTranscript(document: ReaderDocument, scope: VoiceScope, active: () => void): Promise<VoiceResult> {
+export async function consumeVoiceTranscript(document: ReaderDocument, scope: VoiceScope, active: () => void, testSessionId?: string): Promise<VoiceResult> {
   active();
   if (scope.kind !== 'stt' || !uuid.test(scope.sessionId) || !uuid.test(scope.operationId)) invalid();
   const result = await requestJson<VoiceResult>(`${LEARNING_ROOT}/sessions/${scope.sessionId}/voice/operations/${scope.operationId}/consume`, {
-    auth: 'required', method: 'POST', body: { documentVersion: document.contentVersion }, signal: AbortSignal.timeout(5000),
+    ...learningAuthorization(testSessionId), method: 'POST', body: { documentVersion: document.contentVersion }, signal: AbortSignal.timeout(5000),
   });
   active();
   const checked = validateVoiceResult(result, document, scope, 0, true);

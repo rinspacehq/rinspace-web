@@ -31,9 +31,26 @@ export type LearningSource = { documentVersion: string; documentTitle: string; p
     imageDigest?: string; confirmation?: 'user' }[] };
 
 export const LEARNING_ROOT = 'reader/v1/learning';
+const READER_TEST_HEADER = 'X-Rinspace-Reader-Test';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const digest = /^[0-9a-f]{64}$/;
 const positive = (value: number, limit = Number.MAX_SAFE_INTEGER) => Number.isSafeInteger(value) && value >= 1 && value <= limit;
+
+export async function openReaderTestLearning() {
+  const open = () => requestJson<LearningConfig & { testSessionId?: string }>(`${LEARNING_ROOT}/test-session`, {
+    auth: 'none', method: 'POST',
+  });
+  const config = await (navigator.locks ? navigator.locks.request('rinspace.reader.test-session', { mode: 'exclusive' }, open) : open());
+  const testSessionId = config?.testSessionId;
+  return testSessionId && digest.test(testSessionId) && validLearningConfig(config)
+    ? { ...config, testSessionId } : undefined;
+}
+
+export function learningAuthorization(testSessionId?: string) {
+  return testSessionId
+    ? { auth: 'none' as const, headers: { [READER_TEST_HEADER]: testSessionId } }
+    : { auth: 'required' as const };
+}
 
 /** Additive wire types keep the existing immutable Viewer package untouched.
  * The Viewer still validates final HTML/digests and owns rendering its panel. */
@@ -109,10 +126,10 @@ export function learningCommand(session: LearningSession, controllerId: string):
   return { documentVersion: session.documentVersion, controllerId, fence: session.controller.fence, expectedRevision: session.revision };
 }
 
-export function learningApi(document: ReaderDocument, assertActive: () => void) {
+export function learningApi(document: ReaderDocument, assertActive: () => void, testSessionId?: string) {
   return async (path: string, body?: unknown, signal?: AbortSignal, method?: 'DELETE'): Promise<LearningResponse> => {
     assertActive(); signal?.throwIfAborted();
-    const response = await requestJson<LearningResponse>(`${LEARNING_ROOT}/${path}`, { auth: 'required', method: method || (body === undefined ? 'GET' : 'POST'), body, signal });
+    const response = await requestJson<LearningResponse>(`${LEARNING_ROOT}/${path}`, { ...learningAuthorization(testSessionId), method: method || (body === undefined ? 'GET' : 'POST'), body, signal });
     assertActive(); signal?.throwIfAborted();
     const expectedSession = path.startsWith('sessions/') && !path.startsWith('sessions/recover') ? path.split('/')[1] : undefined;
     return validateLearningResponse(response, document, expectedSession);
