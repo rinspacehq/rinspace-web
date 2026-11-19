@@ -5,7 +5,7 @@ import { requestAuthDialog } from '@/utils/authDialog';
 import { readReaderAgent, readReaderConversation, writeReaderAgent, ReaderConversationChangedError, pruneExpiredReaderLearning, readerLearningContentExpired, readerLearningHistoryExpired } from './storage';
 import type { ReaderDocument } from './types';
 import { readerPresentation } from './presentation';
-import { LEARNING_ROOT, validLearningConfig, type LearningConfig, type LearningReadingContext, type LearningLesson, type LearningCheckAction } from './learningProtocol';
+import { LEARNING_ROOT, openReaderTestLearning, validLearningConfig, type LearningConfig, type LearningReadingContext, type LearningLesson, type LearningCheckAction } from './learningProtocol';
 import { learningSessionDriver, type LearningState } from './learningSession';
 import { readerVoiceSupported } from './voiceInput';
 import { createReaderVoiceSession, type ReaderVoiceSessionControls } from './voiceSession';
@@ -75,6 +75,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
   let queue: Promise<void> = Promise.resolve();
   let storageError: unknown;
   let learningMode = false;
+  let testSessionId: string | undefined;
   let learningConfig: LearningConfig = { enabled: false };
   let configOwner = '', configCheckedAt = 0;
   let learningDriver: ReturnType<typeof learningSessionDriver> | undefined;
@@ -140,6 +141,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
     if (storageError) throw new Error('无法保存本地会话，请释放浏览器存储空间后重试。');
   };
   const refresh = async (event?: Event) => {
+    if (event?.type === 'rinspace-session-changed' && session.status === 'test') return;
     const current = ++epoch;
     const previousSession = session;
     // Identity recovery can temporarily fail while the HttpOnly session is
@@ -150,65 +152,72 @@ export function createReaderAgentHost(document: ReaderDocument) {
       session = { status: 'loading' }; notify();
     }
     try {
-      const [user, testMode] = await Promise.all([
-        getCurrentAuthUser(),
-        requestJson<{ enabled: boolean }>(`${ROOT}/test-mode`, { auth: 'none' }).catch(() => ({ enabled: false })),
-      ]);
+      const testMode = await requestJson<{ enabled: boolean }>(`${ROOT}/test-mode`, { auth: 'none' }).catch(() => ({ enabled: false }));
+      // The guest capability needs no Native account or refreshed identity
+      // session. Retain the legacy test path for an older business service.
+      const guestConfig = testMode?.enabled ? await openReaderTestLearning().catch(() => undefined) : undefined;
+      const guest = guestConfig?.testSessionId;
+      const user = testMode?.enabled ? null : await getCurrentAuthUser();
       const nativeId = user?.id;
+      const learningAccount = guest ? `reader-test-learning:${guest}` : nativeId;
       if (user && !nativeId) throw new Error('登录身份尚未恢复。');
-      if (changingConversation && event?.type !== 'rinspace-session-changed' && nativeId === previousSession.accountId) return;
-      if (nativeId && (configOwner !== nativeId || Date.now() - configCheckedAt > 30000)) {
+      if (disposed || current !== epoch) return;
+      if (changingConversation && event?.type !== 'rinspace-session-changed' && learningAccount === previousSession.accountId) return;
+      if (guestConfig) {
+        learningConfig = guestConfig;
+        configOwner = learningAccount || ''; configCheckedAt = Date.now();
+      } else if (nativeId && (configOwner !== nativeId || Date.now() - configCheckedAt > 30000)) {
         learningConfig = await requestJson<LearningConfig>(`${LEARNING_ROOT}/config`, { auth: 'required' }).catch(error => {
           if (error instanceof ServiceError && error.status === 401) throw error;
           return { enabled: false };
         }) || { enabled: false };
         configOwner = nativeId; configCheckedAt = Date.now();
       }
-      const legacyAccount = testMode?.enabled ? `reader-test:${nativeId || 'anonymous'}` : nativeId;
-      if (nativeId && previousSession.accountId === nativeId && learningMode) await queue;
-      let nativeLearningState = nativeId ? await readReaderAgent<State>(learningKeyFor(nativeId)) : undefined;
-      if (nativeId && nativeLearningState) {
+      const legacyAccount = testMode?.enabled ? 'reader-test:anonymous' : nativeId;
+      if (learningAccount && previousSession.accountId === learningAccount && learningMode) await queue;
+      let previousLearningState = learningAccount ? await readReaderAgent<State>(learningKeyFor(learningAccount)) : undefined;
+      if (learningAccount && previousLearningState) {
         await queue;
-        if (await pruneExpiredReaderLearning(learningKeyFor(nativeId))) {
-          nativeLearningState = await readReaderAgent<State>(learningKeyFor(nativeId));
-          publishConversation(learningKeyFor(nativeId));
+        if (await pruneExpiredReaderLearning(learningKeyFor(learningAccount))) {
+          previousLearningState = await readReaderAgent<State>(learningKeyFor(learningAccount));
+          publishConversation(learningKeyFor(learningAccount));
         }
       }
       const nativeLegacyState = nativeId ? previousSession.accountId === nativeId && !learningMode ? state : await readReaderAgent<State>(legacyKeyFor(nativeId)) : undefined;
-      let nativeState = nativeLearningState || nativeLegacyState;
-      const legacyState = legacyAccount === previousSession.accountId ? state : legacyAccount === nativeId ? nativeState
+      let learningState = previousLearningState || nativeLegacyState;
+      const legacyState = legacyAccount === previousSession.accountId ? state : legacyAccount === nativeId ? learningState
         : legacyAccount ? await readReaderAgent<State>(legacyKeyFor(legacyAccount)) : undefined;
       const pending = (candidate?: State) => Boolean(candidate?.job && !candidate.job.aborted && !candidate.job.delivered);
       // Finish the original payer/protocol first. Existing paid-chat history is
       // retained on its original path; it is never silently presented as model
       // memory belonging to a new learning session.
-      const nativeLegacy = !nativeLearningState && (pending(nativeLegacyState) || Boolean(nativeLegacyState?.snapshot?.messages.length && !nativeLegacyState.learning));
-      const nextLearning = Boolean(nativeId && !nativeLegacy && (nativeLearningState || !pending(legacyState) && validLearningConfig(learningConfig)));
-      const accountId = nextLearning || nativeLegacy ? nativeId : legacyAccount;
-      const status: RinSession['status'] = nextLearning || nativeLegacy ? 'authenticated' : testMode?.enabled ? 'test' : nativeId ? 'authenticated' : 'anonymous';
+      const nativeLegacy = !previousLearningState && (pending(nativeLegacyState) || Boolean(nativeLegacyState?.snapshot?.messages.length && !nativeLegacyState.learning));
+      const nextLearning = Boolean(guest || nativeId && !nativeLegacy && (previousLearningState || !pending(legacyState) && validLearningConfig(learningConfig)));
+      const accountId = nextLearning ? learningAccount : nativeLegacy ? nativeId : legacyAccount;
+      const status: RinSession['status'] = guest ? 'test' : nextLearning || nativeLegacy ? 'authenticated' : testMode?.enabled ? 'test' : nativeId ? 'authenticated' : 'anonymous';
       if (disposed || current !== epoch) return;
-      if (nextLearning && nativeId && !nativeLearningState) {
+      if (nextLearning && learningAccount && !previousLearningState) {
         // The first learning record has its own versioned key. A legacy bundle
         // can continue saving old chat state, but cannot overwrite this root or
         // restore its deleted content. No IndexedDB schema upgrade is needed.
         const initial: State = { conversationId: crypto.randomUUID(), createdAt: new Date().toISOString(), activityAt: Date.now(),
           snapshot: { messages: [], draft: '', running: false }, learning: { openingRequestId: crypto.randomUUID() } };
         try {
-          await writeReaderAgent(learningKeyFor(nativeId), initial, { conversationId: undefined });
-          nativeState = initial;
+          await writeReaderAgent(learningKeyFor(learningAccount), initial, { conversationId: undefined });
+          learningState = initial;
         } catch (error) {
           if (!(error instanceof ReaderConversationChangedError)) throw error;
-          nativeState = await readReaderAgent<State>(learningKeyFor(nativeId));
-          if (!nativeState) throw error;
+          learningState = await readReaderAgent<State>(learningKeyFor(learningAccount));
+          if (!learningState) throw error;
         }
         if (disposed || current !== epoch) return;
       }
-      const nextState = accountId === nativeId ? nativeState : accountId === legacyAccount ? legacyState : undefined;
+      const nextState = accountId === learningAccount ? learningState : accountId === legacyAccount ? legacyState : undefined;
       if (accountId === previousSession.accountId && status === previousSession.status && nextLearning === learningMode && nextState?.conversationId === state.conversationId) {
-        if (nativeLearningState) state.history = nativeLearningState.history;
+        if (previousLearningState) state.history = previousLearningState.history;
         session = previousSession; notify(); return;
       }
-      disposeExecution(); learningMode = nextLearning;
+      disposeExecution(); learningMode = nextLearning; testSessionId = guest;
       session = { status: 'loading' }; state = {}; notify();
       if (disposed || current !== epoch) return;
       state = nextState || {};
@@ -237,7 +246,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
   const getLearningDriver = (account: string) => {
     if (!state.learning) throw new Error('学习会话尚未准备好。');
     const conversationId = state.conversationId;
-    learningDriver ||= learningSessionDriver({ document, accountId: account, state: state.learning,
+    learningDriver ||= learningSessionDriver({ document, accountId: account, testSessionId, state: state.learning,
       assertActive: () => {
         if (disposed || !learningMode || session.accountId !== account || state.conversationId !== conversationId) throw new Error('账号、PDF 或对话已切换。');
       },
@@ -277,7 +286,8 @@ export function createReaderAgentHost(document: ReaderDocument) {
     login: async () => { requestAuthDialog(); },
     voice: id => {
       const account = session.accountId;
-      if (id !== document.id || !account || !learningMode || !state.learning || session.status !== 'authenticated') return undefined;
+      if (id !== document.id || !account || !learningMode || !state.learning ||
+        session.status !== 'authenticated' && !testSessionId) return undefined;
       if (voiceController) return voiceController;
       if (!learningConfig.voiceEnabled || !readerVoiceSupported() || changingConversation || state.deleting || readerLearningContentExpired(state)) return undefined;
       const conversation = state.conversationId;
@@ -359,8 +369,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
       try {
         await withConversationLock(account, async () => {
         await flush(); assertAccount();
-        const nativeId = (await getCurrentAuthUser())?.id;
-        if ((test ? `reader-test:${nativeId || 'anonymous'}` : nativeId) !== account) throw new Error('账号已切换。');
+        if (!test && (await getCurrentAuthUser())?.id !== account) throw new Error('账号已切换。');
         assertAccount();
         const key = keyFor(account);
         const nextLearning = learningMode || !test && validLearningConfig(learningConfig);
@@ -400,7 +409,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
         });
       } finally { changingConversation = false; notify(); }
     },
-    canDeleteConversation: (id, conversationId) => Boolean(navigator.locks) && learningMode && id === document.id && session.status === 'authenticated' && Boolean(session.accountId) &&
+    canDeleteConversation: (id, conversationId) => Boolean(navigator.locks) && learningMode && id === document.id && (session.status === 'authenticated' || Boolean(testSessionId)) && Boolean(session.accountId) &&
       !changingConversation && !state.snapshot?.running &&
       (conversationId ? Boolean(state.history?.some(item => item.id === conversationId && item.cloud !== false)) :
         Boolean(state.deleting || state.learning?.session || state.learning?.pending || state.snapshot?.messages.length || state.snapshot?.draft) && !(state.job && !state.job.aborted && !state.job.delivered)),
@@ -414,7 +423,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
       try {
         await withConversationLock(account, async () => {
           await flush(); assertAccount();
-          if ((await getCurrentAuthUser())?.id !== account) throw new Error('账号已切换。');
+          if (!testSessionId && (await getCurrentAuthUser())?.id !== account) throw new Error('账号已切换。');
           assertAccount();
           const stored = await readReaderAgent<State>(key); assertAccount();
           if (stored?.conversationId !== state.conversationId) throw new Error('另一个页面已切换对话，请刷新。');
@@ -435,7 +444,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
           state = next; storageError = undefined;
           publishConversation(key); notify();
           if (target.learning) {
-            const driver = learningSessionDriver({ document, accountId: account, state: target.learning, assertActive: assertAccount,
+            const driver = learningSessionDriver({ document, accountId: account, testSessionId, state: target.learning, assertActive: assertAccount,
               available: () => false,
               persist: async () => {
                 assertAccount();
@@ -579,7 +588,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
       const account = session.accountId;
       const testMode = session.status === 'test';
       if (learningMode && account && id === document.id && state.learning) {
-        if ((await getCurrentAuthUser())?.id !== account) return;
+        if (!testSessionId && (await getCurrentAuthUser())?.id !== account) return;
         await voiceController?.cancelInput();
         await getLearningDriver(account).stop(); return;
       }

@@ -140,9 +140,9 @@ test('same-account focus refresh preserves an anonymous test conversation', asyn
   unsubscribe(); instance.dispose();
 });
 
-test('Native recovery failures never create an anonymous test identity', async () => {
+test('Native recovery failures do not create a guest when test mode is off', async () => {
   vi.mocked(getCurrentAuthUser).mockRejectedValue(new Error('temporary identity recovery failure'));
-  vi.mocked(requestJson).mockResolvedValue({ enabled: true, maxIterations: 8 } as never);
+  vi.mocked(requestJson).mockResolvedValue({ enabled: false, maxIterations: 8 } as never);
   const instance = createReaderAgentHost(document);
   await vi.waitFor(() => expect(getCurrentAuthUser).toHaveBeenCalled());
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -152,7 +152,7 @@ test('Native recovery failures never create an anonymous test identity', async (
   expect(vi.mocked(requestJson).mock.calls.every(([path]) => path.endsWith('/test-mode'))).toBe(true);
   vi.mocked(getCurrentAuthUser).mockResolvedValue({ id: 'reader-a' } as Awaited<ReturnType<typeof getCurrentAuthUser>>);
   window.dispatchEvent(new Event('online'));
-  await vi.waitFor(() => expect(instance.host.session()).toMatchObject({ status: 'test', accountId: 'reader-test:reader-a' }));
+  await vi.waitFor(() => expect(instance.host.session()).toMatchObject({ status: 'authenticated', accountId: 'reader-a' }));
   instance.dispose();
 });
 
@@ -165,6 +165,7 @@ test('account transition hides drafts while Native identity is still resolving',
   window.dispatchEvent(new Event('rinspace-session-changed'));
   expect(instance.host.session().status).toBe('loading');
   expect(instance.host.restore(document.id)).toBeUndefined();
+  await vi.waitFor(() => expect(resolveUser).toBeTypeOf('function'));
   resolveUser({ id: 'reader-b' } as Awaited<ReturnType<typeof getCurrentAuthUser>>);
   await vi.waitFor(() => expect(instance.host.session().accountId).toBe('reader-b'));
   expect(instance.host.restore(document.id)).toBeUndefined();
@@ -180,7 +181,7 @@ test('authorized learning uses the existing Native host and recovers its answer 
       status: running ? 'working' : 'ready', ...(running ? { activeOperation: operationId } : {}), controller: { controllerId, fence: controllerId ? 1 : 0, expiresAt: '2099-01-01T00:00:00Z' } },
     readingContext: { documentVersion: document.contentVersion, profileDigest: 'b'.repeat(64), maxPages: 24, maxChars: 80000 }, ...(operation ? { operation } : {}) });
   vi.mocked(requestJson).mockImplementation(async (path, options) => {
-    if (path.endsWith('/test-mode')) return { enabled: true, maxIterations: 8 } as never;
+    if (path.endsWith('/test-mode')) return { enabled: false, maxIterations: 8 } as never;
     if (path === 'reader/v1/learning/config') return { enabled, protocol: 'reader-learning/v1', profileDigest: 'b'.repeat(64), maxPages: 24, maxChars: 80000, maxIterations: 32 } as never;
     expect(path.startsWith('reader/v1/learning/')).toBe(true); expect(options?.auth).toBe('required');
     if (path.endsWith('/commands')) { controllerId = (options?.body as { controllerId: string }).controllerId; return frame() as never; }
@@ -244,7 +245,7 @@ test.each([
   ['anonymous test', true, null, 'test'],
 ] as const)('%s can start a fresh local conversation with teaching disabled', async (_label, testMode, nativeId, status) => {
   await withConversationLocks(async () => {
-    const account = testMode ? `reader-test:${nativeId || 'anonymous'}` : nativeId;
+    const account = testMode ? 'reader-test:anonymous' : nativeId;
     vi.mocked(getCurrentAuthUser).mockResolvedValue(nativeId ? { id: nativeId } as Awaited<ReturnType<typeof getCurrentAuthUser>> : null);
     vi.mocked(requestJson).mockImplementation(async path => ({ enabled: path.endsWith('/test-mode') && testMode }) as never);
     const key = JSON.stringify([account, document.id, document.contentVersion]);
@@ -259,7 +260,7 @@ test.each([
       expect(archived).toMatchObject({ title: 'Previous topic', cloud: false });
       expect(await owner.host.readHistory(document.id, archived.id)).toMatchObject({ draft: 'Saved draft' });
       expect(records.get(key)).not.toHaveProperty('learning');
-      expect(vi.mocked(requestJson).mock.calls.every(([path]) => path.endsWith('/config') || path.endsWith('/test-mode'))).toBe(true);
+      expect(vi.mocked(requestJson).mock.calls.every(([path]) => path.endsWith('/config') || path.endsWith('/test-mode') || path.endsWith('/test-session'))).toBe(true);
     } finally {
       owner.dispose();
     }
@@ -279,6 +280,36 @@ async function withVoiceSupport(run: () => Promise<void>) {
     if (media) Object.defineProperty(navigator, 'mediaDevices', media); else Reflect.deleteProperty(navigator, 'mediaDevices');
   }
 }
+
+test('test mode opens full learning and voice without consulting Native login', async () => {
+  await withConversationLocks(() => withVoiceSupport(async () => {
+    const guest = 'c'.repeat(64);
+    vi.mocked(getCurrentAuthUser).mockRejectedValue(new Error('Native must not be consulted'));
+    vi.mocked(requestJson).mockImplementation(async (path, options) => {
+      if (path.endsWith('/test-mode')) return { enabled: true } as never;
+      if (path.endsWith('/test-session')) {
+        expect(options).toMatchObject({ auth: 'none', method: 'POST' });
+        return { enabled: true, testSessionId: guest, protocol: 'reader-learning/v1', profileDigest: 'b'.repeat(64),
+          maxPages: 24, maxChars: 80000, maxIterations: 32, voiceEnabled: true } as never;
+      }
+      expect(path).toBe('reader/v1/learning/sessions');
+      expect(options).toMatchObject({ auth: 'none', headers: { 'X-Rinspace-Reader-Test': guest } });
+      throw new ServiceError('Synthetic transport check', 400, null);
+    });
+    const instance = createReaderAgentHost(document);
+    try {
+      await vi.waitFor(() => expect(instance.host.session()).toEqual({ status: 'test', accountId: `reader-test-learning:${guest}` }));
+      expect(instance.host.voice?.(document.id)).toBeDefined();
+      await instance.host.newConversation(document.id);
+      window.dispatchEvent(new Event('rinspace-session-changed'));
+      expect(instance.host.session().status).toBe('test');
+      const learningTools = { ...tools, readEvidence: vi.fn() };
+      await expect(instance.host.send({ documentId: document.id, message: 'Explain', tools: learningTools, signal: new AbortController().signal })).rejects.toThrow('Synthetic transport check');
+      expect(vi.mocked(requestJson).mock.calls.some(([path]) => path === 'reader/v1/learning/sessions')).toBe(true);
+      expect(getCurrentAuthUser).not.toHaveBeenCalled();
+    } finally { instance.dispose(); }
+  }));
+});
 
 test('a narration return point survives a host rebuild and an idle pre-input stop', async () => {
   await withConversationLocks(() => withVoiceSupport(async () => {
