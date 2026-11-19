@@ -24,6 +24,21 @@ test('a lost native release acknowledgement still returns the durable draft once
   expect(releaseTranscript).toHaveBeenCalledOnce();
 });
 
+test('returns the durable draft without waiting for native cleanup', async () => {
+  let finishRelease!: () => void;
+  const releaseTranscript = vi.fn(() => new Promise<void>(resolve => { finishRelease = resolve; }));
+  const commit = createVoiceTranscriptCommit({
+    currentDraft: () => '',
+    persistDraft: vi.fn(async () => {}),
+    releaseTranscript,
+    active: vi.fn(),
+  });
+
+  await expect(commit('向量空间')).resolves.toBe('向量空间');
+  expect(releaseTranscript).toHaveBeenCalledOnce();
+  finishRelease();
+});
+
 test('a failed local save retries the frozen draft before any native release', async () => {
   const persistDraft = vi.fn()
     .mockRejectedValueOnce(new Error('storage full'))

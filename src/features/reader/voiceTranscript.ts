@@ -36,8 +36,11 @@ export function createVoiceTranscriptCommit(options: VoiceTranscriptCommitOption
     const draft = pending.draft;
     pending = undefined;
     try {
-      await options.releaseTranscript();
-      options.active();
+      // Expose the already durable draft before the native release request
+      // finishes. dismissTranscript closes the review UI synchronously, while
+      // its remote cleanup can take seconds; awaiting it here left the message
+      // box empty during that whole interval and made Send look broken.
+      void options.releaseTranscript().then(() => options.active()).catch(() => {});
     } catch {
       // The Reader draft is already durable. The voice controller keeps the
       // original consume intent and exposes cleanupPending for its own
