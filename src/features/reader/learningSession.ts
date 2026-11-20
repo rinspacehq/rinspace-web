@@ -39,6 +39,12 @@ function learningFailureMessage(error: ServiceError) {
   return failureMessages[error.code] || '本次学习请求失败，请重试。';
 }
 
+const learningRunLimitMs = 60 * 60 * 1000;
+
+function retryableLearningTransport(error: unknown) {
+  return error instanceof ServiceError ? [502, 503, 504].includes(error.status) : error instanceof TypeError;
+}
+
 export type LearningVoiceInput = { signal: AbortSignal; transcribe(id: string, pcm: Uint8Array): Promise<string>; cancel(): Promise<void>; release(): Promise<void> };
 export type LearningVoicePlayback = { signal: AbortSignal; start(source: NarrationSource, regenerate: boolean): Promise<PlaybackScope>;
   poll(scope: PlaybackScope, after: number): Promise<VoicePlaybackResult>; acknowledge(scope: PlaybackScope, received: number, played: number): Promise<VoicePlaybackResult>; cancel(): Promise<void> };
@@ -386,6 +392,7 @@ export function learningSessionDriver(options: Options) {
       const sameAction = (value?: LearningCheckAction) => value?.kind === action?.kind && value?.checkId === action?.checkId;
       if (action && (!['attempt','challenge','hint','reveal','skip'].includes(action.kind) || !/^[a-z][a-z0-9-]{0,63}$/.test(action.checkId))) throw new Error('练习操作无效。');
       busy = true;
+      const deadline = Date.now() + learningRunLimitMs;
       const resuming = Boolean(state.pending && !state.pending.aborted && !state.pending.failed && !state.pending.delivered && state.pending.message === message && sameAction(state.pending.action));
       try {
         return await underLock(async () => {
@@ -475,6 +482,7 @@ export function learningSessionDriver(options: Options) {
             }
             for (;;) {
               guard();
+              if (Date.now() >= deadline) throw new Error('本次任务已持续一小时，请重试以继续恢复。');
               let response: LearningResponse;
               if (pending.evidence) {
                 response = await withControllerRecovery(() => api(`sessions/${state.session!.sessionId}/evidence`, { ...command(), ...pending.evidence! }, signal), signal);
@@ -491,6 +499,10 @@ export function learningSessionDriver(options: Options) {
                 if (terminalLearningError(error)) {
                   pending.failed = true; await persist();
                   throw new Error(learningFailureMessage(error));
+                }
+                if (retryableLearningTransport(error) && Date.now() < deadline) {
+                  await wait(signal, 1000);
+                  continue;
                 }
                 throw error;
               }

@@ -293,6 +293,30 @@ test('refresh after an accepted evidence response is lost resumes the original c
   second.dispose();
 });
 
+test('a transient advance disconnect automatically resumes the same operation', async () => {
+  const setup = harness();
+  const first = learningSessionDriver(setup.options(setup.state));
+  await expect(first.send('Explain the condition.', setup.tools, new AbortController().signal)).rejects.toThrow('lost evidence acknowledgement');
+  first.dispose();
+  const original = vi.mocked(requestJson).getMockImplementation()!;
+  let disconnected = true;
+  let childAdvances = 0;
+  vi.mocked(requestJson).mockImplementation(async (path, options) => {
+    if (path.endsWith('/advance') && (options?.body as { operationId?: string })?.operationId === childId) {
+      childAdvances++;
+      if (disconnected) { disconnected = false; throw new TypeError('synthetic edge disconnect'); }
+    }
+    return original(path, options);
+  });
+  const recovered = learningSessionDriver(setup.options(setup.cache()));
+  await expect(recovered.send('Explain the condition.', setup.tools, new AbortController().signal))
+    .resolves.toMatchObject({ lesson: { operationId: childId } });
+  expect(childAdvances).toBe(2);
+  expect(setup.questionKeys).toHaveLength(1);
+  expect(setup.evidenceKeys[0]).toBe(setup.evidenceKeys[1]);
+  recovered.dispose();
+});
+
 test('a terminal render rejection releases recovery and never exposes the raw service payload', async () => {
   const setup = harness(), original = vi.mocked(requestJson).getMockImplementation()!;
   vi.mocked(requestJson).mockImplementation(async (path, options) => {
