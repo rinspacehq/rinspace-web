@@ -1937,7 +1937,7 @@ packages:
     resolution: {integrity: sha512-ePVq8TvB21sdHSxVMZOEIf9JVa7MAYpaIaNXeGgsPOiMCN8xbPCdF2LS5aYj7VRR3ZxzutedgV9ZplV65IA1Fg==}
 
   '@rinspacehq/embedpdf-snippet@https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.11/rinspacehq-embedpdf-snippet-2.15.1-rinspace.11.tgz':
-    resolution: {tarball: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.11/rinspacehq-embedpdf-snippet-2.15.1-rinspace.11.tgz}
+    resolution: {integrity: sha512-yshx8qaka8U2C8FwxoezKuMI2jsbr95e3il5Hcjf6haIXqJOxpgvr8KRWaxtXg+mi/ZjGCltajDPOzCUHoySog==, tarball: https://github.com/rinspacehq/embed-pdf-viewer/releases/download/v2.15.1-rinspace.11/rinspacehq-embedpdf-snippet-2.15.1-rinspace.11.tgz}
     version: 2.15.1-rinspace.11
 
   '@rinspacehq/markdown-writer@https://github.com/rinspacehq/rinspace-editor-markdown/releases/download/v0.3.5/rinspacehq-markdown-writer-0.3.5.tgz':
