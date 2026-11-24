@@ -298,6 +298,7 @@
       "unliked": "Like removed."
     },
     "actions": {
+      "viewPdf": "View PDF",
       "interactions": "Content actions",
       "like": "Like",
       "save": "Save",

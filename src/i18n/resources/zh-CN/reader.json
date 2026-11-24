@@ -987,6 +987,7 @@
     "loading": "正在加载 PDF…"
   },
   "publicationPdf": {
+    "view": "查看 PDF",
     "unavailable": "此 PDF 当前无法访问。",
     "changed": "这份 PDF 已更新，请打开最新版本。",
     "reopen": "打开最新版本",

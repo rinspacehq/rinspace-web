@@ -292,7 +292,10 @@ export type BookReaderPageResponse = {
   };
 };
 
+export type PublicationPdfReference = { version: string; sha256: string };
+
 export type FeedItem = {
+  publicationPdf?: PublicationPdfReference;
   id: string;
   revisionId?: string;
   type: ContentType;
@@ -2055,6 +2058,7 @@ export type TagSummary = {
 };
 
 export type TagDetail = {
+  publicationPdf?: PublicationPdfReference;
   id: number;
   tagId: string;
   slug: string;
@@ -4165,6 +4169,12 @@ function compactItem(value: unknown): CompactItem | null {
   };
 }
 
+function publicationPdfReference(value: unknown): PublicationPdfReference | undefined {
+  if (!isRecord(value) || typeof value.version !== "string" || !/^v1-[a-f0-9]{64}$/.test(value.version)
+      || typeof value.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(value.sha256)) return undefined;
+  return { version: value.version, sha256: value.sha256 };
+}
+
 function feedItem(value: unknown): FeedItem | null {
   if (!isRecord(value) || !isContentType(value.type)) return null;
   if (
@@ -4191,6 +4201,7 @@ function feedItem(value: unknown): FeedItem | null {
   }
   const markdownSource = sourceFileInfo(value.markdownSource);
   return {
+    publicationPdf: publicationPdfReference(value.publicationPdf),
     id: value.id,
     revisionId:
       typeof value.revisionId === "string" ? value.revisionId : undefined,
@@ -4571,6 +4582,7 @@ export function homeFeedForSharedCache(feed: HomeFeed): HomeFeed {
       ...item,
       liked: false,
       collectionActive: false,
+      publicationPdf: undefined,
       reaction_summary: item.reaction_summary?.map((reaction) => ({
         ...reaction,
         is_active: false,
@@ -7306,6 +7318,7 @@ function tagDetail(value: unknown): TagDetail | null {
     sourceFileInfo(value.wikiSourceFile) ||
     sourceFileInfo(value.wiki_source_file);
   return {
+    publicationPdf: publicationPdfReference(value.publicationPdf),
     id: value.id,
     tagId: value.tag_id,
     slug: value.slug,
@@ -7692,14 +7705,15 @@ function writeCachedContentDetail(
   detail: PostDetail,
 ) {
   const cacheType = canonicalContentCacheType(type);
+  const snapshot = { ...detail, publicationPdf: undefined };
   writeCachedSnapshot(
     responseCacheKey(["content-detail", cacheType, slug]),
-    detail,
+    snapshot,
   );
   if (detail.slug && detail.slug !== slug) {
     writeCachedSnapshot(
       responseCacheKey(["content-detail", cacheType, detail.slug]),
-      detail,
+      snapshot,
     );
   }
 }

@@ -22,6 +22,7 @@ const reviewedBook: FeedItem = {
   tags: [],
   interactions: "4 人评分",
   heat: "",
+  publicationPdf: { version: "v1-" + "a".repeat(64), sha256: "b".repeat(64) },
   bookRating: {
     averageScore: 9.2,
     reviewCount: 4,
@@ -65,7 +66,7 @@ const feed: HomeFeed = {
   generatedAt: "2026-08-26T00:00:00Z",
 };
 
-test("shared home cache strips personalized book reviews", () => {
+test("shared home cache strips personalized book reviews and PDF availability", () => {
   const cached = homeFeedForSharedCache(feed);
 
   expect(cached.stream[0]?.bookRating).toEqual({
@@ -74,6 +75,8 @@ test("shared home cache strips personalized book reviews", () => {
     breakdown: [],
   });
   expect(feed.stream[0]?.bookRating?.myReview?.id).toBe("701");
+  expect(cached.stream[0]?.publicationPdf).toBeUndefined();
+  expect(feed.stream[0]?.publicationPdf).toBeDefined();
   expect(cached.featuredBlog.liked).toBe(false);
   expect(cached.featuredBlog.collectionActive).toBe(false);
   expect(cached.featuredBlog.reaction_summary?.[0]?.is_active).toBe(false);

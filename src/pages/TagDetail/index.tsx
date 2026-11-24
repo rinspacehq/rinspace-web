@@ -1617,6 +1617,7 @@ function TagDetailPage() {
                   displayName={tagTitle}
                   parentTags={tag.parentTags}
                   repositoryState={tag.repositoryState}
+                  publicationPdf={tag.publicationPdf}
                   interactionActions={(
                     <TagSocialActions
                       isLiked={isLiked}

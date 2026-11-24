@@ -25,6 +25,7 @@ import { MathInline } from '@/components/MathText';
 import SiteIcpLink from '@/components/SiteIcpLink';
 import SiteTopbar from '@/components/SiteTopbarShell';
 import UserIdentity from '@/components/UserIdentity';
+import { usePublicationCardMenu } from './publicationCardMenu';
 import { getCurrentAuthUser, type RinspaceUser } from '@/services/phoneAuth';
 import { messageFromError } from '@/services/errors';
 import { formatDate, formatList, formatNumber } from '@/i18n/format';
@@ -45,6 +46,7 @@ import { loadSponsorSupporters, type SponsorSupporter } from '@/services/sponsor
 import type { CompactItem, CollectionFolder, ContentType, FeedItem, FollowingTag, HomeFeed, HomeFeedMode, HomeSidebar, KnowledgeGraphEdge, KnowledgeGraphNode, KnowledgeGraphResponse, PublishContentType, ReactionItem } from '@/services/contracts';
 import {
   contentPath,
+  publicationPdfPath,
   profilePath as routeProfilePath,
   tagReadOrLegacyPath,
 } from '@/utils/routes';
@@ -1199,6 +1201,8 @@ function HomePage() {
   );
   const boardItems = communityView === 'tags' ? visibleTagActivityItems : visibleStream;
   const streamUsesTwoColumns = useMediaQuery('(min-width: 721px)');
+  const desktopCardMenu = useMediaQuery('(min-width: 721px) and (hover: hover) and (pointer: fine)');
+  const publicationMenu = usePublicationCardMenu(desktopCardMenu, t('home.actions.viewPdf'));
   const boardColumns = useMemo(
     () => distributeItemsAcrossColumns(boardItems, streamUsesTwoColumns ? 2 : 1),
     [boardItems, streamUsesTwoColumns],
@@ -2479,12 +2483,13 @@ function HomePage() {
         className="home-book-card"
         data-book-format={originalFormat || undefined}
         key={item.id}
+        {...publicationMenu.cardEvents(publicationPdfPath('book', item.id, item.publicationPdf))}
         onClick={(event) => {
           if (shouldIgnoreCardNavigation(event.target)) return;
           navigate(itemPath(item));
         }}
       >
-        <Link className="home-book-cover" to={itemPath(item)} aria-label={t('home.actions.viewBook', { title: item.title })}>
+        <Link className="home-book-cover" to={itemPath(item)} data-publication-card-link aria-label={t('home.actions.viewBook', { title: item.title })}>
           {item.coverUrl ? (
             <img src={item.coverUrl} alt="" loading="lazy" />
           ) : (
@@ -2514,7 +2519,7 @@ function HomePage() {
             <CardExactTime item={item} />
           </div>
           <h2>
-            <Link to={itemPath(item)}>
+            <Link to={itemPath(item)} data-publication-card-link>
               <MathInline text={book?.bookTitle || item.title} />
             </Link>
           </h2>
@@ -2636,6 +2641,7 @@ function HomePage() {
         className={`stream-card stream-card-${displayType}`}
         data-type={displayType}
         key={`${item.type}-${item.revisionId || item.id}`}
+        {...publicationMenu.cardEvents(displayType === 'blog' ? publicationPdfPath('article', item.id, item.publicationPdf) : undefined)}
         onClick={(event) => {
           if (shouldIgnoreCardNavigation(event.target)) return;
           navigate(itemPath(item));
@@ -2677,7 +2683,7 @@ function HomePage() {
         )}
         {!isDynamic ? (
           <h2>
-            <Link to={itemPath(item)}>
+            <Link to={itemPath(item)} data-publication-card-link={displayType === 'blog' || undefined}>
               <MathInline text={item.title} />
             </Link>
           </h2>
@@ -3121,6 +3127,7 @@ function HomePage() {
           )}
         </aside>
       </Container>
+      {desktopCardMenu ? publicationMenu.element : null}
     </>
   );
 }
