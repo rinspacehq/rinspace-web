@@ -28,6 +28,7 @@ const imports = new Map();
 for (const route of [
   { path: '/reader', pageComponent: 'ReaderPage', pageModule: '@/pages/Reader' },
   { path: '/reader/pdf/local/:localId', pageComponent: 'ReaderPdfPage', pageModule: '@/pages/ReaderPdf' },
+  { path: '/reader/pdf/publication/:kind/:id', pageComponent: 'ReaderPublicationPdfPage', pageModule: '@/pages/ReaderPublicationPdf' },
 ]) {
   routes.splice(routes.length - 1, 0, {
     ...route, canonicalPath: route.path, family: 'reader-local',
@@ -224,7 +225,7 @@ export const routeManifest = [
 ${rows}
 ] as const satisfies readonly RouteDefinition[];
 
-if (routeManifest.length !== 90) throw new Error('Typed route manifest must contain 85 retained routes plus wallet, download, local consent and two local Reader routes.');
+if (routeManifest.length !== 91) throw new Error('Typed route manifest must contain 85 retained routes plus wallet, download, local consent and three Reader routes.');
 `;
 const output = path.join(root, "src/app/routing/routeManifest.tsx");
 if (process.argv.includes("--check")) {

@@ -1,6 +1,7 @@
 import type { ReaderDocument, ReaderFileSelection, ReaderProgress, ReaderThumbnail } from './types';
 import { rememberReaderFile, clearReaderFiles } from './files';
 import { clearReaderAnnotationEdits } from './annotations';
+import type { ReaderView } from '@rinspacehq/embedpdf-snippet/dist/reader-api';
 
 const DB_NAME = 'rinspace-local-reader';
 const DOCUMENTS = 'documents';
@@ -124,6 +125,21 @@ export function saveReaderProgress(id: string, contentVersion: string, progress:
 export async function readReaderAgent<T>(key: string): Promise<T | undefined> {
   const db = await openDatabase();
   return requestResult(db.transaction(AGENT).objectStore(AGENT).get(key) as IDBRequest<T | undefined>);
+}
+
+const publicationViewKey = (documentId: string) => JSON.stringify(['publication-view/v1', documentId]);
+
+export async function getPublicationReaderView(documentId: string): Promise<ReaderView | undefined> {
+  const db = await openDatabase();
+  return requestResult(db.transaction(AGENT).objectStore(AGENT).get(publicationViewKey(documentId)) as IDBRequest<ReaderView | undefined>);
+}
+
+export async function savePublicationReaderView(documentId: string, view: ReaderView) {
+  const db = await openDatabase();
+  const transaction = db.transaction(AGENT, 'readwrite');
+  const done = transactionDone(transaction);
+  transaction.objectStore(AGENT).put(view, publicationViewKey(documentId));
+  await done;
 }
 
 export class ReaderConversationChangedError extends Error {}
