@@ -298,6 +298,7 @@
       "unliked": "已取消喜欢。"
     },
     "actions": {
+      "viewPdf": "查看 PDF",
       "interactions": "内容互动",
       "like": "喜欢",
       "save": "收藏",

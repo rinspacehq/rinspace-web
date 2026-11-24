@@ -1,0 +1,20 @@
+.publication-card-menu-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.rin-ui-menu.publication-card-menu {
+  min-inline-size: 9rem;
+  padding: 4px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--rin-surface) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4);
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+
+.publication-card-menu .rin-ui-menu-item {
+  min-block-size: 2rem;
+  padding: 4px 8px;
+}

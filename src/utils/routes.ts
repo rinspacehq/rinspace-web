@@ -1,4 +1,15 @@
 import type { ContentType } from '@/services/contracts';
+import type { PublicationPdfReference } from '@/services/feed';
+
+export function publicationPdfPath(
+  kind: 'article' | 'book' | 'tag',
+  id: string | number,
+  edition?: PublicationPdfReference,
+) {
+  if (!edition || !/^[1-9][0-9]{0,18}$/.test(String(id))) return undefined;
+  const query = new URLSearchParams({ version: edition.version, sha256: edition.sha256 });
+  return `/reader/pdf/publication/${kind}/${id}?${query}`;
+}
 
 export function cleanUserId(value: string | undefined | null) {
   return (value || '').trim().replace(/^@+/, '');

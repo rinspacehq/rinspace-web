@@ -20,7 +20,8 @@ import {
   type PublicationCandidate,
   type TagStatement,
 } from '@/services/tagV2';
-import { contentPath, tagReadPath } from '@/utils/routes';
+import type { PublicationPdfReference } from '@/services/feed';
+import { contentPath, publicationPdfPath, tagReadPath } from '@/utils/routes';
 import { giteaPath } from '@/utils/giteaPaths';
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
   displayName: string;
   parentTags: Array<{ tagId: string; slugName: string; displayName: string }>;
   repositoryState?: 'legacy' | 'pending' | 'failed' | 'active';
+  publicationPdf?: PublicationPdfReference;
   interactionActions?: ReactNode;
 };
 
@@ -75,7 +77,7 @@ function ConnectionList({ items, empty }: { items: KnowledgeConnection[]; empty:
   );
 }
 
-export default function TagKnowledgeConnections({ tagId, displayName, parentTags, repositoryState, interactionActions }: Props) {
+export default function TagKnowledgeConnections({ tagId, displayName, parentTags, repositoryState, publicationPdf, interactionActions }: Props) {
   const { t, i18n } = useFeatureTranslation('reader');
   const language = useOptionalLanguage();
   const resolvedLocale = language?.resolvedLocale ?? resolveLocale(i18n.resolvedLanguage || i18n.language, []);
@@ -186,6 +188,7 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
   };
 
   const anchors = pages.anchors?.items || [];
+  const pdfPath = publicationPdfPath('tag', tagId, publicationPdf);
   const reportBody = t('tagKnowledge.reportBody', {
     tag: displayName,
     id: formatNumber(resolvedLocale, tagId),
@@ -223,6 +226,17 @@ export default function TagKnowledgeConnections({ tagId, displayName, parentTags
               </a>
             </dd>
           </div>
+          {pdfPath ? (
+            <div>
+              <dt>PDF</dt>
+              <dd>
+                <Link className="tex-source-link" to={pdfPath}>
+                  <Icon name="filetype-pdf" size={17} />
+                  <strong>{t('publicationPdf.view')}</strong>
+                </Link>
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
         <div className="tag-knowledge-section">

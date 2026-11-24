@@ -987,6 +987,7 @@
     "loading": "Loading PDF…"
   },
   "publicationPdf": {
+    "view": "View PDF",
     "unavailable": "This PDF is currently unavailable.",
     "changed": "This PDF has been updated. Open the latest version to continue.",
     "reopen": "Open latest version",

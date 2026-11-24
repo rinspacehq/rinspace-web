@@ -238,6 +238,7 @@ import {
   bookChapterPath,
   bookReadingPath,
   bookWorkspacePath,
+  publicationPdfPath,
   profilePath as routeProfilePath,
   questionPath as routeQuestionPath,
 } from "@/utils/routes";
@@ -11324,6 +11325,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     const rating = bookRating || post.bookRating;
     const bookPdfUrl =
       book?.kind === "original" ? book.pdfUrl?.trim() || "" : "";
+    const bookPdfReaderPath = bookAuthorPDF || bookPdfUrl
+      ? publicationPdfPath("book", post.id, post.publicationPdf)
+      : undefined;
     const bookEditRef = encodeURIComponent(post.slug || post.id);
     const editDestination = contentEditDestination(post);
     const bookEditPath =
@@ -11501,7 +11505,12 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 </em>
               </div>
             )}
-            {bookAuthorPDF ? (
+            {bookPdfReaderPath ? (
+              <Link className="book-detail-read-action" to={bookPdfReaderPath}>
+                <Icon name="book" />
+                {t("detail.book.startReading")}
+              </Link>
+            ) : bookAuthorPDF ? (
               <AuthorPDFReadingLink
                 pdf={bookAuthorPDF}
                 className="book-detail-read-action"
@@ -12889,6 +12898,10 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     );
   };
 
+  const articlePdfReaderPath = kind === "blog" && post
+    ? publicationPdfPath("article", post.id, post.publicationPdf)
+    : undefined;
+
   return (
     <>
       <DocumentMetadataController
@@ -14087,6 +14100,17 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                         </div>
                       ) : null}
                       {kind === "blog" ? renderBlogSourceStat(post) : null}
+                      {articlePdfReaderPath ? (
+                        <div>
+                          <dt>PDF</dt>
+                          <dd>
+                            <Link className="tex-source-link" to={articlePdfReaderPath}>
+                              <Icon name="filetype-pdf" />
+                              <span>{t("publicationPdf.view")}</span>
+                            </Link>
+                          </dd>
+                        </div>
+                      ) : null}
                     </dl>
                     {kind === "blog" ? renderBlogLikeSection(true) : null}
                   </section>
