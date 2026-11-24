@@ -986,6 +986,13 @@
     "error": "PDF 暂时无法打开，请重新加载。",
     "loading": "正在加载 PDF…"
   },
+  "publicationPdf": {
+    "unavailable": "此 PDF 当前无法访问。",
+    "changed": "这份 PDF 已更新，请打开最新版本。",
+    "reopen": "打开最新版本",
+    "retry": "重试",
+    "back": "返回作品"
+  },
   "localAnnotations": {
     "saving": "正在保存批注…",
     "saved": "批注已保存到此设备",

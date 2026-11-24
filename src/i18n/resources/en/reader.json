@@ -986,6 +986,13 @@
     "error": "The PDF cannot be opened right now. Please reload.",
     "loading": "Loading PDF…"
   },
+  "publicationPdf": {
+    "unavailable": "This PDF is currently unavailable.",
+    "changed": "This PDF has been updated. Open the latest version to continue.",
+    "reopen": "Open latest version",
+    "retry": "Try again",
+    "back": "Back to publication"
+  },
   "localAnnotations": {
     "saving": "Saving annotations…",
     "saved": "Annotations saved on this device",
