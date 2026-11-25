@@ -14,6 +14,28 @@
 .blog-like-row button:disabled{cursor:not-allowed;opacity:.64}
 .blog-like-row .blog-like-icon-action{width:44px;padding:0}
 .tag-detail-follow-row .home-card-action{min-block-size:44px;min-inline-size:44px;padding:.4rem .55rem}
+.book-detail-reading-actions {
+  display: flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 12px;
+  margin-top: auto;
+}
+.book-detail-pdf-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding-inline: 4px;
+  color: var(--rin-ink);
+  font-size: .84rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.book-detail-pdf-action:hover,
+.book-detail-pdf-action:focus-visible {
+  text-decoration: underline;
+}
 @media(max-width: 720px){
   .book-detail-header .blog-header-actions{width:100%;flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none}
   .book-detail-header .blog-header-actions::-webkit-scrollbar{display:none}
@@ -21,6 +43,8 @@
   .book-detail-header .blog-header-actions>button{min-width:44px;min-height:44px;flex:0 0 auto;gap:4px;padding:0 7px}
   .book-detail-header .blog-header-actions .detail-action-label,
   .book-detail-header .blog-header-actions .wallet-tip-label{display:none}
+  .book-detail-reading-actions{width:100%}
+  .book-detail-pdf-action{display:none}
   .book-detail-header .book-detail-read-action{width:100%;min-height:44px;align-self:stretch}
 }
 /* TOC 层级恢复（V2 重设计丢失的 level 区分） */

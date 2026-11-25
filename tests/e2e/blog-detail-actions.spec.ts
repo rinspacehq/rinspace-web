@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { expect, test } from '@playwright/test';
 import { identitySessionMock } from './identity-session-mock';
 
@@ -92,6 +93,43 @@ const pdfBookFixture = {
     pdfUrl: '/fixtures/original-book.pdf',
   },
 };
+
+test('chapter book offers its published PDF beside the reading action on desktop', async ({ page }, testInfo) => {
+  const version = 'v1-' + '7'.repeat(64);
+  const sha256 = 'a'.repeat(64);
+  await page.route('**/api/**', async (route) => {
+    const pathname = new URL(route.request().url()).pathname.replace(/^\/rinspace(?=\/)/, '');
+    if (pathname === '/api/content/202' || pathname === '/api/books/202') {
+      await route.fulfill({ json: { ...bookFixture, publicationPdf: { version, sha256 } } });
+      return;
+    }
+    await route.fulfill({ json: {} });
+  });
+  await page.goto('/books/202/book-actions', { waitUntil: 'domcontentloaded' });
+
+  const header = page.locator('.book-detail-header');
+  const start = header.getByRole('link', { name: '开始阅读', exact: true });
+  const pdf = header.getByRole('link', { name: '查看 PDF', exact: true });
+  await expect(start).toHaveAttribute('href', /\/books\/202\/read\//);
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await expect(pdf).toHaveCount(0);
+    return;
+  }
+
+  await expect(pdf).toHaveAttribute(
+    'href',
+    `/reader/pdf/publication/book/202?version=${version}&sha256=${sha256}`,
+  );
+  const pdfBox = await pdf.boundingBox();
+  const startBox = await start.boundingBox();
+  assert(pdfBox && startBox);
+  expect(pdfBox.x + pdfBox.width).toBeLessThan(startBox.x);
+  const center = ({ y, height }: { y: number; height: number }) => y + height / 2;
+  expect(Math.abs(center(pdfBox) - center(startBox))).toBeLessThanOrEqual(1);
+  await pdf.focus();
+  await page.keyboard.press('Tab');
+  await expect(start).toBeFocused();
+});
 
 test('blog detail uses Heart while preserving collection counts and report', async ({ page }) => {
   const consoleErrors: string[] = [];

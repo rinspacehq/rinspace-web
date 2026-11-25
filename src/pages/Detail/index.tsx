@@ -11325,9 +11325,13 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     const rating = bookRating || post.bookRating;
     const bookPdfUrl =
       book?.kind === "original" ? book.pdfUrl?.trim() || "" : "";
-    const bookPdfReaderPath = bookAuthorPDF || bookPdfUrl
-      ? publicationPdfPath("book", post.id, post.publicationPdf)
-      : undefined;
+    const publicationReaderPath = publicationPdfPath(
+      "book",
+      post.id,
+      post.publicationPdf,
+    );
+    const bookPdfReaderPath =
+      bookAuthorPDF || bookPdfUrl ? publicationReaderPath : undefined;
     const bookEditRef = encodeURIComponent(post.slug || post.id);
     const editDestination = contentEditDestination(post);
     const bookEditPath =
@@ -11526,13 +11530,24 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 {t("detail.book.startReading")}
               </a>
             ) : hasBookReader ? (
-              <Link
-                className="book-detail-read-action"
-                to={activeBookReadingPath}
-              >
-                <Icon name="book" />
-                {t("detail.book.startReading")}
-              </Link>
+              <div className="book-detail-reading-actions">
+                {publicationReaderPath ? (
+                  <Link
+                    className="book-detail-pdf-action"
+                    to={publicationReaderPath}
+                  >
+                    <Icon name="filetype-pdf" />
+                    {t("publicationPdf.view")}
+                  </Link>
+                ) : null}
+                <Link
+                  className="book-detail-read-action"
+                  to={activeBookReadingPath}
+                >
+                  <Icon name="book" />
+                  {t("detail.book.startReading")}
+                </Link>
+              </div>
             ) : null}
           </div>
         </div>
