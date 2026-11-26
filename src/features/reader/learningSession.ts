@@ -22,7 +22,7 @@ export type LearningState = { openingRequestId: string; session?: LearningSessio
   deleteRequest?: { commandId: string; documentVersion: string; expectedRevision: number };
   evidencePages?: Record<string, number>; exhaustedHints?: string[] };
 
-type Options = { document: ReaderDocument; accountId: string; testSessionId?: string; state: LearningState; assertActive(): void; persist(): Promise<void>; available(): boolean;
+type Options = { document: ReaderDocument; viewerDocumentId?: string; accountId: string; testSessionId?: string; state: LearningState; assertActive(): void; persist(): Promise<void>; available(): boolean;
   reload?(): Promise<LearningState | undefined> };
 const failureMessages: Record<string, string> = {
   MODEL_REQUEST_EXPIRED: '上次请求未发送成功，请重新提问。',
@@ -429,7 +429,7 @@ export function learningSessionDriver(options: Options) {
               if (!options.available()) throw new Error('琳当前不可用。');
               if (state.session!.activeOperation) throw new Error('已有未完成的学习任务，请先恢复。');
               const info = tools.info();
-              if (info.documentId !== document.id || !Number.isSafeInteger(info.pageCount) || info.pageCount < 1 || !Number.isSafeInteger(info.currentPage) || info.currentPage < 1 || info.currentPage > info.pageCount) throw new Error('当前 PDF 尚未就绪。');
+              if (info.documentId !== (options.viewerDocumentId ?? document.id) || !Number.isSafeInteger(info.pageCount) || info.pageCount < 1 || !Number.isSafeInteger(info.currentPage) || info.currentPage < 1 || info.currentPage > info.pageCount) throw new Error('当前 PDF 尚未就绪。');
               const selected = (await tools.selection()).filter(page => page.text !== '');
               const regions = tools.regions?.() || [];
               guard();

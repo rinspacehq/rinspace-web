@@ -66,7 +66,7 @@ function readableError(error: unknown): Error {
 }
 
 /** A single document host. Tokens/cookies stay in the main site's auth service. */
-export function createReaderAgentHost(document: ReaderDocument) {
+export function createReaderAgentHost(document: ReaderDocument, resolveDocument?: (signal?: AbortSignal) => Promise<ReaderDocument>) {
   let session: RinSession = { status: 'loading' };
   let state: State = {};
   let epoch = 0;
@@ -239,17 +239,23 @@ export function createReaderAgentHost(document: ReaderDocument) {
     if (!disposed && !changingConversation && learningMode && session.accountId &&
       (readerLearningContentExpired(state) || state.history?.some(item => readerLearningHistoryExpired(item)))) void refresh();
   }, 60000);
-  const validateRun = (run: Run) => {
-    if (run.source !== 'reader' || run.projectId !== document.id || run.documentVersion !== document.contentVersion) throw new Error('阅读任务与当前 PDF 不匹配。');
+  const validateRun = (run: Run, requestDocument: ReaderDocument) => {
+    if (run.source !== 'reader' || run.projectId !== requestDocument.id || run.documentVersion !== requestDocument.contentVersion) throw new Error('阅读任务与当前 PDF 不匹配。');
     return run;
   };
-  const getLearningDriver = (account: string) => {
-    if (!state.learning) throw new Error('学习会话尚未准备好。');
+  const getLearningDriver = async (account: string, signal?: AbortSignal) => {
+    const learning = state.learning;
+    if (!learning) throw new Error('学习会话尚未准备好。');
+    if (learningDriver) return learningDriver;
     const conversationId = state.conversationId;
-    learningDriver ||= learningSessionDriver({ document, accountId: account, testSessionId, state: state.learning,
-      assertActive: () => {
-        if (disposed || !learningMode || session.accountId !== account || state.conversationId !== conversationId) throw new Error('账号、PDF 或对话已切换。');
-      },
+    const active = () => {
+      if (disposed || !learningMode || session.accountId !== account || state.conversationId !== conversationId) throw new Error('账号、PDF 或对话已切换。');
+    };
+    const requestDocument = resolveDocument ? await resolveDocument(signal) : document;
+    signal?.throwIfAborted();
+    active();
+    learningDriver ||= learningSessionDriver({ document: requestDocument, viewerDocumentId: document.id, accountId: account, testSessionId, state: learning,
+      assertActive: active,
       persist: async () => {
         if (state.learning?.session?.status === 'deleted') state.snapshot = { messages: [], draft: '', running: false };
         save(); await flush();
@@ -313,8 +319,8 @@ export function createReaderAgentHost(document: ReaderDocument) {
         active: () => {
           if (disposed || !learningMode || session.accountId !== account || state.conversationId !== conversation) throw new Error('账号、PDF 或对话已切换。');
         },
-        run: (signal, operation) => getLearningDriver(account).voiceInput(signal, operation),
-        runPlayback: (signal, operation) => getLearningDriver(account).voicePlayback(signal, operation),
+        run: async (signal, operation) => (await getLearningDriver(account, signal)).voiceInput(signal, operation),
+        runPlayback: async (signal, operation) => (await getLearningDriver(account, signal)).voicePlayback(signal, operation),
         resumeSource: state.learning.voiceResume,
         persistResume: async source => {
           if (disposed || !learningMode || session.accountId !== account || state.conversationId !== conversation || !state.learning) throw new Error('账号、PDF 或对话已切换。');
@@ -362,7 +368,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
       // never abandons a potentially billable server task.
       if (learningMode && state.learning && (state.learning.stopRequest ||
         state.learning.pending && !state.learning.pending.aborted && !state.learning.pending.delivered && !state.learning.pending.failed)) {
-        await getLearningDriver(account).stop();
+        await (await getLearningDriver(account)).stop();
         assertAccount();
       }
       changingConversation = true;
@@ -444,7 +450,9 @@ export function createReaderAgentHost(document: ReaderDocument) {
           state = next; storageError = undefined;
           publishConversation(key); notify();
           if (target.learning) {
-            const driver = learningSessionDriver({ document, accountId: account, testSessionId, state: target.learning, assertActive: assertAccount,
+            const requestDocument = resolveDocument ? await resolveDocument() : document;
+            assertAccount();
+            const driver = learningSessionDriver({ document: requestDocument, accountId: account, testSessionId, state: target.learning, assertActive: assertAccount,
               available: () => false,
               persist: async () => {
                 assertAccount();
@@ -523,7 +531,7 @@ export function createReaderAgentHost(document: ReaderDocument) {
         if (learning) {
           state.learning ||= { openingRequestId: crypto.randomUUID() };
           save(); await flush(); active();
-          return await getLearningDriver(account!).send(message, tools, signal, action);
+          return await (await getLearningDriver(account!, signal)).send(message, tools, signal, action);
         }
         let job = state.job;
         if (job && !job.aborted && !job.reply && job.message !== message) throw new Error('上次任务尚未完成，请先重试原问题或停止任务。');
@@ -537,25 +545,27 @@ export function createReaderAgentHost(document: ReaderDocument) {
           for (const page of job.reply.pages || []) await tools.readPages([page]);
           return job.reply;
         }
+        const requestDocument = resolveDocument ? await resolveDocument(signal) : document;
+        active();
         const config = testMode
           ? await requestJson<{ enabled: boolean; maxIterations: number }>(`${ROOT}/test-mode`, { auth: 'none', signal })
           : await api<{ enabled: boolean; maxIterations: number }>('config');
         if (!config.enabled) throw new Error('琳当前已停用。');
         if (!testMode && !job.runId) {
-          const run = validateRun(await api<Run>('runs', { requestId: job.requestId, documentId: document.id, documentVersion: document.contentVersion }));
+          const run = validateRun(await api<Run>('runs', { requestId: job.requestId, documentId: requestDocument.id, documentVersion: requestDocument.contentVersion }), requestDocument);
           job.runId = run.id; save(); await flush(); active();
         }
         for (; job.step < config.maxIterations;) {
           active();
-          const body = { operationKey: job.operationKey, ...(testMode ? { documentId: document.id } : {}),
-            documentVersion: document.contentVersion, messages: job.messages };
+          const body = { operationKey: job.operationKey, ...(testMode ? { documentId: requestDocument.id } : {}),
+            documentVersion: requestDocument.contentVersion, messages: job.messages };
           if (new TextEncoder().encode(JSON.stringify(body)).length > 250 * 1024) throw new Error('本次阅读内容已达上限，请停止任务后缩小问题范围。');
           // Persist the exact operation and history before dispatch. Retry never invents a new key.
           save(); await flush(); active();
           const response = job.response || await api<Turn>(testMode ? 'turns' : `runs/${job.runId}/turns`, body);
           active(); job.response = response; save(); await flush(); active();
           if (!response.toolCalls?.length) {
-            const run = testMode ? undefined : validateRun(await api<Run>(`runs/${job.runId}`));
+            const run = testMode ? undefined : validateRun(await api<Run>(`runs/${job.runId}`), requestDocument);
             const pages = [...new Set(Array.from((response.text || '').matchAll(/\[p:(\d+)\]/g), match => Number(match[1])))].filter(page => job!.readPages.includes(page));
             for (const page of pages) await tools.readPages([page]);
             const cost = run?.billing ? Number(run.billing.goodnessChargedSg) : undefined;
@@ -590,12 +600,15 @@ export function createReaderAgentHost(document: ReaderDocument) {
       if (learningMode && account && id === document.id && state.learning) {
         if (!testSessionId && (await getCurrentAuthUser())?.id !== account) return;
         await voiceController?.cancelInput();
-        await getLearningDriver(account).stop(); return;
+        if (state.learning.session || state.learning.deleteRequest) await (await getLearningDriver(account)).stop();
+        return;
       }
       const job = state.job;
       if (id !== document.id || !job || !account || !testMode && (await getCurrentAuthUser())?.id !== account) return;
       if (!testMode && job.runId) {
-        const run = validateRun(await requestJson<Run>(`${ROOT}/runs/${job.runId}/abort`, { auth: 'required', method: 'POST' }));
+        const requestDocument = resolveDocument ? await resolveDocument() : document;
+        if (session.accountId !== account || disposed) return;
+        const run = validateRun(await requestJson<Run>(`${ROOT}/runs/${job.runId}/abort`, { auth: 'required', method: 'POST' }), requestDocument);
         if (session.accountId !== account || disposed) return;
         if (!['ABORTED', 'COMPLETED', 'FAILED_FINAL'].includes(run.status)) throw new Error('停止请求已提交，请稍后重试确认。');
       }
