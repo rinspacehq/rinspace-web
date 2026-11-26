@@ -164,7 +164,7 @@ test('retains an unsaved question draft while switching the interface language',
   expect(document.title).toBe('提一个数学问题 · 芥子环');
 });
 
-test('renders localized original and external PDF book controls', async () => {
+test('keeps only the original PDF book upload on the create form', async () => {
   await ensureLocaleNamespaces('en', ['creation']);
   await act(async () => {
     await i18n.changeLanguage('en');
@@ -173,17 +173,10 @@ test('renders localized original and external PDF book controls', async () => {
   const view = renderPublish('/books/new?kind=pdf', 'book');
 
   expect(await view.findByRole('heading', { name: 'Upload PDF book' })).toBeTruthy();
-  expect(view.getByRole('group', { name: 'Book type' })).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Original PDF' })).toBeTruthy();
   expect(view.getByText('Upload PDF (≤80 MB)')).toBeTruthy();
-
-  fireEvent.click(view.getByRole('button', { name: 'External PDF' }));
-
-  expect(view.getByLabelText('Authors')).toBeTruthy();
-  expect(view.getByLabelText('Source URL')).toBeTruthy();
-  expect(view.getByLabelText('Publisher')).toBeTruthy();
-  expect(view.getByLabelText('Copyright information')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Upload external PDF' })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Upload original PDF' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'External PDF' })).toBeNull();
+  expect(view.queryByLabelText('Source URL')).toBeNull();
 });
 
 test('reports a failed cover upload inside the crop dialog instead of failing silently', async () => {
