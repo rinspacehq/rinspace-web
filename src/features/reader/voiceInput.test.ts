@@ -1,17 +1,16 @@
-// Browser-resource fakes exercise cancellation/ownership. Real WASM/VAD and
-// microphone fixtures are validated separately in the Chromium integration.
+// Browser-resource fakes cover recording, cancellation and ownership.
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createReaderVoiceInput, speechPCM } from './voiceInput';
-import { createReaderVAD, type ReaderVADCallbacks } from './vadInput';
+import { connectMicrophoneFrames, loadMicrophoneWorklet } from './microphoneFrames';
 import type { LearningVoiceInput } from './learningSession';
 
-vi.mock('./vadInput', () => ({ createReaderVAD: vi.fn() }));
+vi.mock('./microphoneFrames', () => ({ connectMicrophoneFrames: vi.fn(), loadMicrophoneWorklet: vi.fn() }));
 const originalMedia = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
 const originalLocks = Object.getOwnPropertyDescriptor(navigator, 'locks');
 const controllers: ReturnType<typeof createReaderVoiceInput>[] = [];
 const contexts: FakeAudioContext[] = [];
-let callbacks: ReaderVADCallbacks;
-let destroyed = vi.fn(async () => {});
+let captureFrame: (frame: Float32Array) => void;
+let detach = vi.fn(async () => {});
 let resumePending: Promise<void> | undefined;
 
 class FakeAudioContext {
@@ -41,10 +40,11 @@ beforeEach(() => {
     held.add(name); try { return await operation({ name }); } finally { held.delete(name); }
   } } });
   Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: vi.fn() } });
-  destroyed = vi.fn(async () => {});
-  vi.mocked(createReaderVAD).mockImplementation(async (_context, cb) => {
-    callbacks = cb; let listening = false;
-    return { get listening() { return listening; }, start() { listening = true; }, async pause() { listening = false; }, destroy: destroyed };
+  detach = vi.fn(async () => {});
+  vi.mocked(loadMicrophoneWorklet).mockResolvedValue();
+  vi.mocked(connectMicrophoneFrames).mockImplementation((_context, _stream, onFrame) => {
+    captureFrame = onFrame;
+    return detach;
   });
 });
 afterEach(async () => {
@@ -56,39 +56,51 @@ afterEach(async () => {
 
 function harness() {
   const input: LearningVoiceInput = { signal: new AbortController().signal, transcribe: vi.fn(async () => '两个非零向量。'), cancel: vi.fn(async () => {}), release: vi.fn(async () => {}) };
+  const beginTranscription = vi.fn();
   const voice = createReaderVoiceInput({ accountId: 'synthetic-voice-owner', active() {}, available:()=>true, notify: vi.fn(),
-    run: async (signal, operation) => operation({ ...input, signal }) });
+    run: async (signal, operation) => { beginTranscription(); return operation({ ...input, signal }); } });
   controllers.push(voice);
-  return { voice, input };
+  return { voice, input, beginTranscription };
 }
 
 test('transcription stays in temporary review and closes the microphone before confirmation', async () => {
   const { stream, track } = streamFixture(); vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(stream);
-  const { voice, input } = harness(), running = voice.startInput();
+  const { voice, input, beginTranscription } = harness(), running = voice.startInput();
   await vi.waitFor(() => expect(voice.snapshot().input).toBe('listening'));
-  const samples = new Float32Array([0, 0.5, -0.5]); callbacks.onSpeechEnd(samples);
+  captureFrame(new Float32Array([0, 0.5, -0.5]));
+  captureFrame(new Float32Array(16000 * 3));
+  captureFrame(new Float32Array([0, 0.5, -0.5]));
+  expect(voice.snapshot().input).toBe('listening');
+  expect(track.stop).not.toHaveBeenCalled();
+  expect(beginTranscription).not.toHaveBeenCalled();
+  await voice.finishInput();
   await running;
   expect(voice.snapshot()).toMatchObject({ input: 'review', transcript: '两个非零向量。' });
-  expect(track.stop).toHaveBeenCalledOnce(); expect(Array.from(samples)).toEqual([0, 0, 0]);
+  expect(track.stop).toHaveBeenCalledOnce();
+  expect(beginTranscription).toHaveBeenCalledOnce();
   expect(input.transcribe).toHaveBeenCalledOnce(); expect(input.release).not.toHaveBeenCalled();
   await voice.dismissTranscript();
   expect(input.release).toHaveBeenCalledOnce(); expect(input.cancel).not.toHaveBeenCalled();
   expect(voice.snapshot()).toEqual({ input: 'idle', transcript: '' });
 });
 
-test('duplicate final audio is zeroed and never starts a second transcription', async () => {
-  const { stream } = streamFixture(); vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(stream);
+test('at the duration limit, recording closes once and the review explains why', async () => {
+  const { stream, track } = streamFixture(); vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(stream);
   const { voice, input } = harness(), running = voice.startInput();
+  const lengths: number[] = [];
+  vi.mocked(input.transcribe).mockImplementation(async (_id, audio) => {
+    lengths.push(audio.length);
+    return '两个非零向量。';
+  });
   await vi.waitFor(() => expect(voice.snapshot().input).toBe('listening'));
-  const accepted = new Float32Array([0.25, -0.25]);
-  const duplicate = new Float32Array([0.75, -0.75]);
-  callbacks.onSpeechEnd(accepted);
-  callbacks.onSpeechEnd(duplicate);
+  const frame = new Float32Array(512).fill(0.5);
+  for (let i = 0; i < 938; i++) captureFrame(frame);
+  await voice.finishInput();
   await running;
+  expect(track.stop).toHaveBeenCalledOnce();
   expect(input.transcribe).toHaveBeenCalledOnce();
-  expect(Array.from(accepted)).toEqual([0, 0]);
-  expect(Array.from(duplicate)).toEqual([0, 0]);
-  expect(voice.snapshot()).toMatchObject({ input: 'review', transcript: '两个非零向量。' });
+  expect(lengths).toEqual([30 * 16000 * 2]);
+  expect(voice.snapshot()).toMatchObject({ input: 'review', limitReached: true });
 });
 
 test('cancelling a pending permission prompt releases ownership and stops a late microphone', async () => {
@@ -99,7 +111,7 @@ test('cancelling a pending permission prompt releases ownership and stops a late
   await voice.cancelInput(); await running;
   expect(voice.snapshot().input).toBe('idle');
   resolve(stream); await Promise.resolve(); await Promise.resolve();
-  expect(track.stop).toHaveBeenCalledOnce(); expect(input.transcribe).not.toHaveBeenCalled(); expect(createReaderVAD).not.toHaveBeenCalled();
+  expect(track.stop).toHaveBeenCalledOnce(); expect(input.transcribe).not.toHaveBeenCalled(); expect(connectMicrophoneFrames).not.toHaveBeenCalled();
 });
 
 test('permission denial neither transcribes nor automatically reacquires the microphone', async () => {
@@ -115,7 +127,7 @@ test('a disconnected microphone stops the original operation and never reopens a
   await vi.waitFor(() => expect(voice.snapshot().input).toBe('listening'));
   end(); await running;
   expect(voice.snapshot()).toMatchObject({ input: 'error', error: '麦克风已断开，请重新开启。' });
-  expect(input.cancel).toHaveBeenCalledOnce(); expect(input.transcribe).not.toHaveBeenCalled();
+  expect(input.cancel).not.toHaveBeenCalled(); expect(input.transcribe).not.toHaveBeenCalled();
   expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
 });
 
@@ -158,7 +170,7 @@ test('pagehide synchronously stops capture and BFCache restore never reopens the
   expect(track.stop).toHaveBeenCalledOnce();
   await running;
   await vi.waitFor(() => expect(voice.snapshot()).toEqual({ input: 'idle', transcript: '' }));
-  expect(input.cancel).toHaveBeenCalledOnce();
+  expect(input.cancel).not.toHaveBeenCalled();
   window.dispatchEvent(new Event('pageshow'));
   await Promise.resolve();
   expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledOnce();
@@ -168,7 +180,7 @@ test('pagehide clears an unconfirmed transcript through its original consume int
   const { stream } = streamFixture(); vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(stream);
   const { voice, input } = harness(); const running = voice.startInput();
   await vi.waitFor(() => expect(voice.snapshot().input).toBe('listening'));
-  callbacks.onSpeechEnd(new Float32Array([0.5, 0.5])); await running;
+  captureFrame(new Float32Array([0.5, 0.5])); await voice.finishInput(); await running;
   expect(voice.snapshot()).toMatchObject({ input: 'review', transcript: '两个非零向量。' });
   window.dispatchEvent(new Event('pagehide'));
   window.dispatchEvent(new Event('pagehide'));
@@ -186,29 +198,29 @@ test('late transcription after cancellation cannot reopen review or restore raw 
   const { voice, input } = harness(); let resolve!: (text: string) => void;
   vi.mocked(input.transcribe).mockReturnValue(new Promise<string>(done => { resolve = done; }));
   const running = voice.startInput(); await vi.waitFor(() => expect(voice.snapshot().input).toBe('listening'));
-  const samples = new Float32Array([0.5, 0.5]); callbacks.onSpeechEnd(samples);
+  captureFrame(new Float32Array([0.5, 0.5])); await voice.finishInput();
   await vi.waitFor(() => expect(input.transcribe).toHaveBeenCalledOnce());
   const stopping = voice.cancelInput(); expect(track.stop).toHaveBeenCalledOnce();
   resolve('LATE_PRIVATE_TRANSCRIPT'); await stopping; await running;
   expect(voice.snapshot()).toEqual({ input: 'idle', transcript: '' });
-  expect(Array.from(samples)).toEqual([0, 0]); expect(input.cancel).toHaveBeenCalledOnce(); expect(input.release).not.toHaveBeenCalled();
+  expect(input.cancel).toHaveBeenCalledOnce(); expect(input.release).not.toHaveBeenCalled();
 });
 
-test('device/model resources close even when transcript consumption is unavailable', async () => {
+test('audio resources close even when transcript consumption is unavailable', async () => {
   const { stream } = streamFixture(); vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(stream);
   const { voice, input } = harness(), running = voice.startInput();
   await vi.waitFor(() => expect(voice.snapshot().input).toBe('listening'));
-  callbacks.onSpeechEnd(new Float32Array([0.5, 0.5])); await running;
+  captureFrame(new Float32Array([0.5, 0.5])); await voice.finishInput(); await running;
   vi.mocked(input.release).mockRejectedValueOnce(new Error('synthetic lost consumption ack'));
   await expect(voice.dispose()).rejects.toThrow('synthetic lost consumption ack');
-  expect(destroyed).toHaveBeenCalledOnce(); expect(contexts[0].close).toHaveBeenCalledOnce();
+  expect(detach).toHaveBeenCalledOnce(); expect(contexts[0].close).toHaveBeenCalledOnce();
 });
 
 test('an uncertain transcription failure still cancels the original native operation', async () => {
   const { stream, track } = streamFixture(); vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue(stream);
   const { voice, input } = harness(); vi.mocked(input.transcribe).mockRejectedValueOnce(new Error('synthetic unknown acknowledgement'));
   const running = voice.startInput(); await vi.waitFor(() => expect(voice.snapshot().input).toBe('listening'));
-  callbacks.onSpeechEnd(new Float32Array([0.5, 0.5])); await running;
+  captureFrame(new Float32Array([0.5, 0.5])); await voice.finishInput(); await running;
   expect(voice.snapshot().input).toBe('error');
   expect(track.stop).toHaveBeenCalledOnce(); expect(input.cancel).toHaveBeenCalledOnce(); expect(input.release).not.toHaveBeenCalled();
 });
