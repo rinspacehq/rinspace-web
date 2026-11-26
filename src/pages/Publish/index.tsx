@@ -214,7 +214,6 @@ export default function PublishPage({ mode }: PublishPageProps) {
     mode === 'book' &&
     bookKind === 'typst' &&
     (explicitBookKind === 'typst' || editingPost?.book?.kind === 'typst');
-  const shouldShowBookKindToggle = mode === 'book' && !isLatexBookProfile && !isMarkdownBookProfile && !isTypstBookProfile;
   const shouldShowPdfUpload = mode === 'book' && (bookKind === 'copyrighted' || isOriginalPdfBook);
   const bookHeadingVariant = isOriginalPdfBook
     ? 'pdf'
@@ -932,32 +931,6 @@ export default function PublishPage({ mode }: PublishPageProps) {
 
               {mode === 'book' ? (
                 <section className="book-publish-fields">
-                  {shouldShowBookKindToggle ? (
-                    <div
-                      className="book-kind-toggle"
-                      role="group"
-                      aria-label={t('publishPage.book.kindLabel')}
-                    >
-                      <AnimateButton unstyled
-                        type="button"
-                        className={bookKind === 'original' ? 'active' : ''}
-                        onClick={() => setBookKind('original')}
-                      >
-                        {isPdfBookCreate
-                          ? t('publishPage.book.originalPdf')
-                          : t('publishPage.book.original')}
-                      </AnimateButton>
-                      <AnimateButton unstyled
-                        type="button"
-                        className={bookKind === 'copyrighted' ? 'active' : ''}
-                        onClick={() => setBookKind('copyrighted')}
-                      >
-                        {isPdfBookCreate
-                          ? t('publishPage.book.externalPdf')
-                          : t('publishPage.book.external')}
-                      </AnimateButton>
-                    </div>
-                  ) : null}
                   {bookKind === 'copyrighted' ? (
                     <div className="book-publish-grid book-publish-identity">
                       <Form.Group controlId="book-authors">
