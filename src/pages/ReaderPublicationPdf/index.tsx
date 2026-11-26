@@ -6,6 +6,7 @@ import { publicAsset } from '@/app/config/env';
 import { Button } from '@/components/ui';
 import { createReaderAgentHost } from '@/features/reader/agentHost';
 import { chooseReaderPdf, identifyReaderFile } from '@/features/reader/files';
+import { publicationReaderDocument } from '@/features/reader/publicationDocument';
 import { getPublicationReaderView, registerReaderDocument, savePublicationReaderView } from '@/features/reader/storage';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { apiPath, requestJson, ServiceError } from '@/services/httpClient';
@@ -126,13 +127,15 @@ export default function ReaderPublicationPdfPage() {
           }),
         ]);
         if (controller.signal.aborted || !mount.current) return;
-        agent = createReaderAgentHost({ id: identity, title, size: bytes, lastModified: 0, contentVersion: sha256, pageCount: pages });
+        const document = { id: identity, title, size: bytes, lastModified: 0, contentVersion: sha256, pageCount: pages };
+        const etag = `"sha256-${sha256}"`;
+        agent = createReaderAgentHost(document, publicationReaderDocument(document, expectedUrl, etag, controller.signal));
         const handle = await pdf.initReader({
           target: mount.current, signal: controller.signal,
           wasmUrl: new URL(publicAsset(`${assets}/pdfium.wasm`), location.origin).href,
           documentId: identity, title, view, host: agent.host,
           locale: getI18n().resolvedLanguage?.startsWith('zh') ? 'zh-CN' : 'en',
-          rangeSource: { url: expectedUrl, bytes, etag: `"sha256-${sha256}"` },
+          rangeSource: { url: expectedUrl, bytes, etag },
           onRangeError: code => { if (!controller.signal.aborted) { stop(); setStatus(pdfStatus(code)); } },
           onOpenFile: () => {
             void (async () => {
