@@ -1,6 +1,8 @@
 import { ServiceError } from '@/services/httpClient';
 import type { LearningVoiceInput } from './learningSession';
-import { createReaderVAD, type ReaderVAD } from './vadInput';
+import { connectMicrophoneFrames, loadMicrophoneWorklet } from './microphoneFrames';
+
+const maxSamples = 30 * 16000;
 
 export type ReaderVoiceState = { input: 'idle' | 'starting' | 'listening' | 'transcribing' | 'review' | 'stopping' | 'error'; transcript: string; error?: string; limitReached?: boolean; cleanupPending?: boolean };
 export type ReaderVoiceControls = {
@@ -36,7 +38,7 @@ function acquireMicrophone(signal: AbortSignal): Promise<MediaStream> {
   });
 }
 
-function waitForAudioResume(pending: Promise<void>, signal: AbortSignal): Promise<void> {
+function waitForAudio(pending: Promise<void>, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const abort = () => reject(signal.reason);
     signal.addEventListener('abort', abort, { once: true });
@@ -63,7 +65,7 @@ function voiceError(error: unknown): string {
 }
 
 export function speechPCM(samples: Float32Array): Uint8Array {
-  if (!samples.length || samples.length > 480000) throw new Error('请将语音分成较短的句子。');
+  if (!samples.length || samples.length > maxSamples) throw new Error('请将语音分成较短的句子。');
   const pcm = new Uint8Array(samples.length * 2), view = new DataView(pcm.buffer);
   for (let index = 0; index < samples.length; index++) {
     if (!Number.isFinite(samples[index])) { pcm.fill(0); throw new Error('麦克风音频无效。'); }
@@ -76,13 +78,13 @@ export function speechPCM(samples: Float32Array): Uint8Array {
 /** One owner in the Web host, shared by the adopted Viewer/PiP root. */
 export function createReaderVoiceInput(options: Options): ReaderVoiceControls & { dispose(): Promise<void>; openAudio(signal: AbortSignal): Promise<AudioContext> } {
   let state: ReaderVoiceState = { input: 'idle', transcript: '' };
-  let vad: ReaderVAD | undefined, context: AudioContext | undefined, stream: MediaStream | undefined;
+  let context: AudioContext | undefined, stream: MediaStream | undefined;
   let task: Promise<void> | undefined, controller: AbortController | undefined;
   let cancelling: Promise<void> | undefined;
-  let disposed = false, serial = 0, finishing = false;
+  let disposed = false, serial = 0;
   let retryCleanup: (() => Promise<void>) | undefined;
   let releaseTranscript: (() => Promise<void>) | undefined;
-  let rejectCapture: ((error: unknown) => void) | undefined;
+  let endCapture: (() => void) | undefined;
   const set = (next: ReaderVoiceState) => { state = next; if (!disposed) options.notify(); };
   const stopTracks = () => { stream?.getTracks().forEach(track => track.stop()); stream = undefined; };
   const current = (id: number) => {
@@ -94,7 +96,7 @@ export function createReaderVoiceInput(options: Options): ReaderVoiceControls & 
     if (disposed) throw new Error('语音会话已关闭。');
     context ||= new AudioContext({ latencyHint: 'interactive' });
     const owned = context;
-    return waitForAudioResume(owned.resume(), signal).then(() => owned);
+    return waitForAudio(owned.resume(), signal).then(() => owned);
   };
   const cancelInput = () => {
     if (cancelling) return cancelling;
@@ -116,11 +118,7 @@ export function createReaderVoiceInput(options: Options): ReaderVoiceControls & 
     return cancelling;
   };
   const finishInput = async () => {
-    if (state.input !== 'listening' || finishing || !vad) return;
-    finishing = true;
-    stopTracks();
-    try { await vad.pause(); if (state.input === 'listening') rejectCapture?.(new Error('没有听清，请重试。')); }
-    catch (error) { rejectCapture?.(error); }
+    if (state.input === 'listening') endCapture?.();
   };
   const startInput = async () => {
     options.active();
@@ -128,82 +126,83 @@ export function createReaderVoiceInput(options: Options): ReaderVoiceControls & 
     if (disposed || cancelling || task || !['idle', 'error'].includes(state.input) || retryCleanup) throw new Error('请先确认或取消当前语音。');
     if (!readerVoiceSupported()) throw new Error('当前浏览器不支持语音输入。');
     const id = ++serial;
-    const aborter = new AbortController(); controller = aborter; finishing = false;
-    // Create/resume under the user's gesture; loading models does not create
-    // another AudioContext or acquire a microphone behind the user's back.
-    const resumed = openAudio(aborter.signal);
+    const aborter = new AbortController(); controller = aborter;
+    const { signal } = aborter;
+    // Resume under the user's gesture. Capture needs only the browser microphone
+    // and the resampling worklet. Native session setup begins after recording.
+    const resumed = openAudio(signal);
     set({ input: 'starting', transcript: '' });
     task = (async () => {
       try {
         const audioContext = await resumed;
         await navigator.locks.request(`rinspace.reader.microphone:${options.accountId}`, { ifAvailable: true }, async lock => {
           if (!lock) throw new Error('另一个页面正在使用麦克风。');
-          await options.run(aborter.signal, async input => {
-            let settle!: (value: { samples: Float32Array } | { error: unknown }) => void;
-            const audio = new Promise<{ samples: Float32Array } | { error: unknown }>(resolve => { settle = resolve; });
-            let accepted = false, speaking = false, frames = 0, reviewing = false;
-            let captured: Float32Array | undefined;
-            const fail = (error: unknown) => { accepted = true; settle({ error }); stopTracks(); };
-            rejectCapture = fail;
-            const aborted = () => fail(input.signal.reason);
-            input.signal.addEventListener('abort', aborted, { once: true });
+          current(id); signal.throwIfAborted();
+          const microphone = await acquireMicrophone(signal);
+          stream = microphone;
+          try {
+            await waitForAudio(loadMicrophoneWorklet(audioContext), signal);
+            current(id); signal.throwIfAborted();
+            const tracks = microphone.getAudioTracks();
+            if (!tracks.some(track => track.readyState === 'live')) throw new Error('麦克风已关闭，请重新开启。');
+            const samples = new Float32Array(maxSamples);
+            let length = 0;
+            let pcm: Uint8Array;
+            const disconnect = new AbortController();
+            let detach: (() => void) | undefined;
             try {
-              current(id); input.signal.throwIfAborted();
-              stream = await acquireMicrophone(input.signal);
-              current(id); input.signal.throwIfAborted();
-              for (const track of stream.getAudioTracks()) track.addEventListener('ended', () => fail(new Error('麦克风已断开，请重新开启。')), { once: true });
-              const onSpeechEnd = (samples: Float32Array) => {
-                if (accepted || input.signal.aborted || disposed || id !== serial) { samples.fill(0); return; }
-                accepted = true; speaking = false; captured = samples; stopTracks();
-                settle({ samples });
-                set({ input: 'transcribing', transcript: '', limitReached: state.limitReached });
-              };
-              if (vad) await vad.destroy();
-              vad = await createReaderVAD(audioContext, {
-                onSpeechStart: () => { speaking = true; frames = 0; },
-                onVADMisfire: () => { speaking = false; frames = 0; if (finishing) fail(new Error('没有听清，请重试。')); },
-                onFrameProcessed: frame => {
-                  if (!speaking || accepted || input.signal.aborted) return;
-                  frames += frame.length;
-                  if (frames >= 28 * 16000 && !finishing) {
-                    set({ ...state, limitReached: true });
-                    void finishInput().catch(fail);
-                  }
-                }, onSpeechEnd, onError: fail,
-              }, input.signal);
-              current(id); input.signal.throwIfAborted();
-              if (!stream?.getAudioTracks().some(track => track.readyState === 'live')) throw new Error('麦克风已关闭，请重新开启。');
-              vad.start(stream); current(id); input.signal.throwIfAborted();
-              set({ input: 'listening', transcript: '' });
-              const result = await audio;
-              if ('error' in result) throw result.error;
-              let pcm: Uint8Array | undefined;
-              try {
-                await vad.pause(); current(id); input.signal.throwIfAborted();
-                pcm = speechPCM(result.samples);
-                const transcript = await input.transcribe(crypto.randomUUID(), pcm);
-                current(id); input.signal.throwIfAborted();
-                if (!transcript.trim()) throw new Error('没有听清，请重试。');
-                releaseTranscript = input.release;
-                reviewing = true;
-                set({ input: 'review', transcript, limitReached: state.limitReached });
-              } finally { pcm?.fill(0); result.samples.fill(0); }
-            } finally {
-              input.signal.removeEventListener('abort', aborted);
-              rejectCapture = undefined; captured?.fill(0); stopTracks();
-              try { if (vad?.listening) await vad.pause(); }
-              finally {
-                if (input.signal.aborted || !reviewing) {
-                  try { await input.cancel(); retryCleanup = undefined; }
-                  catch (error) { retryCleanup = input.cancel; if (!disposed) set({ input: 'error', transcript: '', error: '停止结果待确认，请重试。' }); }
+              await new Promise<void>((resolve, reject) => {
+                const fail = (error: unknown) => { stopTracks(); reject(error); };
+                endCapture = () => {
+                  stopTracks();
+                  if (!length) { reject(new Error('没有听清，请重试。')); return; }
+                  set({ input: 'transcribing', transcript: '', limitReached: length === maxSamples });
+                  resolve();
+                };
+                signal.addEventListener('abort', () => fail(signal.reason), { once: true, signal: disconnect.signal });
+                for (const track of tracks) {
+                  track.addEventListener('ended', () => fail(new Error('麦克风已断开，请重新开启。')), { once: true, signal: disconnect.signal });
                 }
-              }
+                detach = connectMicrophoneFrames(audioContext, microphone, frame => {
+                  const count = Math.min(frame.length, maxSamples - length);
+                  samples.set(frame.subarray(0, count), length);
+                  length += count;
+                  if (length === maxSamples) endCapture?.();
+                }, fail);
+                set({ input: 'listening', transcript: '' });
+              });
+              current(id); signal.throwIfAborted();
+              pcm = speechPCM(samples.subarray(0, length));
+            } finally {
+              endCapture = undefined;
+              disconnect.abort();
+              samples.fill(0);
+              detach?.();
+              stopTracks();
             }
-          });
+            try {
+              await options.run(signal, async input => {
+                let reviewing = false;
+                try {
+                  current(id); input.signal.throwIfAborted();
+                  const transcript = await input.transcribe(crypto.randomUUID(), pcm);
+                  current(id); input.signal.throwIfAborted();
+                  if (!transcript.trim()) throw new Error('没有听清，请重试。');
+                  releaseTranscript = input.release;
+                  reviewing = true;
+                  set({ input: 'review', transcript, limitReached: state.limitReached });
+                } finally {
+                  if (input.signal.aborted || !reviewing) {
+                    try { await input.cancel(); retryCleanup = undefined; }
+                    catch { retryCleanup = input.cancel; if (!disposed) set({ input: 'error', transcript: '', error: '停止结果待确认，请重试。' }); }
+                  }
+                }
+              });
+            } finally { pcm.fill(0); }
+          } finally { stopTracks(); }
         });
       } catch (error) {
-        stopTracks();
-        if (!disposed && id === serial && !aborter.signal.aborted) set({ input: 'error', transcript: '', error: voiceError(error) });
+        if (!disposed && id === serial && !aborter.signal.aborted && !retryCleanup) set({ input: 'error', transcript: '', error: voiceError(error) });
       } finally { task = undefined; controller = undefined; }
     })();
     return task;
@@ -223,12 +222,9 @@ export function createReaderVoiceInput(options: Options): ReaderVoiceControls & 
       await task;
       try { if (releaseTranscript) { await releaseTranscript(); releaseTranscript = undefined; } }
       finally {
-        try { if (vad) { await vad.destroy(); vad = undefined; } }
-        finally {
-          const owned = context; context = undefined;
-          if (owned && owned.state !== 'closed') await owned.close();
-          state = { input: 'idle', transcript: '' };
-        }
+        const owned = context; context = undefined;
+        if (owned && owned.state !== 'closed') await owned.close();
+        state = { input: 'idle', transcript: '' };
       }
     },
   };
