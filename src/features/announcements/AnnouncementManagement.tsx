@@ -74,13 +74,13 @@ export function AnnouncementManagement({ access }: { access: ReturnType<typeof u
         <div className="state-strip" role="status">
           <p>{t(access.state === 'unavailable' ? 'pages.announcement.accessUnavailable' : 'pages.announcement.accessDenied')}</p>
           {access.state === 'unavailable' ? (
-            <Button onClick={access.retry}>{t('pages.announcement.retry')}</Button>
+            <Button onClick={access.retry}>{t('common:actions.retry')}</Button>
           ) : null}
         </div>
       ) : loading ? <LoadingState variant="strip" /> : error ? (
         <div className="state-strip" role="alert">
           <p>{error}</p>
-          <Button onClick={() => setAttempt(value => value + 1)}>{t('pages.announcement.retry')}</Button>
+          <Button onClick={() => setAttempt(value => value + 1)}>{t('common:actions.retry')}</Button>
         </div>
       ) : (
         <>

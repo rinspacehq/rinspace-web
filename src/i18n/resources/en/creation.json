@@ -1,7 +1,6 @@
 {
   "title": "Create",
   "actions": {
-    "retry": "Retry",
     "publish": "Publish",
     "saveDraft": "Save draft"
   },
@@ -244,15 +243,9 @@
         "bodyPlaceholder": "Describe the context, your perspective, and what you would like others to respond to."
       },
       "announcement": {
-        "reviewRequired": "The announcement requires further review. Your changes have not been published.",
-        "bodyRequired": "Enter the announcement body.",
-        "save": "Save changes",
-        "eyebrow": "Announcement",
-        "heading": "Post announcement",
-        "editHeading": "Edit announcement",
-        "submit": "Post announcement",
-        "bodyLabel": "Announcement",
-        "bodyPlaceholder": "State the announcement, its scope, and any dates the community should note."
+        "reviewRequired": "Review required. Changes are unpublished.",
+        "bodyRequired": "Enter the body.",
+        "editHeading": "Edit announcement"
       },
       "dynamic": {
         "eyebrow": "Update",

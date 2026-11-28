@@ -6,7 +6,7 @@ import { Button, Pagination } from '@/components/ui';
 import SiteTopbar from '@/components/SiteTopbarShell';
 import LoadingState from '@/components/LoadingState';
 import { useAnnouncementAccess } from '@/features/announcements/useAnnouncementAccess';
-import { formatDate, formatNumber } from '@/i18n/format';
+import { formatDate } from '@/i18n/format';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
 import { loadAnnouncementFeed } from '@/services/domains/discussion';
@@ -39,7 +39,6 @@ function AnnouncementCard({ item }: { item: FeedItem }) {
 
 export default function AnnouncementsPage() {
   const { t } = useFeatureTranslation('discovery');
-  const { resolvedLocale } = useLanguage();
   const access = useAnnouncementAccess();
   const [params, setParams] = useSearchParams();
   const requestedPage = Number(params.get('page') || 1);
@@ -65,17 +64,12 @@ export default function AnnouncementsPage() {
 
   useRinPageContext(useMemo(() => ({
     kind: 'page' as const,
-    title: t('pages.announcement.contextTitle'),
-    excerpt: t('pages.announcement.contextExcerpt', { items: formatNumber(resolvedLocale, result?.count ?? 0) }),
+    title: t('pages.announcement.heading'),
     sections: items.length ? [{
-      title: t('pages.announcement.contextSection'),
-      body: items.slice(0, 12).map((item, index) => t('pages.announcement.contextItem', {
-        index: formatNumber(resolvedLocale, index + 1),
-        title: item.title,
-        summary: item.excerpt,
-      })).join('\n'),
+      title: t('pages.announcement.heading'),
+      body: items.slice(0, 12).map(item => [item.title, item.excerpt].filter(Boolean).join('\n')).join('\n\n'),
     }] : [],
-  }), [items, resolvedLocale, result, t]));
+  }), [items, t]));
 
   return (
     <>
@@ -92,7 +86,7 @@ export default function AnnouncementsPage() {
           {loading ? <LoadingState variant="panel" className="loading-panel" /> : error ? (
             <div className="panel announcement-list-card" role="alert">
               <p>{error}</p>
-              <Button onClick={() => setAttempt(value => value + 1)}>{t('pages.announcement.retry')}</Button>
+              <Button onClick={() => setAttempt(value => value + 1)}>{t('common:actions.retry')}</Button>
             </div>
           ) : (
             <>

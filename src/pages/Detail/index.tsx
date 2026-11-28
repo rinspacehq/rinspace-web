@@ -10992,7 +10992,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             )}/edit`}
           >
             <Icon name="pencil-square" />
-            {t(isAnnouncementDetail ? "detail.common.editAnnouncement" : "detail.common.edit")}
+            {t("detail.common.edit")}
           </Link>
         ) : null}
         {renderCollectionAction(true)}

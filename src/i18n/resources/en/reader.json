@@ -27,7 +27,6 @@
       "noBrowserFallback": "This page does not re-render source files in the browser. Try again shortly."
     },
     "common": {
-      "editAnnouncement": "Edit announcement",
       "cancel": "Cancel",
       "edit": "Edit",
       "delete": "Delete",

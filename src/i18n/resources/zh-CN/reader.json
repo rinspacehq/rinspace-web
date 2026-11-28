@@ -27,7 +27,6 @@
       "noBrowserFallback": "页面不会在浏览器中重新解析源码，请稍后重试。"
     },
     "common": {
-      "editAnnouncement": "编辑公告",
       "cancel": "取消",
       "edit": "编辑",
       "delete": "删除",

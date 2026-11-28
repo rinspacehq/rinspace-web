@@ -189,7 +189,7 @@ export function AnnouncementMarkdownPage() {
               <p role="status">{t(state === 'denied'
                 ? 'pages.announcement.accessDenied' : 'pages.announcement.accessUnavailable')}</p>
             )}
-            {state === 'unavailable' ? <Button onClick={retry}>{t('pages.announcement.retry')}</Button> : null}
+            {state === 'unavailable' ? <Button onClick={retry}>{t('common:actions.retry')}</Button> : null}
             <Link to="/announcements">{t('pages.announcement.heading')}</Link>
           </div>
         )}
@@ -563,7 +563,7 @@ export default function BlogMarkdownPage({
     openSource: t('markdownWriter.visibility.open'),
     privateSource: t('markdownWriter.visibility.private'),
     saveDraft: t('actions.saveDraft'),
-    publish: announcement ? t(editSlug ? 'publishPage.modes.announcement.save' : 'publishPage.modes.announcement.submit') : t('actions.publish'),
+    publish: announcement && editSlug ? t('common:actions.save') : t('actions.publish'),
     saving: t('markdownWriter.actions.saving'),
     publishing: t('writer.actions.publishing'),
   };
@@ -809,7 +809,7 @@ export default function BlogMarkdownPage({
           : 'markdownWriter.status.accountDraftFailed')
         : announcement && saveError instanceof ServiceError && saveError.status === 451
           ? t('publishPage.modes.announcement.reviewRequired')
-          : localizedErrorMessage(saveError, announcement ? 'creation.announcementSaveFailed' : 'creation.markdownSaveFailed');
+          : localizedErrorMessage(saveError, announcement ? 'creator.saveFailed' : 'creation.markdownSaveFailed');
       setError(durableDraftSaved
         ? t(mode === 'published'
           ? 'markdownWriter.status.publishFailedDraftKept'
@@ -823,14 +823,14 @@ export default function BlogMarkdownPage({
   return (
     <>
       <Helmet title={t(announcement
-        ? editSlug ? 'publishPage.modes.announcement.editHeading' : 'publishPage.modes.announcement.heading'
+        ? editSlug ? 'publishPage.modes.announcement.editHeading' : 'discovery:pages.announcement.new'
         : 'markdownWriter.documentTitle')} />
       <SiteTopbar />
       {announcement ? (
         <div className="announcement-writer-navigation">
           <Link to={announcementBack}>{t('markdownWriter.actions.cancel')}</Link>
           {editSlug && !loadingEdit && error && !editPost ? (
-            <Button onClick={() => setEditAttempt(value => value + 1)}>{t('actions.retry')}</Button>
+            <Button onClick={() => setEditAttempt(value => value + 1)}>{t('common:actions.retry')}</Button>
           ) : null}
         </div>
       ) : null}
