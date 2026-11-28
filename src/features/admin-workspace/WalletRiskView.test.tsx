@@ -452,7 +452,7 @@ it("explains why an Agent policy cannot be saved without a change reason", async
         (title) => title.closest("#wallet-risk-agent-policy") as HTMLElement,
       ),
   );
-  fireEvent.click(agentPanel.getByRole("button", { name: "保存 Agent 策略" }));
+  fireEvent.click(await agentPanel.findByRole("button", { name: "保存 Agent 策略" }));
   expect(
     await agentPanel.findByText("请填写本次调整理由后再保存。"),
   ).toBeTruthy();
