@@ -64,6 +64,26 @@ test("a valid legacy proof is exchanged once and removed only after managed reco
   expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body))).toMatchObject({ legacyToken: "legacy-proof" });
 });
 
+test("session bootstrap notifies listeners when the authority replaces a stored account hint", async () => {
+  window.localStorage.setItem(hintKey, JSON.stringify({ sub: "user-1" }));
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
+    status: "authenticated",
+    user: { id: "user-1", sessionEpoch: 1, identityVersion: 4 },
+  })));
+  const auth = await import("./phoneAuth");
+  const changes = vi.fn(() => auth.getStoredSession());
+  window.addEventListener("rinspace-session-changed", changes);
+  try {
+    await auth.getCurrentAuthUser();
+    expect(changes).toHaveBeenCalledTimes(1);
+    expect(changes.mock.results[0]?.value).toMatchObject({
+      sub: "user-1", session_epoch: 1, identity_version: 4,
+    });
+  } finally {
+    window.removeEventListener("rinspace-session-changed", changes);
+  }
+});
+
 test("a rotated session adopts the CSRF token minted by the refresh response", async () => {
   let sessionReads = 0;
   const fetcher = vi.fn(async (input: RequestInfo | URL) => {

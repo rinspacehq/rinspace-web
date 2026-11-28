@@ -848,6 +848,7 @@ type MarkdownHtmlOptions = {
   deferMath?: boolean;
   footnotes?: MarkdownFootnoteContext;
   socialTokens?: boolean;
+  imageCaptionAsAlt?: boolean;
 };
 
 type MarkdownTableAlignment = 'left' | 'center' | 'right' | null;
@@ -1309,7 +1310,7 @@ function renderInlineMarkdown(value: string, options: MarkdownHtmlOptions = {}):
             : `rin-markdown-image-figure${captionText ? ' has-caption' : ''}`;
           const figureClass = ` class="${escapeAttribute(figureClasses)}"`;
           const imageClass = isQuiverImage ? ' class="rin-quiver-image"' : '';
-          const imageAlt = isGeneratedMarkdownImageAlt(alt) ? '' : alt;
+          const imageAlt = isGeneratedMarkdownImageAlt(alt) ? (options.imageCaptionAsAlt ? captionText : '') : alt;
           const caption = captionText ? `<figcaption>${escapeHtml(captionText)}</figcaption>` : '';
           html += isSafeUrl(url)
             ? `<figure${figureClass}><img${imageClass} src="${escapeAttribute(url)}" alt="${escapeAttribute(imageAlt)}" loading="lazy" decoding="async" />${caption}</figure>`

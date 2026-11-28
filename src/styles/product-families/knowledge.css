@@ -69,3 +69,8 @@
 .rin-animate-code-block .rin-code-pre code.rin-code-native-token-stream{display:block}
 .rin-animate-code-block .rin-code-pre .line:hover{background:color-mix(in srgb, var(--rin-ink) 4%, transparent)}
 .rin-animate-code-block .rin-code-line-number{border-right:var(--rin-border-width) solid var(--rin-border);color:var(--rin-ink-muted)}
+
+.announcement-info {
+  display: grid;
+  gap: 8px;
+}

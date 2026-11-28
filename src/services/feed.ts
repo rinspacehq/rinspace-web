@@ -12,7 +12,7 @@ import {
   contentDeletionCommand,
   contentDeletionStepUpHeader,
 } from "./contentDeletion";
-import { ServiceError } from "./httpClient";
+import { requestAdminJson, ServiceError } from "./httpClient";
 import { clearContentCreateIdempotencyKey, contentCreateIdempotencyKey } from "./contentCreateIdempotency";
 
 export type CachedSnapshot<T> = {
@@ -1545,7 +1545,7 @@ export type AdminContentSourceVisibility = "private" | "open";
 export type AdminContentPageInput = {
   page?: number;
   pageSize?: number;
-  type?: AdminContentType;
+  type?: AdminContentType | "announcement";
   status?: AdminContentStatus;
   query?: string;
 };
@@ -1871,6 +1871,7 @@ export type CurrentUserInfo = {
   access_token: string;
   role_id: number;
   role_name: AdminUserRole;
+  canManageAnnouncements?: boolean;
   rank: number;
   status: string;
   have_password: boolean;
@@ -6857,6 +6858,7 @@ function currentUserInfo(value: unknown): CurrentUserInfo | null {
     access_token: value.access_token,
     role_id: value.role_id,
     role_name: value.role_name,
+    canManageAnnouncements: value.canManageAnnouncements === true,
     rank: value.rank,
     status: value.status,
     have_password: value.have_password,
@@ -9606,16 +9608,21 @@ export async function loadUserRelations(input: {
 
 const currentUserInfoCacheLifetimeMs = 30 * 1000;
 let currentUserInfoCache: {
-  accessToken: string;
+  sessionKey: string;
   expiresAt: number;
   value: CurrentUserInfo | null;
 } | null = null;
 let currentUserInfoRequest: {
-  accessToken: string;
+  sessionKey: string;
   promise: Promise<CurrentUserInfo | null>;
 } | null = null;
 
-export async function loadCurrentUserInfo(): Promise<CurrentUserInfo | null> {
+function currentUserInfoSessionKey(accessToken: string) {
+  const session = getStoredSession();
+  return JSON.stringify([accessToken, session?.sub, session?.session_epoch, session?.identity_version]);
+}
+
+export async function loadCurrentUserInfo(refresh = false): Promise<CurrentUserInfo | null> {
   let accessToken = "";
   try {
     accessToken = await getAuthAccessToken();
@@ -9625,13 +9632,14 @@ export async function loadCurrentUserInfo(): Promise<CurrentUserInfo | null> {
   if (!accessToken && !getStoredSession()) {
     return null;
   }
+  const sessionKey = currentUserInfoSessionKey(accessToken);
   if (
-    currentUserInfoCache?.accessToken === accessToken &&
+    !refresh && currentUserInfoCache?.sessionKey === sessionKey &&
     currentUserInfoCache.expiresAt > Date.now()
   ) {
     return currentUserInfoCache.value;
   }
-  if (currentUserInfoRequest?.accessToken === accessToken) {
+  if (currentUserInfoRequest?.sessionKey === sessionKey) {
     return currentUserInfoRequest.promise;
   }
 
@@ -9653,7 +9661,7 @@ export async function loadCurrentUserInfo(): Promise<CurrentUserInfo | null> {
       }
       if (payload === null) {
         currentUserInfoCache = {
-          accessToken,
+          sessionKey,
           expiresAt: Date.now() + currentUserInfoCacheLifetimeMs,
           value: null,
         };
@@ -9664,7 +9672,7 @@ export async function loadCurrentUserInfo(): Promise<CurrentUserInfo | null> {
         throw new Error("当前用户资料返回格式异常。");
       }
       currentUserInfoCache = {
-        accessToken,
+        sessionKey,
         expiresAt: Date.now() + currentUserInfoCacheLifetimeMs,
         value: parsed,
       };
@@ -9674,7 +9682,7 @@ export async function loadCurrentUserInfo(): Promise<CurrentUserInfo | null> {
       if (currentUserInfoRequest?.promise === promise)
         currentUserInfoRequest = null;
     });
-  currentUserInfoRequest = { accessToken, promise };
+  currentUserInfoRequest = { sessionKey, promise };
   return promise;
 }
 
@@ -9717,7 +9725,7 @@ export async function updateCurrentUserInfo(
     throw new Error("用户资料更新返回格式异常。");
   }
   currentUserInfoCache = {
-    accessToken,
+    sessionKey: currentUserInfoSessionKey(accessToken),
     expiresAt: Date.now() + currentUserInfoCacheLifetimeMs,
     value: parsed,
   };
@@ -9790,7 +9798,7 @@ export async function updateUserInterfaceConfig(
     throw new Error("界面设置返回格式异常。");
   }
   if (
-    currentUserInfoCache?.accessToken === accessToken &&
+    currentUserInfoCache?.sessionKey === currentUserInfoSessionKey(accessToken) &&
     currentUserInfoCache.value
   ) {
     currentUserInfoCache = {
@@ -11570,6 +11578,14 @@ export async function loadAdminAnswerPage(
   return parsed;
 }
 
+export async function setAnnouncementPinned(id: string, pinned: boolean) {
+  await requestAdminJson<null>(`content/announcements/${encodeURIComponent(id)}/pin`, {
+    method: 'PUT',
+    auth: 'required',
+    body: { pinned },
+  });
+}
+
 export async function loadAdminContentPage(
   input: AdminContentPageInput = {},
 ): Promise<AdminContentPageResponse> {
@@ -12242,6 +12258,8 @@ export async function createContent(input: CreateContentInput) {
       isRecord(payload) && typeof payload.message === "string"
         ? payload.message
         : "内容发布失败。";
+    if (input.type === "announcement")
+      throw new ServiceError(message, response.status, payload);
     throw new Error(message);
   }
   const moderationSubmission = parseContentModerationSubmission(payload);
@@ -12256,10 +12274,10 @@ export async function createContent(input: CreateContentInput) {
   return parsed;
 }
 
-export async function updateContent(
+async function requestContentUpdate(
   slug: string,
   input: CreateContentInput,
-): Promise<PostDetail> {
+): Promise<unknown> {
   const accessToken = await getAuthAccessToken();
   if (!accessToken && !getStoredSession())
     throw new Error("请先登录后编辑内容。");
@@ -12287,11 +12305,30 @@ export async function updateContent(
         : "内容编辑失败。";
     if (response.status === 409)
       throw new ServiceError(message, 409, payload, "conflict");
+    if (input.type === "announcement")
+      throw new ServiceError(message, response.status, payload);
     throw new Error(message);
   }
-  const parsed = parsePostDetail(payload);
+  return payload;
+}
+
+export async function updateContent(
+  slug: string,
+  input: CreateContentInput,
+): Promise<PostDetail> {
+  const parsed = parsePostDetail(await requestContentUpdate(slug, input));
   if (!parsed) throw new Error("内容编辑返回格式异常。");
   return parsed;
+}
+
+export async function updateAnnouncement(slug: string, input: CreateContentInput) {
+  const payload = await requestContentUpdate(slug, input);
+  const submission = parseContentModerationSubmission(payload);
+  if (submission) return submission;
+  const detail = parsePostDetail(payload);
+  if (!detail) throw new Error("公告编辑返回格式异常。");
+  writeCachedContentDetail("announcement", detail.id, detail);
+  return detail;
 }
 
 export async function updateContentVisibility(

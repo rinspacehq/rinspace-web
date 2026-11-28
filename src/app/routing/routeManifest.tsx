@@ -41,6 +41,7 @@ const LinkedQuestionsPage = lazy(() => Promise.all([import('pages/LinkedQuestion
 const NotificationsPage = lazy(() => Promise.all([import('pages/Notifications'), loadFamilyStyles("identity")]).then(([module]) => module));
 const ActivityTimelinePage = lazy(() => Promise.all([import('pages/ActivityTimeline'), loadFamilyStyles("identity")]).then(([module]) => module));
 const AnnouncementsPage = lazy(() => Promise.all([import('pages/Announcements'), loadFamilyStyles("discovery")]).then(([module]) => module));
+const AnnouncementMarkdownPage = lazy(() => Promise.all([import('pages/BlogMarkdown'), loadFamilyStyles("creation")]).then(([module]) => ({ default: module.AnnouncementMarkdownPage })));
 const DiscussionsPage = lazy(() => Promise.all([import('pages/Discussions'), loadFamilyStyles("discovery")]).then(([module]) => module));
 const DynamicsPage = lazy(() => Promise.all([import('pages/Dynamics'), loadFamilyStyles("discovery")]).then(([module]) => module));
 const ReaderPage = lazy(() => Promise.all([import('pages/Reader'), loadFamilyStyles("reader-local")]).then(([module]) => module));
@@ -877,7 +878,7 @@ export const routeManifest = [
     path: "/admin",
     canonicalPath: "/admin",
     titleKey: "routes.admin",
-    translationNamespaces: ["admin","identity"],
+    translationNamespaces: ["admin","identity","discovery"],
     layout: "AdminLayout",
     family: "operations",
     minimumRole: "member",
@@ -942,26 +943,26 @@ export const routeManifest = [
     path: "/announcements/new",
     canonicalPath: "/announcements/new",
     titleKey: "routes.announcements",
-    translationNamespaces: ["creation"],
+    translationNamespaces: ["creation","discovery"],
     layout: "WorkspaceLayout",
     family: "creation",
     minimumRole: "member",
     anonymousResult: "authentication-outcome",
     frozenBoundary: "rinspace-owned",
-    element: <PublishPage mode="announcement" />,
+    element: <AnnouncementMarkdownPage />,
   },
   {
     order: 68,
     path: "/announcements/:slug/edit",
     canonicalPath: "/announcements/:slug/edit",
     titleKey: "routes.announcements",
-    translationNamespaces: ["creation"],
+    translationNamespaces: ["creation","discovery"],
     layout: "WorkspaceLayout",
     family: "creation",
     minimumRole: "member",
     anonymousResult: "authentication-outcome",
     frozenBoundary: "rinspace-owned",
-    element: <PublishPage mode="announcement" />,
+    element: <AnnouncementMarkdownPage />,
   },
   {
     order: 69,

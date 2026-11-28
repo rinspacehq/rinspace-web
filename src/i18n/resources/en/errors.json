@@ -69,6 +69,7 @@
     "reactionFailed": "The like could not be updated."
   },
   "discovery": {
+    "announcementPinFailed": "The announcement pin could not be updated.",
     "announcementsLoadFailed": "Announcements could not be loaded.",
     "blogsLoadFailed": "Articles could not be loaded.",
     "booksLoadFailed": "Books could not be loaded.",
@@ -213,6 +214,7 @@
     "markdownEditorFailed": "The Markdown editor could not be started.",
     "markdownCoverUploadFailed": "The cover could not be uploaded.",
     "markdownRenderCancelFailed": "The publication render could not be canceled.",
+    "announcementSaveFailed": "The announcement could not be saved.",
     "markdownSaveFailed": "The Markdown article could not be saved.",
     "quiverSourceLoadFailed": "The Quiver diagram source could not be loaded.",
     "quiverRenderFailed": "The Quiver diagram could not be rendered."

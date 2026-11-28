@@ -20,7 +20,7 @@ import {
 } from 'react';
 import { Button, Modal } from '@/components/ui/compat';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import CodeMirrorEditor from '@/components/CodeMirrorEditor';
 import ImageCropDialog from '@/components/ImageCropDialog';
@@ -42,20 +42,25 @@ import {
 } from '@/components/milkdown/repositoryAssets';
 import QuiverDialog from '@/components/milkdown/QuiverDialog';
 import { useQuiverEditor } from '@/components/milkdown/useQuiverEditor';
+import { createAnnouncementEditor } from '@/features/announcements/announcementEditor';
+import { useAnnouncementAccess } from '@/features/announcements/useAnnouncementAccess';
 import { i18n as appI18n } from '@/i18n';
 import { localizedErrorMessage } from '@/i18n/errors';
 import { resolveLocale } from '@/i18n/resolveLocale';
 import { useFeatureTranslation } from '@/i18n/useFeatureTranslation';
-import { createContent, isContentModerationSubmission, loadContentDetail, updateContent } from '@/services/domains/article';
+import { createContent, isContentModerationSubmission, loadContentDetail, updateAnnouncement, updateContent } from '@/services/domains/article';
 import { moveWorkItem } from '@/services/domains/identity';
+import { uploadAnswerFile } from '@/services/domains/publication';
 import type { CreateContentInput, PostDetail } from '@/services/contracts';
 import { getCurrentUser, uploadCoverFile } from '@/services/profile';
+import { ServiceError } from '@/services/httpClient';
 import { loadMarkdownEditorSource } from '@/services/markdownEditorSource';
 import type { RinspaceUser } from '@/services/phoneAuth';
 import {
   firstMarkdownHeading,
   markdownWithTitle,
   markdownWithoutDefaultTemplate,
+  markdownWithoutMatchingTitle,
 } from '@/utils/markdownTitle';
 import {
   MilkdownDraftSaveError,
@@ -67,9 +72,11 @@ import {
   blogEditorKind,
   bodyFromMarkdownSource,
   excerptFromMarkdown,
+  markdownBlogSource,
   normalizeMarkdownWhitespaceEntities,
 } from '@/utils/blogBody';
 import { contentPath } from '@/utils/routes';
+import { requestAuthDialog } from '@/utils/authDialog';
 
 const defaultQuiverFrameSrc = '/quiver/?rinWriter=1';
 function bodyHeadingOptions() {
@@ -161,7 +168,40 @@ async function sourceFromPost(post: PostDetail) {
   return loadMarkdownEditorSource(post);
 }
 
-export default function BlogMarkdownPage() {
+export function AnnouncementMarkdownPage() {
+  const { slug } = useParams();
+  const { state, retry, accountKey } = useAnnouncementAccess();
+  const { t } = useFeatureTranslation('discovery');
+
+  if (state === 'allowed') {
+    return <BlogMarkdownPage key={JSON.stringify([accountKey, slug])} announcement announcementRef={slug} />;
+  }
+
+  return (
+    <>
+      <SiteTopbar />
+      <main className="community-page">
+        {state === 'loading' ? <LoadingState variant="panel" /> : (
+          <div className="panel announcement-writer-outcome">
+            {state === 'anonymous' ? (
+              <Button onClick={requestAuthDialog}>{t('pages.announcement.signIn')}</Button>
+            ) : (
+              <p role="status">{t(state === 'denied'
+                ? 'pages.announcement.accessDenied' : 'pages.announcement.accessUnavailable')}</p>
+            )}
+            {state === 'unavailable' ? <Button onClick={retry}>{t('pages.announcement.retry')}</Button> : null}
+            <Link to="/announcements">{t('pages.announcement.heading')}</Link>
+          </div>
+        )}
+      </main>
+    </>
+  );
+}
+
+export default function BlogMarkdownPage({
+  announcement = false,
+  announcementRef = '',
+}: { announcement?: boolean; announcementRef?: string } = {}) {
   const {
     t,
     i18n,
@@ -173,7 +213,13 @@ export default function BlogMarkdownPage() {
   const locale = resolveLocale(i18n.resolvedLanguage || i18n.language, []);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const editSlug = searchParams.get('edit')?.trim() || '';
+  const location = useLocation();
+  const editSlug = announcement ? announcementRef : searchParams.get('edit')?.trim() || '';
+  const [editAttempt, setEditAttempt] = useState(0);
+  const cameFromManagement = location.state?.from === '/admin?view=content&section=announcements';
+  const announcementBack = cameFromManagement ? '/admin?view=content&section=announcements'
+    : editSlug ? contentPath('announcement', editSlug) : '/announcements';
+  const draftKind = announcement ? 'announcement-markdown' : 'blog-markdown';
   const worksFolderId = searchParams.get('worksFolderId')?.trim() || '';
   const writerRef = useRef<MarkdownWriterHandle | null>(null);
   const editorRef = useRef<Crepe | null>(null);
@@ -204,8 +250,8 @@ export default function BlogMarkdownPage() {
   const [error, setError] = useState('');
   const [userChecked, setUserChecked] = useState(false);
   const autosaveKey = useMemo(
-    () => makeMilkdownAutosaveKey(user, 'blog-markdown', editSlug || 'new'),
-    [editSlug, user],
+    () => makeMilkdownAutosaveKey(user, draftKind, (announcement && editPost?.id) || editSlug || 'new'),
+    [announcement, draftKind, editPost?.id, editSlug, user],
   );
   const resolveRepositoryAsset = useCallback(
     (path: string) => editPost ? repositoryAssetUrl(editPost, path) : path,
@@ -283,6 +329,7 @@ export default function BlogMarkdownPage() {
   });
 
   const canSave = Boolean(
+    (!announcement || !editSlug || editPost) &&
     user &&
       editorReady &&
       !loadingEdit &&
@@ -344,20 +391,22 @@ export default function BlogMarkdownPage() {
     setStatus({ key: 'markdownWriter.loading.source' });
     void loadContentDetail(editSlug)
       .then(async (post) => {
-        if (post.type !== 'blog') {
+        if (post.type !== (announcement ? 'announcement' : 'blog')) {
           throw new Error('Unsupported Markdown content type.');
         }
-        if (blogEditorKind(post) !== 'markdown') {
+        if (!announcement && blogEditorKind(post) !== 'markdown') {
           throw new Error('The blog uses a different editor.');
         }
-        const source = await sourceFromPost(post);
-        if (!source.trim()) {
+        const source = announcement ? markdownBlogSource(post.body) || post.body : await sourceFromPost(post);
+        if (!announcement && !source.trim()) {
           throw new Error('No Markdown source is available.');
         }
         if (cancelled) return;
-        const sourceTitle = firstMarkdownHeading(source) || post.title;
-        const syncedSource = markdownWithTitle(source, sourceTitle);
-        const nextManualExcerpt = manualExcerptFromPost(post, syncedSource);
+        const sourceTitle = announcement ? post.title : firstMarkdownHeading(source) || post.title;
+        const syncedSource = announcement
+          ? markdownWithTitle('', sourceTitle) + '\n\n' + source
+          : markdownWithTitle(source, sourceTitle);
+        const nextManualExcerpt = manualExcerptFromPost(post, announcement ? source : syncedSource);
         setEditPost(post);
         titleRef.current = sourceTitle;
         setTitle(sourceTitle);
@@ -383,7 +432,7 @@ export default function BlogMarkdownPage() {
           setManualExcerptEnabled(false);
           setSummaryEditorValue('');
           setSummaryDialogOpen(false);
-          setInitialMarkdown('');
+          setInitialMarkdown(announcement ? null : '');
         }
       })
       .finally(() => {
@@ -392,7 +441,7 @@ export default function BlogMarkdownPage() {
     return () => {
       cancelled = true;
     };
-  }, [editSlug]);
+  }, [announcement, editAttempt, editSlug]);
 
   const makeAutosaveDraft = useCallback((): MilkdownAutosaveDraft | null => {
     const draftTitle = titleRef.current || title;
@@ -404,7 +453,7 @@ export default function BlogMarkdownPage() {
     return {
       version: 1,
       key: autosaveKey,
-      kind: 'blog-markdown',
+      kind: draftKind,
       title: draftTitle,
       markdown: draftMarkdown,
       excerpt: draftExcerpt,
@@ -413,14 +462,14 @@ export default function BlogMarkdownPage() {
       coverUrl,
       sourceVisibility,
       editSlug,
-      repositoryFiles: assetHost.snapshotRepositoryFiles(),
+      repositoryFiles: announcement ? undefined : assetHost.snapshotRepositoryFiles(),
       savedAt: Date.now(),
     };
-  }, [autosaveKey, coverUrl, editSlug, manualExcerpt, manualExcerptEnabled, sourceVisibility, tags, title]);
+  }, [announcement, assetHost, autosaveKey, coverUrl, draftKind, editSlug, manualExcerpt, manualExcerptEnabled, sourceVisibility, tags, title]);
 
   const applyAutosaveDraft = useCallback(async (draft: MilkdownAutosaveDraft) => {
-    if (draft.kind !== 'blog-markdown') return;
-    await assetHost.importRepositoryFiles(draft.repositoryFiles);
+    if (draft.kind !== draftKind) return;
+    if (!announcement) await assetHost.importRepositoryFiles(draft.repositoryFiles);
     const nextTitle = draft.title || firstMarkdownHeading(draft.markdown) || titleRef.current;
     const nextMarkdown = markdownWithTitle(draft.markdown, nextTitle);
     titleRef.current = nextTitle;
@@ -436,11 +485,11 @@ export default function BlogMarkdownPage() {
     setInitialMarkdown(nextMarkdown);
     if (!editorRef.current) return;
     syncingTitleRef.current = true;
-    editorRef.current.editor.action(replaceAll(assetHost.hydrateMarkdown(nextMarkdown), true));
+    editorRef.current.editor.action(replaceAll(announcement ? nextMarkdown : assetHost.hydrateMarkdown(nextMarkdown), true));
     window.setTimeout(() => {
       syncingTitleRef.current = false;
     }, 0);
-  }, [assetHost]);
+  }, [announcement, assetHost, draftKind]);
 
   const {
     checked: autosaveChecked,
@@ -456,6 +505,7 @@ export default function BlogMarkdownPage() {
     userChecked,
     enabled: initialMarkdown !== null && !loadingEdit,
     ready: editorReady && !savingMode,
+    remote: !announcement,
     makeDraft: makeAutosaveDraft,
     applyDraft: applyAutosaveDraft,
   });
@@ -485,7 +535,7 @@ export default function BlogMarkdownPage() {
     skipNextMathReparse: skipNextMathReparseRef,
   }), []);
   const writerLabels: MarkdownWriterLabels = {
-    title: appI18n.t('creation:markdownWriter.labels.title'),
+    title: announcement ? t('publishPage.fields.title') : appI18n.t('creation:markdownWriter.labels.title'),
     editor: appI18n.t('creation:markdownWriter.editor'),
     enterFullscreen: appI18n.t('creation:markdownWriter.controls.fullscreen'),
     exitFullscreen: appI18n.t('creation:markdownWriter.controls.exitFullscreen'),
@@ -513,13 +563,13 @@ export default function BlogMarkdownPage() {
     openSource: t('markdownWriter.visibility.open'),
     privateSource: t('markdownWriter.visibility.private'),
     saveDraft: t('actions.saveDraft'),
-    publish: t('actions.publish'),
+    publish: announcement ? t(editSlug ? 'publishPage.modes.announcement.save' : 'publishPage.modes.announcement.submit') : t('actions.publish'),
     saving: t('markdownWriter.actions.saving'),
     publishing: t('writer.actions.publishing'),
   };
   const writerActive = Boolean(
     editorTranslationsReady &&
-      repositoryAssetsReady &&
+      (announcement || repositoryAssetsReady) &&
       !loadingEdit &&
       initialMarkdown !== null &&
       autosaveChecked
@@ -545,8 +595,8 @@ export default function BlogMarkdownPage() {
     const sourceMarkdown = normalizeMarkdownWhitespaceEntities(
       markdownWithTitle(markdownRef.current, titleRef.current || title),
     ).trim();
-    return excerptFromMarkdown(sourceMarkdown);
-  }, [summaryDialogOpen, title]);
+    return excerptFromMarkdown(announcement ? markdownWithoutMatchingTitle(sourceMarkdown, title) : sourceMarkdown);
+  }, [announcement, summaryDialogOpen, title]);
 
   const summaryPreviewMarkdown =
     normalizeManualExcerpt(summaryEditorValue) || automaticExcerptPreview;
@@ -631,6 +681,7 @@ export default function BlogMarkdownPage() {
       setError(t('markdownWriter.validation.signIn'));
       return;
     }
+    if (announcement && editSlug && !editPost) return;
     setSavingMode(mode);
     setError('');
     setStatus(null);
@@ -644,6 +695,35 @@ export default function BlogMarkdownPage() {
       // Published revisions must remain visible while a new revision is a draft.
       await saveNow();
       durableDraftSaved = true;
+      if (announcement) {
+        if (mode === 'draft') return;
+        const body = markdownWithoutMatchingTitle(sourceMarkdown, title);
+        if (!body.trim()) {
+          setError(t('publishPage.modes.announcement.bodyRequired'));
+          return;
+        }
+        const input: CreateContentInput = {
+          type: 'announcement',
+          title: title.trim(),
+          body,
+          excerpt: (manualExcerptEnabled ? normalizeManualExcerpt(manualExcerpt) : '') || excerptFromMarkdown(body),
+          tags: splitTagValues(tags).slice(0, 6),
+        };
+        const saved = editPost
+          ? await updateAnnouncement(editPost.slug || editPost.id, input)
+          : await createContent(input);
+        if (isContentModerationSubmission(saved)) {
+          setStatus({
+            key: 'publishDialog.create.moderation.' + (
+              saved.state === 'rejected' ? 'rejected' : saved.state === 'published' ? 'published' : 'pending'
+            ),
+          });
+          return;
+        }
+        await clearAutosave().catch((reason: unknown) => console.error('Could not clear the saved announcement draft', reason));
+        navigate(contentPath('announcement', saved.id), { replace: true });
+        return;
+      }
       if (mode === 'published' && assetHost.hasPendingQuiver(sourceMarkdown)) {
         setError(t('markdownWriter.quiver.pendingPublish'));
         return;
@@ -727,7 +807,9 @@ export default function BlogMarkdownPage() {
         ? t(saveError.localSaved
           ? 'markdownWriter.status.accountDraftFailedLocalKept'
           : 'markdownWriter.status.accountDraftFailed')
-        : localizedErrorMessage(saveError, 'creation.markdownSaveFailed');
+        : announcement && saveError instanceof ServiceError && saveError.status === 451
+          ? t('publishPage.modes.announcement.reviewRequired')
+          : localizedErrorMessage(saveError, announcement ? 'creation.announcementSaveFailed' : 'creation.markdownSaveFailed');
       setError(durableDraftSaved
         ? t(mode === 'published'
           ? 'markdownWriter.status.publishFailedDraftKept'
@@ -740,8 +822,18 @@ export default function BlogMarkdownPage() {
 
   return (
     <>
-      <Helmet title={t('markdownWriter.documentTitle')} />
+      <Helmet title={t(announcement
+        ? editSlug ? 'publishPage.modes.announcement.editHeading' : 'publishPage.modes.announcement.heading'
+        : 'markdownWriter.documentTitle')} />
       <SiteTopbar />
+      {announcement ? (
+        <div className="announcement-writer-navigation">
+          <Link to={announcementBack}>{t('markdownWriter.actions.cancel')}</Link>
+          {editSlug && !loadingEdit && error && !editPost ? (
+            <Button onClick={() => setEditAttempt(value => value + 1)}>{t('actions.retry')}</Button>
+          ) : null}
+        </div>
+      ) : null}
       <MarkdownWriterPage
         ref={writerRef}
         title={title}
@@ -750,17 +842,18 @@ export default function BlogMarkdownPage() {
         pageLabels={writerPageLabels}
         refs={writerRefs}
         active={writerActive}
+        createEditor={announcement ? createAnnouncementEditor : undefined}
         onTitleChange={setTitle}
         onMarkdownChange={() => markAutosaveChanged()}
         onReadyChange={setEditorReady}
         onError={(createError) => {
           setError(localizedErrorMessage(createError, 'creation.markdownEditorFailed'));
         }}
-        serializeMarkdown={(markdown) => assetHost.serializeMarkdown(markdown)}
-        hydrateMarkdown={(markdown) => assetHost.hydrateMarkdown(markdown)}
+        serializeMarkdown={announcement ? undefined : (markdown) => assetHost.serializeMarkdown(markdown)}
+        hydrateMarkdown={announcement ? undefined : (markdown) => assetHost.hydrateMarkdown(markdown)}
         normalizeMarkdown={normalizeArticleEditorMarkdown}
         editorOptions={{
-          uploadImage: async (file) => (await assetHost.stageImage(file)).previewUrl,
+          uploadImage: async (file) => announcement ? uploadAnswerFile('post', file) : (await assetHost.stageImage(file)).previewUrl,
           imageCaptionPlaceholder: appI18n.t(
             'creation:markdownWriter.placeholders.imageCaption',
           ),
@@ -769,11 +862,11 @@ export default function BlogMarkdownPage() {
           ),
           mathTrust: true,
         }}
-        quiver={{
+        quiver={announcement ? undefined : {
           label: appI18n.t('creation:markdownWriter.topBar.quiver'),
           onOpen: () => openQuiverDialog(),
         }}
-        createInteractions={(runtime) => createMilkdownInteractions({
+        createInteractions={announcement ? undefined : (runtime) => createMilkdownInteractions({
           ...runtime,
           openQuiver: openQuiverDialog,
           onQuiverSourceError: (interactionError) => {
@@ -793,11 +886,13 @@ export default function BlogMarkdownPage() {
           ),
           summaryCustomized,
           onOpenSummary: openSummaryDialog,
-          coverUrl,
-          onCoverFile: changeCover,
-          onRemoveCover: () => setCoverUrl(''),
-          sourceVisibility,
-          onSourceVisibilityChange: setSourceVisibility,
+          ...(!announcement ? {
+            coverUrl,
+            onCoverFile: changeCover,
+            onRemoveCover: () => setCoverUrl(''),
+            sourceVisibility,
+            onSourceVisibilityChange: setSourceVisibility,
+          } : {}),
           onSaveDraft: () => void saveArticle('draft'),
           onPublish: () => void saveArticle('published'),
           tagsDisabled: !user || Boolean(savingMode),

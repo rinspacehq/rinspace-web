@@ -1,1 +1,1 @@
-export { loadAdminAnswerPage, adminUpdateAnswerStatus, loadAdminContentPage, adminUpdateContentStatus, adminUpdateContentTags, adminDeleteContent, loadAdminQuestionPage, adminUpdateQuestionStatus, loadAdminUserPage, adminUpdateUserStatus } from '../feed';
+export { loadAdminAnswerPage, adminUpdateAnswerStatus, loadAdminContentPage, setAnnouncementPinned, adminUpdateContentStatus, adminUpdateContentTags, adminDeleteContent, loadAdminQuestionPage, adminUpdateQuestionStatus, loadAdminUserPage, adminUpdateUserStatus } from '../feed';

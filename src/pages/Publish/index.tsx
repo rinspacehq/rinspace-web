@@ -28,7 +28,7 @@ import { typstCreationEnabled } from '@/features/publish/typstFeature';
 import { extractPDFTOC, renderPDFCover } from '@/utils/pdfToc';
 import { answerPath, bookWorkspacePath, contentPath, questionPath, tagReadOrLegacyPath } from '@/utils/routes';
 
-type PublishMode = 'question' | 'discussion' | 'announcement' | 'dynamic' | 'book';
+type PublishMode = 'question' | 'discussion' | 'dynamic' | 'book';
 
 type PublishPageProps = {
   mode: PublishMode;
@@ -82,8 +82,6 @@ function searchResultPath(result: SearchResult) {
       return answerPath(ref, result.id);
     case 'blog':
       return contentPath('blog', ref, result.title);
-    case 'announcement':
-      return contentPath('announcement', ref);
     case 'discussion':
     case 'forum':
       return contentPath('discussion', ref, result.title);
@@ -590,11 +588,6 @@ export default function PublishPage({ mode }: PublishPageProps) {
     };
     if (worksFolderId && worksVisibility === 'private' && !editing) {
       input.status = 'private';
-    }
-    if (mode === 'announcement') {
-      input.forumSection = 'notice';
-      input.forumPinned = true;
-      input.forumAnnouncement = true;
     }
     if (mode === 'discussion') {
       input.images = discussionImages;

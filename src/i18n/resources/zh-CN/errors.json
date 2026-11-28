@@ -69,6 +69,7 @@
     "reactionFailed": "喜欢操作失败。"
   },
   "discovery": {
+    "announcementPinFailed": "公告置顶状态更新失败。",
     "announcementsLoadFailed": "公告加载失败。",
     "blogsLoadFailed": "文章加载失败。",
     "booksLoadFailed": "书籍加载失败。",
@@ -213,6 +214,7 @@
     "markdownEditorFailed": "Markdown 编辑器启动失败。",
     "markdownCoverUploadFailed": "封面上传失败。",
     "markdownRenderCancelFailed": "发布渲染取消失败。",
+    "announcementSaveFailed": "公告保存失败。",
     "markdownSaveFailed": "Markdown 文章保存失败。",
     "quiverSourceLoadFailed": "Quiver 图表源文件读取失败。",
     "quiverRenderFailed": "Quiver 图表渲染失败。"

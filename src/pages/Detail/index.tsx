@@ -80,6 +80,7 @@ import { localizedErrorMessage } from "@/i18n/errors";
 import { useResolvedLocale } from "@/i18n/LanguageProvider";
 import type { LocaleId } from "@/i18n/types";
 import { useFeatureTranslation } from "@/i18n/useFeatureTranslation";
+import { useAnnouncementAccess } from "@/features/announcements/useAnnouncementAccess";
 import {
   blogEditPath,
   blogEditorKind,
@@ -1146,7 +1147,7 @@ function prepareRinWriterDocument(
       .filter(Boolean),
   );
   const usedIds = new Map<string, number>();
-  document.body.querySelectorAll("h2, h3, h4").forEach((heading, index) => {
+  document.body.querySelectorAll("h2, h3, h4, h5, h6").forEach((heading, index) => {
     if (heading.id || options.serverFinal) return;
     const base = slugifyHeading(
       heading.textContent || "",
@@ -2931,8 +2932,8 @@ function blogTocHeadingText(heading: Element) {
   return normalizedTitleText(parts.join(""));
 }
 
-function rinWriterTocItems(html: string, title: string): BlogTocItem[] {
-  const document = prepareRinWriterDocument(html, title, { serverFinal: true });
+function rinWriterTocItems(html: string, title: string, serverFinal = true): BlogTocItem[] {
+  const document = prepareRinWriterDocument(html, title, { serverFinal });
   if (!document) return [];
   return Array.from(document.body.querySelectorAll("h2, h3, h4, h5, h6"))
     .map((heading) => {
@@ -4582,6 +4583,7 @@ function QuestionNetworkPanel({
 function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   const { t } = useFeatureTranslation("reader");
   const locale = useResolvedLocale();
+  const announcementAccess = useAnnouncementAccess(kind === "announcement");
   const localizedInteractionText = useCallback(
     (item: PostDetail, isAnnouncement: boolean) => {
       const parts: string[] = [
@@ -5642,7 +5644,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   const isBookReadingPage = isBookReadingRoute;
   const hasUnifiedContentComments = Boolean(
     post &&
-    (post.type === "blog" || post.type === "book") &&
+    (post.type === "blog" || post.type === "book" || post.type === "announcement") &&
     !isBookReadingPage,
   );
   useEffect(() => {
@@ -5773,14 +5775,16 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     titleSlug,
   ]);
   const blogArticle = useMemo<BlogArticleOutput>(() => {
+    if (post?.type === "announcement")
+      return { html: rinWriterHtml(post.body) || markdownToHtml(markdownBlogSource(post.body) || post.body, { deferMath: true, imageCaptionAsAlt: true }), serverFinal: false };
     if (!post || kind !== "blog") return { html: "", serverFinal: false };
     return blogArticleOutput(post);
   }, [kind, post]);
   const blogArticleBodyHtml = blogArticle.html;
   const blogTocItems = useMemo(() => {
-    if (!post || kind !== "blog") return [];
+    if (!post || (kind !== "blog" && post.type !== "announcement")) return [];
     return blogArticleBodyHtml
-      ? rinWriterTocItems(blogArticleBodyHtml, post.title)
+      ? rinWriterTocItems(blogArticleBodyHtml, post.title, post.type !== "announcement")
       : [];
   }, [blogArticleBodyHtml, kind, post]);
   const bookReaderItems = useMemo(
@@ -5831,7 +5835,6 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
 
   useEffect(() => {
     if (
-      (kind !== "blog" && !isBookReadingPage) ||
       !activeArticleTocItems.length
     ) {
       setActiveBlogTocId("");
@@ -5862,7 +5865,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
       window.removeEventListener("resize", requestSync);
       window.removeEventListener("hashchange", requestSync);
     };
-  }, [activeArticleTocItems, isBookReadingPage, kind]);
+  }, [activeArticleTocItems]);
 
   useEffect(() => {
     if (!post || post.type !== "book" || !canLoadPublicBookFeatures(post)) {
@@ -6207,6 +6210,12 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     !question &&
     (kind === "announcement" || post.type === "announcement"),
   );
+  const usesArticleLayout = kind === "blog" || isAnnouncementDetail;
+  const announcementPublishedAt = post?.publishedAt || post?.createdAt;
+  const announcementUpdatedAt = isAnnouncementDetail && post?.contentUpdatedAt && announcementPublishedAt &&
+    Date.parse(post.contentUpdatedAt) > Date.parse(announcementPublishedAt)
+    ? post.contentUpdatedAt : undefined;
+  const showAnnouncementInfo = isAnnouncementDetail && Boolean(post?.forumPinned || announcementUpdatedAt);
   const isThreadLikeDetail = isDiscussionDetail || isAnnouncementDetail;
   const isDiscussionPostDetail = isDiscussionDetail && !isAnnouncementDetail;
   const isDynamicDetail = Boolean(
@@ -6380,7 +6389,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
     sameUserId(currentUser?.id, post.authorUid || post.authorId),
   );
   const canEditAnnouncement = Boolean(
-    post && isAnnouncementDetail && hasSession && isCurrentUserAdmin,
+    post && isAnnouncementDetail && announcementAccess.state === "allowed",
   );
   const canEditDynamic = Boolean(
     post &&
@@ -10983,7 +10992,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             )}/edit`}
           >
             <Icon name="pencil-square" />
-            {t("detail.common.edit")}
+            {t(isAnnouncementDetail ? "detail.common.editAnnouncement" : "detail.common.edit")}
           </Link>
         ) : null}
         {renderCollectionAction(true)}
@@ -11006,8 +11015,8 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
   };
 
   const renderBlogArticleHeader = () => {
-    if (!post || kind !== "blog") return null;
-    const metaText = detailMetaText(post, displayKind);
+    if (!post || !usesArticleLayout) return null;
+    const metaText = isAnnouncementDetail ? "" : detailMetaText(post, displayKind);
     return (
       <header className="blog-article-header">
         <div className="blog-article-topline">
@@ -11045,20 +11054,22 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
             )}
             rank={rankFromMap(post.author, post.authorRank, authorProfiles)}
           />
-          <span>{dateLabel(post.createdAt, locale)}</span>
+          {isAnnouncementDetail && announcementPublishedAt ? (
+            <time dateTime={announcementPublishedAt}>{dateLabel(announcementPublishedAt, locale)}</time>
+          ) : <span>{dateLabel(post.createdAt, locale)}</span>}
           {metaText ? (
             <span>
               <MathInline text={metaText} />
             </span>
           ) : null}
-          <strong>{localizedInteractionText(post, false)}</strong>
+          {!isAnnouncementDetail ? <strong>{localizedInteractionText(post, false)}</strong> : null}
         </div>
       </header>
     );
   };
 
   const renderDiscussionArticleHeader = () => {
-    if (!post || !isThreadLikeDetail) return null;
+    if (!post || !isDiscussionPostDetail) return null;
     return (
       <header className="blog-article-header discussion-article-header">
         <div className="blog-article-topline">
@@ -12936,7 +12947,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
       <AnimateScrollProgress />
 
       <main
-        className={`detail-shell detail-${kind}${kind === "question" ? " question-detail-shell" : ""}${isThreadLikeDetail ? " discussion-thread-shell" : ""}${isAnnouncementDetail ? " announcement-detail-shell" : ""}${isDynamicDetail ? " dynamic-detail-shell" : ""}${isBookReadingPage ? " book-reader-shell" : ""}${isBlogTypographyTest ? " detail-blog-typography-test" : ""}`}
+        className={`detail-shell detail-${kind}${kind === "question" ? " question-detail-shell" : ""}${isDiscussionPostDetail ? " discussion-thread-shell" : ""}${isAnnouncementDetail && kind !== "blog" ? " detail-blog" : ""}${isDynamicDetail ? " dynamic-detail-shell" : ""}${isBookReadingPage ? " book-reader-shell" : ""}${isBlogTypographyTest ? " detail-blog-typography-test" : ""}`}
         data-rin-public-document={
           kind === "blog" ? "article" : kind === "book" ? "book" : undefined
         }
@@ -13007,11 +13018,9 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 ? `detail-grid book-reader-grid${bookReaderStructure.length ? "" : " book-reader-no-toc"}`
                 : isDynamicDetail
                   ? "detail-grid dynamic-detail-grid"
-                  : isAnnouncementDetail
-                    ? "detail-grid announcement-no-side"
-                    : kind === "blog" && !blogTocItems.length
-                      ? "detail-grid blog-no-toc"
-                      : "detail-grid"
+                  : usesArticleLayout && !blogTocItems.length
+                    ? "detail-grid blog-no-toc"
+                    : "detail-grid"
             }
           >
             {isBookReadingPage && bookReaderStructure.length ? (
@@ -13025,7 +13034,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                   onSelect={navigateBookReaderTarget}
                 />
               </aside>
-            ) : kind === "blog" && blogTocItems.length ? (
+            ) : usesArticleLayout && blogTocItems.length ? (
               <aside className="blog-toc-side">
                 <BlogTableOfContents
                   items={activeArticleTocItems}
@@ -13039,7 +13048,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 className={
                   question
                     ? "detail-article panel question-statement-panel"
-                    : kind === "blog"
+                    : usesArticleLayout
                       ? "detail-article panel blog-detail-article"
                       : isBookReadingPage
                         ? "book-reader-article"
@@ -13118,13 +13127,11 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                         ))}
                       </div>
                     ) : null}
-                    {isThreadLikeDetail ? (
+                    {isDiscussionPostDetail ? (
                       <>
                         <div className="discussion-main-floor">
                           <span className="floor-badge">
-                            {isAnnouncementDetail
-                              ? t("detail.type.announcement")
-                              : t("detail.discussion.firstFloor")}
+                            {t("detail.discussion.firstFloor")}
                           </span>
                           <Link
                             className="discussion-floor-author identity-link"
@@ -13149,9 +13156,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                             />
                           </Link>
                           <span className="owner-badge">
-                            {isAnnouncementDetail
-                              ? t("detail.discussion.publisher")
-                              : t("detail.comments.owner")}
+                            {t("detail.comments.owner")}
                           </span>
                           <span>{dateLabel(post.createdAt, locale)}</span>
                         </div>
@@ -13243,7 +13248,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                             return null;
                           const bodyHtml = isBookReadingPage
                             ? currentBookReaderPageHtml
-                            : kind === "blog"
+                            : usesArticleLayout
                               ? blogArticleBodyHtml
                               : post.type === "question"
                                 ? markdownArticleHtml(post.body)
@@ -13264,6 +13269,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                           const shouldDeferArticleMath =
                             isBookReadingPage ||
                             post.type === "question" ||
+                            isAnnouncementDetail ||
                             isMarkdownBlog;
                           const bodyClassName = isBookReadingPage
                             ? "detail-body detail-body-no-section-intro"
@@ -13272,7 +13278,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                             <div
                               className={bodyClassName}
                               data-rin-primary-text={
-                                kind === "blog" ? "article" : undefined
+                                usesArticleLayout ? "article" : undefined
                               }
                               ref={
                                 isBookReadingPage
@@ -13306,7 +13312,7 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                                     isRinWriterBlog
                                   }
                                   enableInternalLinkPreviews={
-                                    kind === "blog" || isBookReadingPage
+                                    usesArticleLayout || isBookReadingPage
                                   }
                                 />
                               ) : post.type === "blog" ? (
@@ -13927,9 +13933,21 @@ function DetailPage({ kind, view = "overview", variant }: DetailPageProps) {
                 <PublicationProgressPanel progress={publicationProgress} />
                 <SiteIcpLink />
               </aside>
-            ) : !isBookReadingPage &&
-              !isDynamicDetail &&
-              !isAnnouncementDetail ? (
+            ) : isAnnouncementDetail ? (
+              showAnnouncementInfo ? (
+                <aside className="detail-side">
+                  <section className="panel blog-side-summary announcement-info">
+                    <div className="panel-heading"><span>{t("detail.sidebar.announcementInfo")}</span></div>
+                    {post.forumPinned ? <span>{t("detail.sidebar.announcementPinned")}</span> : null}
+                    {announcementUpdatedAt ? (
+                      <time dateTime={announcementUpdatedAt}>
+                        {t("detail.sidebar.announcementUpdated", { date: dateLabel(announcementUpdatedAt, locale) })}
+                      </time>
+                    ) : null}
+                  </section>
+                </aside>
+              ) : null
+            ) : !isBookReadingPage && !isDynamicDetail ? (
               <aside
                 className={
                   question ? "detail-side question-detail-side" : "detail-side"

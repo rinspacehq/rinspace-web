@@ -289,6 +289,7 @@
   "content": {
     "tabsLabel": "Management categories",
     "tabs": {
+      "announcements": "Announcements",
       "blogs": "Articles",
       "books": "Books",
       "questions": "Q&A",

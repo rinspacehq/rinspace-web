@@ -21,6 +21,7 @@ import {
   MenuSubContent,
   Tooltip,
 } from "components/ui";
+import { useAnnouncementAccess } from '@/features/announcements/useAnnouncementAccess';
 import { publicEnv } from "@/app/config/env";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import {
@@ -716,6 +717,7 @@ export default function SiteTopbar({
       />
     </Tooltip>
   );
+  const announcementAccess = useAnnouncementAccess();
   const renderPublishMenuItems = () => (
     <>
       <MenuSub>
@@ -790,7 +792,7 @@ export default function SiteTopbar({
         <Icon name="lightning-charge" />
         <span>{tNavigation("publish.tweet")}</span>
       </MenuItem>
-      {isModerator ? (
+      {announcementAccess.state === "allowed" ? (
         <MenuItem asChild>
           <Link to="/announcements/new">
             <Icon name="megaphone" />

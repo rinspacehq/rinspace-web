@@ -27,6 +27,7 @@
       "noBrowserFallback": "页面不会在浏览器中重新解析源码，请稍后重试。"
     },
     "common": {
+      "editAnnouncement": "编辑公告",
       "cancel": "取消",
       "edit": "编辑",
       "delete": "删除",
@@ -270,6 +271,8 @@
       "updatedContent": "更新了内容记录。"
     },
     "sidebar": {
+      "announcementUpdated": "更新于 {{date}}",
+      "announcementPinned": "置顶",
       "articleInfo": "文章信息",
       "announcementInfo": "公告信息",
       "postInfo": "帖子信息",
