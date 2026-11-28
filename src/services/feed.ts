@@ -12,7 +12,7 @@ import {
   contentDeletionCommand,
   contentDeletionStepUpHeader,
 } from "./contentDeletion";
-import { ServiceError } from "./httpClient";
+import { requestAdminJson, ServiceError } from "./httpClient";
 import { clearContentCreateIdempotencyKey, contentCreateIdempotencyKey } from "./contentCreateIdempotency";
 
 export type CachedSnapshot<T> = {
@@ -11576,6 +11576,14 @@ export async function loadAdminAnswerPage(
     throw new Error("回答列表返回格式异常。");
   }
   return parsed;
+}
+
+export async function setAnnouncementPinned(id: string, pinned: boolean) {
+  await requestAdminJson<null>(`content/announcements/${encodeURIComponent(id)}/pin`, {
+    method: 'PUT',
+    auth: 'required',
+    body: { pinned },
+  });
 }
 
 export async function loadAdminContentPage(
