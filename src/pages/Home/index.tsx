@@ -3064,12 +3064,7 @@ function HomePage() {
               <section className="panel forum-panel announcement-panel">
                 <div className="panel-heading">
                   <span>{t('home.rail.announcements')}</span>
-                  <strong>
-                    {t('home.rail.announcementCount', {
-                      count: announcementItems.length,
-                      displayCount: formatNumber(locale, announcementItems.length),
-                    })}
-                  </strong>
+                  <Link to="/announcements">{t('home.rail.allAnnouncements')}</Link>
                 </div>
                 {announcementItems.length ? (
                   <div className="compact-list">

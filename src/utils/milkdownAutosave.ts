@@ -13,7 +13,7 @@ import {
   hasAuthSession,
 } from "@/services/phoneAuth";
 
-export type MilkdownAutosaveKind = "blog-markdown" | "markdown-book-section";
+export type MilkdownAutosaveKind = "blog-markdown" | "markdown-book-section" | "announcement-markdown";
 
 export class MilkdownDraftSaveError extends Error {
   constructor(public readonly localSaved: boolean, cause: unknown) {
@@ -60,6 +60,7 @@ type UseMilkdownAutosaveOptions = {
   userChecked: boolean;
   enabled: boolean;
   ready: boolean;
+  remote?: boolean;
   makeDraft: () => MilkdownAutosaveDraft | null;
   applyDraft: (
     draft: MilkdownAutosaveDraft,
@@ -77,7 +78,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isMilkdownAutosaveKind(value: unknown): value is MilkdownAutosaveKind {
-  return value === "blog-markdown" || value === "markdown-book-section";
+  return value === "blog-markdown" || value === "markdown-book-section" || value === "announcement-markdown";
 }
 
 function isMilkdownAutosaveDraft(
@@ -380,6 +381,7 @@ export function useMilkdownAutosave({
   userChecked,
   enabled,
   ready,
+  remote = true,
   makeDraft,
   applyDraft,
 }: UseMilkdownAutosaveOptions) {
@@ -461,6 +463,10 @@ export function useMilkdownAutosave({
       try {
         await writeAutosaveDraft(draft);
         lastLocalAutosaveAtRef.current = draft.savedAt;
+        if (!remote) {
+          setNotice({ key: "writer.autosave.savedLocal", timestamp: draft.savedAt });
+          return;
+        }
         try {
           const remoteDraft = await writeRemoteAutosaveDraft(
             draft,
@@ -507,7 +513,7 @@ export function useMilkdownAutosave({
     activeAutosaveRef.current = operation;
     await operation;
     if (activeAutosaveRef.current === operation) activeAutosaveRef.current = null;
-  }, []);
+  }, [remote]);
 
   const saveNow = useCallback(async () => {
     const draft = makeDraftRef.current();
@@ -528,8 +534,13 @@ export function useMilkdownAutosave({
         lastLocalAutosaveAtRef.current = draft.savedAt;
         localSaved = true;
       } catch (localError) {
+        if (!remote) throw localError;
         // A failed browser storage write must not block the account draft.
         console.error("Failed to save the local Milkdown draft", localError);
+      }
+      if (!remote) {
+        setNotice({ key: "writer.autosave.savedLocal", timestamp: draft.savedAt });
+        return null;
       }
       let remoteDraft: RemoteMilkdownAutosaveDraft | null;
       try {
@@ -547,7 +558,7 @@ export function useMilkdownAutosave({
     } finally {
       manualSavingRef.current = false;
     }
-  }, []);
+  }, [remote]);
 
   const scheduleAutosave = useCallback(
     (delay = 8000, options: { force?: boolean } = {}) => {
@@ -588,14 +599,14 @@ export function useMilkdownAutosave({
     try {
       await activeAutosaveRef.current;
       await deleteAutosaveDraft(currentKey);
-      await deleteRemoteAutosaveDraft(currentKey).catch(() => undefined);
+      if (remote) await deleteRemoteAutosaveDraft(currentKey).catch(() => undefined);
       setNotice(null);
       lastLocalChangeAtRef.current = 0;
       lastLocalAutosaveAtRef.current = 0;
     } finally {
       manualSavingRef.current = false;
     }
-  }, []);
+  }, [remote]);
 
   const applyRemoteAutosaveDraft = useCallback(
     async (remoteDraft: RemoteMilkdownAutosaveDraft) => {
@@ -646,7 +657,7 @@ export function useMilkdownAutosave({
       const localDraft = await readAutosaveDraft(key);
       let remoteDraft: RemoteMilkdownAutosaveDraft | null = null;
       try {
-        remoteDraft = user ? await readRemoteAutosaveDraft(key) : null;
+        remoteDraft = remote && user ? await readRemoteAutosaveDraft(key) : null;
       } catch (remoteError) {
         if (!cancelled && !localDraft) {
           console.error(
@@ -695,7 +706,7 @@ export function useMilkdownAutosave({
     return () => {
       cancelled = true;
     };
-  }, [enabled, key, user, userChecked]);
+  }, [enabled, key, remote, user, userChecked]);
 
   useEffect(() => {
     return () => {
@@ -726,7 +737,7 @@ export function useMilkdownAutosave({
   }, [enabled, ready, scheduleAutosave]);
 
   useEffect(() => {
-    if (!ready || !enabled || !user) return undefined;
+    if (!remote || !ready || !enabled || !user) return undefined;
     let cancelled = false;
     const run = () => {
       void pollRemoteAutosaveDraft().catch((pollError) => {
@@ -741,7 +752,7 @@ export function useMilkdownAutosave({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [enabled, pollRemoteAutosaveDraft, ready, user]);
+  }, [enabled, pollRemoteAutosaveDraft, ready, remote, user]);
 
   return {
     checked,

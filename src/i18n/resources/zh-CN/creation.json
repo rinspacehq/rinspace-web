@@ -1,6 +1,7 @@
 {
   "title": "创作",
   "actions": {
+    "retry": "重试",
     "publish": "发布",
     "saveDraft": "保存草稿"
   },
@@ -243,6 +244,9 @@
         "bodyPlaceholder": "像发帖一样写清楚讨论背景、观点和希望大家回应的点。"
       },
       "announcement": {
+        "reviewRequired": "公告需要进一步审核，当前修改尚未发布。",
+        "bodyRequired": "请填写公告正文。",
+        "save": "保存修改",
         "eyebrow": "公告",
         "heading": "发布公告",
         "editHeading": "编辑公告",

@@ -312,6 +312,7 @@ function userFromEnvelope(envelope: SessionEnvelope): RinspaceUser | null {
 }
 
 function applyEnvelope(envelope: SessionEnvelope) {
+  const previousHint = parseHint();
   // The CSRF token proves the session version, so it is scoped to the session
   // rather than to one response. A GET that omits it (no refresh cookie was
   // sent, for instance) must never erase the token we are already signing with.
@@ -331,6 +332,16 @@ function applyEnvelope(envelope: SessionEnvelope) {
     purgeLegacyBrowserCredentials();
   } else if (currentState === "anonymous" || currentState === "revoked") {
     removeStoredValue(window.localStorage, sessionHintKey);
+  }
+  const nextHint = parseHint();
+  if (
+    previousHint?.sub !== nextHint?.sub ||
+    previousHint?.sessionEpoch !== nextHint?.sessionEpoch ||
+    previousHint?.identityVersion !== nextHint?.identityVersion
+  ) {
+    window.dispatchEvent(new CustomEvent("rinspace-session-changed", {
+      detail: { status: currentState },
+    }));
   }
   return user;
 }

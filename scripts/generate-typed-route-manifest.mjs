@@ -9,6 +9,7 @@ if (inventory.declarationCount !== 87 || inventory.routes.length !== 87)
   throw new Error("Route baseline is not 87/87.");
 
 const baselineRoutes = inventory.routes;
+const announcementEditorPaths = new Set(["/announcements/new", "/announcements/:slug/edit"]);
 const catchAll = baselineRoutes.at(-1);
 if (!catchAll || catchAll.path !== "*")
   throw new Error("Route baseline catch-all is missing.");
@@ -21,6 +22,14 @@ const routes = baselineRoutes
         order,
         minimumRole: "member",
         element: "<AdminPage />",
+      };
+    if (announcementEditorPaths.has(route.path))
+      return {
+        ...route,
+        order,
+        pageComponent: "AnnouncementMarkdownPage",
+        pageModule: "@/pages/BlogMarkdown",
+        element: "<AnnouncementMarkdownPage />",
       };
     return { ...route, order };
   });
@@ -88,14 +97,15 @@ for (const route of routes) {
   imports.set(route.pageComponent, { modulePath, family: route.family });
 }
 
-const namedSponsor = new Set([
+const namedPages = new Set([
+  "AnnouncementMarkdownPage",
   "SponsorSupporterListPage",
   "SponsorSupporterPage",
   "SponsorAlipayReturnPage",
 ]);
 const declarations = [...imports]
   .map(([component, { modulePath, family }]) =>
-    namedSponsor.has(component)
+    namedPages.has(component)
       ? `const ${component} = lazy(() => Promise.all([import('${modulePath}'), loadFamilyStyles(${JSON.stringify(family)})]).then(([module]) => ({ default: module.${component} })));`
       : `const ${component} = lazy(() => Promise.all([import('${modulePath}'), loadFamilyStyles(${JSON.stringify(family)})]).then(([module]) => module));`,
   )
@@ -166,7 +176,8 @@ function namespacesForRoute(route) {
   if (route.path === "/local-client/authorize") return ["auth"];
   if (route.path === "/wallet") return ["wallet"];
   if (route.path === "/settings") return ["settings"];
-  if (route.path === "/admin") return ["admin", "identity"];
+  if (route.path === "/admin") return ["admin", "identity", "discovery"];
+  if (announcementEditorPaths.has(route.path)) return ["creation", "discovery"];
   if (route.path === "/creator") return ["creator"];
   const namespaceByFamily = {
     "account-policy": "legal",

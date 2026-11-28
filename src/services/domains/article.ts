@@ -1,1 +1,1 @@
-export { loadContentDetail, readCachedContentDetail, loadContentFeed, loadBookFeed, createContent, isContentModerationSubmission, updateContent, updateContentVisibility, deleteContent, renderPostContent, searchCitations, resolveCitations, loadRelatedBooks } from '../feed';
+export { loadContentDetail, readCachedContentDetail, loadContentFeed, loadBookFeed, createContent, isContentModerationSubmission, updateContent, updateAnnouncement, updateContentVisibility, deleteContent, renderPostContent, searchCitations, resolveCitations, loadRelatedBooks } from '../feed';

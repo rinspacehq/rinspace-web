@@ -204,13 +204,21 @@
       "next": "下一页"
     },
     "announcement": {
+      "pinned": "置顶",
+      "new": "新建公告",
+      "retry": "重试",
+      "accessDenied": "只有管理员可以发布和编辑公告。",
+      "accessUnavailable": "暂时无法核验公告管理权限。",
+      "signIn": "登录后管理公告",
+      "pin": "置顶",
+      "unpin": "取消置顶",
       "documentTitle": "公告 · 芥子环",
       "type": "公告",
       "contextTitle": "公告目录",
       "contextExcerpt": "当前公告列表：{{items}} 条。",
       "contextSection": "公告列表",
       "contextItem": "{{index}}. {{title}}；{{summary}}",
-      "heading": "通知",
+      "heading": "公告",
       "syncing": "同步中",
       "count_one": "{{displayCount}} 条",
       "count_other": "{{displayCount}} 条",
@@ -349,6 +357,7 @@
       "syncingContent": "正在同步最新社区内容..."
     },
     "rail": {
+      "allAnnouncements": "全部公告",
       "graph": "知识图谱",
       "announcements": "公告",
       "announcementCount_one": "{{displayCount}} 条",

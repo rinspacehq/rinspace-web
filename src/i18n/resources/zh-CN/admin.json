@@ -286,6 +286,7 @@
   "content": {
     "tabsLabel": "管理类别",
     "tabs": {
+      "announcements": "公告",
       "blogs": "文章",
       "books": "书籍",
       "questions": "问答",

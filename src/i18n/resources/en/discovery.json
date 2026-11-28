@@ -204,6 +204,14 @@
       "next": "Next"
     },
     "announcement": {
+      "pinned": "Pinned",
+      "new": "New announcement",
+      "retry": "Retry",
+      "accessDenied": "Only administrators can publish and edit announcements.",
+      "accessUnavailable": "Announcement permissions could not be verified.",
+      "signIn": "Sign in to manage announcements",
+      "pin": "Pin",
+      "unpin": "Unpin",
       "documentTitle": "Announcements · Rinspace",
       "type": "Announcement",
       "contextTitle": "Announcement directory",
@@ -349,6 +357,7 @@
       "syncingContent": "Syncing the latest community content..."
     },
     "rail": {
+      "allAnnouncements": "All announcements",
       "graph": "Knowledge graph",
       "announcements": "Announcements",
       "announcementCount_one": "{{displayCount}} item",

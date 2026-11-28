@@ -58,6 +58,8 @@ import {
   type AdminContentSection,
   type AdminView,
 } from "@/features/admin-workspace";
+import { AnnouncementManagement } from "@/features/announcements/AnnouncementManagement";
+import { useAnnouncementAccess } from "@/features/announcements/useAnnouncementAccess";
 import { identityCultivationRealmLabel } from "@/features/identity/labels";
 import { localizedErrorMessage } from "@/i18n/errors";
 import { formatDate, formatNumber } from "@/i18n/format";
@@ -119,6 +121,7 @@ import {
 type ContentAdminTab = "blogs" | "books" | "discussions" | "dynamics";
 type AdminTab =
   | ContentAdminTab
+  | "announcements"
   | "questions"
   | "answers"
   | "users"
@@ -436,6 +439,7 @@ export function AdminContentManagement({
   const locale = useResolvedLocale();
   const [tab, setTab] = useState<AdminTab>(section);
   const isModerator = true;
+  const announcementAccess = useAnnouncementAccess(isAdmin || tab === "announcements");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busyKey, setBusyKey] = useState("");
@@ -1809,7 +1813,8 @@ export function AdminContentManagement({
       : t("content.tabs.questions")
     : "";
   const visibleTabs: AdminContentSection[] = isAdmin
-    ? ["blogs", "books", "users", "tags", "cultivation"]
+    ? ["blogs", "books", ...(announcementAccess.state === "allowed" || tab === "announcements"
+      ? ["announcements" as const] : []), "users", "tags", "cultivation"]
     : [];
 
   return (
@@ -1897,6 +1902,7 @@ export function AdminContentManagement({
             </TabsList>
 
             <section className="admin-board">
+              {tab === "announcements" ? <AnnouncementManagement access={announcementAccess} /> : null}
               {tab === "blogs" ? (
                 <Surface className="admin-panel">
                   <div className="panel-heading large">
