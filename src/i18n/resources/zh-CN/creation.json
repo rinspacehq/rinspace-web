@@ -1,7 +1,6 @@
 {
   "title": "创作",
   "actions": {
-    "retry": "重试",
     "publish": "发布",
     "saveDraft": "保存草稿"
   },
@@ -244,15 +243,9 @@
         "bodyPlaceholder": "像发帖一样写清楚讨论背景、观点和希望大家回应的点。"
       },
       "announcement": {
-        "reviewRequired": "公告需要进一步审核，当前修改尚未发布。",
-        "bodyRequired": "请填写公告正文。",
-        "save": "保存修改",
-        "eyebrow": "公告",
-        "heading": "发布公告",
-        "editHeading": "编辑公告",
-        "submit": "发布公告",
-        "bodyLabel": "公告内容",
-        "bodyPlaceholder": "写清楚公告事项、影响范围和需要社区成员注意的时间点。"
+        "reviewRequired": "公告需审核，修改尚未发布。",
+        "bodyRequired": "请填写正文。",
+        "editHeading": "编辑公告"
       },
       "dynamic": {
         "eyebrow": "动态",
